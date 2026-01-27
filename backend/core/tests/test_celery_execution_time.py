@@ -11,7 +11,7 @@ from celery.exceptions import Retry, Ignore
 from config.celery import (
     task_prerun_handler,
     task_postrun_handler,
-    SLOW_TASK_THRESHOLD_S
+    _get_slow_task_threshold
 )
 
 
@@ -137,7 +137,7 @@ class TestTaskExecutionTime:
         # 验证is_slow_task为True
         extra_fields = call_args[1]['extra']['extra_fields']
         assert extra_fields['is_slow_task'] is True
-        assert extra_fields['runtime_s'] > SLOW_TASK_THRESHOLD_S
+        assert extra_fields['runtime_s'] > _get_slow_task_threshold()
 
     @patch('config.celery.logger')
     def test_threshold_boundary(self, mock_logger):
@@ -162,7 +162,7 @@ class TestTaskExecutionTime:
         extra_fields = call_args[1]['extra']['extra_fields']
 
         # 正好60秒应该被标记为慢任务或接近慢任务
-        assert extra_fields['runtime_s'] >= SLOW_TASK_THRESHOLD_S
+        assert extra_fields['runtime_s'] >= _get_slow_task_threshold()
 
     @patch('config.celery.logger')
     def test_includes_runtime_in_message(self, mock_logger):

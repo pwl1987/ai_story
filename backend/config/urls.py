@@ -7,9 +7,11 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from core.metrics import metrics_view  # Epic 2优化: Prometheus指标导出
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('metrics/', metrics_view),  # Prometheus指标端点 (Epic 2优化)
     path('api/v1/health/', include('health.urls')),  # 健康检查端点 (Story 2.2)
     path('api/v1/projects/', include('apps.projects.urls')),
     path('api/v1/prompts/', include('apps.prompts.urls')),

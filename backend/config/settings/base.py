@@ -185,6 +185,12 @@ SIMPLE_JWT = {
     'JTI_CLAIM': 'jti',
 }
 
+# Epic 2: 系统可观测性 - 监控阈值配置
+# 将阈值提取到配置文件，便于运维调整
+# 可以通过环境变量覆盖这些默认值
+SLOW_REQUEST_THRESHOLD_MS = int(os.getenv('SLOW_REQUEST_THRESHOLD_MS', '500'))  # API慢请求阈值(毫秒)
+SLOW_TASK_THRESHOLD_S = int(os.getenv('SLOW_TASK_THRESHOLD_S', '60'))      # Celery慢任务阈值(秒)
+
 # 缓存配置
 CACHES = {
     'default': {

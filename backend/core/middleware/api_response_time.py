@@ -18,14 +18,15 @@ import logging
 import time
 from typing import Any, Dict
 
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 
 from core.middleware.api_error_logging import APIErrorLoggingMiddleware
 
 logger = logging.getLogger('apps.api')
 
-# 慢请求阈值（毫秒）
-SLOW_REQUEST_THRESHOLD_MS = 500
+# 慢请求阈值（毫秒）- 从settings读取，便于运维调整
+SLOW_REQUEST_THRESHOLD_MS = getattr(settings, 'SLOW_REQUEST_THRESHOLD_MS', 500)
 
 
 class APIResponseTimeMiddleware(APIErrorLoggingMiddleware):
@@ -34,10 +35,9 @@ class APIResponseTimeMiddleware(APIErrorLoggingMiddleware):
 
     继承自APIErrorLoggingMiddleware，在错误处理的基础上
     添加响应时间监控功能
-    """
 
-    # 慢请求阈值
-    SLOW_REQUEST_THRESHOLD_MS = 500
+    Epic 2优化: 慢请求阈值从settings配置读取
+    """
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
         """
@@ -83,7 +83,7 @@ class APIResponseTimeMiddleware(APIErrorLoggingMiddleware):
             had_error: 是否有错误
         """
         # 确定日志级别
-        if elapsed_ms > self.SLOW_REQUEST_THRESHOLD_MS:
+        if elapsed_ms > SLOW_REQUEST_THRESHOLD_MS:
             log_level = logging.WARNING
         else:
             log_level = logging.INFO
@@ -94,7 +94,7 @@ class APIResponseTimeMiddleware(APIErrorLoggingMiddleware):
             'method': request.method,
             'path': request.path,
             'response_time_ms': round(elapsed_ms, 2),
-            'is_slow_request': elapsed_ms > self.SLOW_REQUEST_THRESHOLD_MS,
+            'is_slow_request': elapsed_ms > SLOW_REQUEST_THRESHOLD_MS,
             'had_error': had_error,
         }
 
@@ -134,10 +134,9 @@ class APIResponseTimeMiddlewareStandalone:
 
     如果不想继承APIErrorLoggingMiddleware，可以使用这个版本
     仍然提供完整的响应时间监控功能
-    """
 
-    # 慢请求阈值
-    SLOW_REQUEST_THRESHOLD_MS = 500
+    Epic 2优化: 慢请求阈值从settings配置读取
+    """
 
     def __init__(self, get_response):
         """
@@ -184,7 +183,7 @@ class APIResponseTimeMiddlewareStandalone:
             elapsed_ms: 响应时间（毫秒）
         """
         # 确定日志级别
-        if elapsed_ms > self.SLOW_REQUEST_THRESHOLD_MS:
+        if elapsed_ms > SLOW_REQUEST_THRESHOLD_MS:
             log_level = logging.WARNING
         else:
             log_level = logging.INFO
@@ -195,7 +194,7 @@ class APIResponseTimeMiddlewareStandalone:
             'method': request.method,
             'path': request.path,
             'response_time_ms': round(elapsed_ms, 2),
-            'is_slow_request': elapsed_ms > self.SLOW_REQUEST_THRESHOLD_MS,
+            'is_slow_request': elapsed_ms > SLOW_REQUEST_THRESHOLD_MS,
         }
 
         # 记录日志

@@ -14,7 +14,7 @@ from config.celery import (
     task_retry_handler,
     task_failure_handler,
     debug_task,
-    SLOW_TASK_THRESHOLD_S
+    _get_slow_task_threshold
 )
 
 
@@ -164,7 +164,7 @@ class TestCeleryEdgeCases:
 
         extra_fields = call_args[1]['extra']['extra_fields']
         assert extra_fields['is_slow_task'] is True
-        assert extra_fields['runtime_s'] > SLOW_TASK_THRESHOLD_S
+        assert extra_fields['runtime_s'] > _get_slow_task_threshold()
 
     @patch('config.celery.logger')
     def test_task_failure_with_no_exception(self, mock_logger):

@@ -10,7 +10,10 @@ import time
 from django.test import RequestFactory
 from django.http import HttpResponse
 
-from core.middleware.api_response_time import APIResponseTimeMiddlewareStandalone
+from core.middleware.api_response_time import (
+    APIResponseTimeMiddlewareStandalone,
+    SLOW_REQUEST_THRESHOLD_MS
+)
 
 
 class TestStandaloneMiddleware:
@@ -24,7 +27,8 @@ class TestStandaloneMiddleware:
         get_response = Mock()
         middleware = APIResponseTimeMiddlewareStandalone(get_response)
         assert middleware.get_response == get_response
-        assert middleware.SLOW_REQUEST_THRESHOLD_MS == 500
+        # Epic 2优化: 阈值从settings读取，检查模块级常量
+        assert SLOW_REQUEST_THRESHOLD_MS == 500
 
     def test_adds_response_time_header(self):
         """测试添加响应时间到响应头"""

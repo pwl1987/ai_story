@@ -12,6 +12,8 @@ Story 2.6: 任务执行时间监控
 - 任务执行时间记录
 - 慢任务检测和告警
 - P95/P99执行时间统计支持
+
+Epic 2优化: 阈值从settings配置读取，便于运维调整
 """
 
 import logging
@@ -32,9 +34,19 @@ app = Celery('ai_story')
 # 任务日志记录器
 logger = logging.getLogger('apps.celery')
 
-# Story 2.6: 慢任务阈值（秒）
-# 超过这个时间的任务将被标记为慢任务并记录WARNING日志
-SLOW_TASK_THRESHOLD_S = 60  # 60秒
+
+def _get_slow_task_threshold():
+    """
+    获取慢任务阈值（从settings读取）
+
+    Epic 2优化: 从settings配置读取，便于运维调整
+    使用延迟加载避免循环依赖
+
+    Returns:
+        int: 慢任务阈值（秒）
+    """
+    return getattr(settings, 'SLOW_TASK_THRESHOLD_S', 60)  # 60秒默认值
+
 
 # 从Django settings加载配置
 app.config_from_object('django.conf:settings')
@@ -132,7 +144,8 @@ def task_postrun_handler(sender=None, task_id=None, task=None, retval=None, **kw
 
     if hasattr(task, 'request') and hasattr(task.request, 'start_time') and task.request.start_time is not None:
         runtime_s = time.time() - task.request.start_time
-        is_slow_task = runtime_s > SLOW_TASK_THRESHOLD_S
+        slow_threshold = _get_slow_task_threshold()
+        is_slow_task = runtime_s > slow_threshold
 
     # 确定日志级别（Story 2.6: 慢任务使用WARNING）
     log_level = logging.WARNING if is_slow_task else logging.INFO
