@@ -1,0 +1,69 @@
+# AI Story - Backend Production Dockerfile
+# 多阶段构建，优化镜像大小
+
+# ============================================
+# Stage 1: Builder
+# ============================================
+FROM python:3.10-slim as builder
+
+# 设置工作目录
+WORKDIR /build
+
+# 安装构建依赖
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    postgresql-client \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 复制依赖文件
+COPY requirements.txt .
+
+# 安装Python依赖到临时目录
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+# ============================================
+# Stage 2: Runtime
+# ============================================
+FROM python:3.10-slim
+
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH=/root/.local/bin:$PATH
+
+# 安装运行时依赖
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 从builder阶段复制Python包
+COPY --from=builder /root/.local /root/.local
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制项目文件
+COPY . .
+
+# 创建必要的目录
+RUN mkdir -p /app/logs /app/media
+
+# 收集静态文件
+RUN python manage.py collectstatic --noinput --settings=config.settings.production || \
+    echo "Warning: collectstatic failed, continuing..."
+
+# 设置权限
+RUN chmod +x /app || true
+
+# 暴露端口
+EXPOSE 8000
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/api/v1/health/ || exit 1
+
+# 启动命令（由docker-compose覆盖）
+CMD ["gunicorn", "config.asgi:application", "--bind", "0.0.0.0:8000", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker"]
