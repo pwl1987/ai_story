@@ -322,9 +322,12 @@ class TestPromptEvaluationService:
         service = PromptEvaluationService()
         template = await sync_to_async(PromptTemplateFactory)()
 
-        # When - Mock ModelProvider.objects.filter返回空QuerySet
-        with patch('apps.prompts.services.ModelProvider.objects.filter') as mock_filter:
-            mock_filter.return_value.all.return_value = []  # 空列表
+        # When - Mock ModelProvider.objects.filter().afirst()返回None
+        with patch('apps.prompts.services.ModelProvider.objects') as mock_objects:
+            # 创建mock queryset
+            mock_qs = Mock()
+            mock_qs.afirst = AsyncMock(return_value=None)  # 返回None表示没有找到
+            mock_objects.filter.return_value = mock_qs
 
             # Then
             with pytest.raises(ValueError, match="未找到可用的LLM模型提供商"):
