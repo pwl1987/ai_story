@@ -292,7 +292,7 @@ class Image2VideoStageProcessor(StageProcessor):
 
                         # 保存最终生成的视频URL
                         if event["type"] == "video_generated":
-                            video_urls = event.get("video_urls", {}).get("data", [])
+                            video_urls = event.get("video_urls", [])
 
                     if video_urls:
                         generated_videos.append(
