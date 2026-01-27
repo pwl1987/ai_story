@@ -43,7 +43,7 @@ class Text2ImageStageProcessor(StageProcessor):
         self.stage_type = 'image_generation'
         self.max_concurrent = 3  # 最大并发生成数
 
-    async def validate(self, context: PipelineContext) -> bool:
+    def validate(self, context: PipelineContext) -> bool:
         """
         验证是否可以执行文生图阶段
 
@@ -75,7 +75,7 @@ class Text2ImageStageProcessor(StageProcessor):
                 return False
 
             # 检查是否有可用的文生图模型
-            provider = await self._get_text2image_provider(project)
+            provider = self._get_text2image_provider(project)
             if not provider:
                 logger.error(f"项目 {context.project_id} 未配置文生图模型")
                 return False

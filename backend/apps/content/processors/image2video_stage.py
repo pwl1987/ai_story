@@ -500,7 +500,6 @@ class Image2VideoStageProcessor(StageProcessor):
         """
         try:
             # 准备生成参数
-            # toto test
             prompt = self._build_prompt(project, storyboard)
             image_urls = storyboard.get("urls", [])
 
