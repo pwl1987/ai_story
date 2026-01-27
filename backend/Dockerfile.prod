@@ -17,11 +17,15 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 复制依赖文件
-COPY requirements.txt .
+# 安装uv包管理器
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+RUN chmod +x /usr/local/bin/uv
 
-# 安装Python依赖到临时目录
-RUN pip install --no-cache-dir --user -r requirements.txt
+# 复制pyproject.toml
+COPY pyproject.toml uv.lock ./
+
+# 使用uv安装依赖
+RUN uv sync --frozen --no-dev
 
 # ============================================
 # Stage 2: Runtime
