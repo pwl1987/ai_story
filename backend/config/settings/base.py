@@ -53,6 +53,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.api_response_time.APIResponseTimeMiddleware',  # API错误日志 + 响应时间监控 (Story 2.3 + 2.5)
 ]
 
 ROOT_URLCONF = 'config.urls'
