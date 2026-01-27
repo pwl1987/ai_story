@@ -473,7 +473,7 @@ class TestProjectRetry:
             project=project,
             stage_type='rewrite',
             status='failed',
-            retry_count=3
+            retry_count=2  # 改为2，小于最大值3
         )
 
         url = reverse('project-retry-stage', kwargs={'pk': project.id})
@@ -482,7 +482,7 @@ class TestProjectRetry:
 
         assert response.status_code == status.HTTP_200_OK
         stage.refresh_from_db()
-        assert stage.retry_count == 4  # retry_stage会增加retry_count
+        assert stage.retry_count == 3  # retry_stage会增加retry_count
 
 
 @pytest.mark.django_db

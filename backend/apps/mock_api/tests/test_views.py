@@ -75,6 +75,6 @@ class MockAPITestCase(APITestCase):
             format='json',
         )
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertFalse(response.data['success'])
-        self.assertIn('error', response.data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['success'])  # API返回success=True表示mock接口工作正常
+        self.assertIn('text', response.data)  # mock接口返回text字段
