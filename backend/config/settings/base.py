@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'apps.users',
     'apps.mock_api',
     'apps.core',
+    'health',  # 健康检查端点 (Story 2.2)
 ]
 
 MIDDLEWARE = [
@@ -218,10 +219,20 @@ LOGGING = {
         },
     },
 
+    'filters': {
+        'sensitive_data': {
+            '()': 'core.logging.json_formatter.SensitiveDataFilter',
+        },
+        'request_context': {
+            '()': 'core.logging.json_formatter.RequestContextFilter',
+        },
+    },
+
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'json',
+            'filters': ['sensitive_data', 'request_context'],
         },
     },
 
@@ -262,4 +273,5 @@ if LOG_DIR:
         'maxBytes': 1024 * 1024 * 10,  # 10MB
         'backupCount': 5,
         'formatter': 'json',
+        'filters': ['sensitive_data', 'request_context'],
     }

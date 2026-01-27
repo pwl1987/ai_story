@@ -48,9 +48,9 @@ development_status:
   epic-1-retrospective: done
 
   # Epic 2: 系统可观测性
-  epic-2: backlog
-  2-1-structured-logging: backlog
-  2-2-health-check-endpoint: backlog
+  epic-2: in-progress
+  2-1-structured-logging: done
+  2-2-health-check-endpoint: done
   2-3-api-error-middleware: backlog
   2-4-celery-failure-logging: backlog
   2-5-api-response-monitoring: backlog
