@@ -37,15 +37,15 @@ story_location: "{project-root}/_bmad-output/implementation-artifacts"
 
 development_status:
   # Epic 1: 测试基础设施
-  epic-1: in-progress
+  epic-1: done
   1-1-readme-documentation: done
   1-2-test-framework-setup: done
   1-3-mock-ai-client: done
   1-4-core-module-tests: done
   1-5-api-integration-tests: done
-  1-6-services-tests: review
+  1-6-services-tests: done
   1-7-database-migration-docs: done
-  epic-1-retrospective: optional
+  epic-1-retrospective: done
 
   # Epic 2: 系统可观测性
   epic-2: backlog
