@@ -201,6 +201,7 @@
             @change="activeTab = 'video_generation'"
           />
           <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6">
+            <!-- 视频生成阶段内容 -->
             <stage-content
               stage-type="video_generation"
               :stage="getStage('video_generation')"
@@ -211,6 +212,16 @@
               @stage-updated="handleStageUpdated"
               @stage-completed="handleStageCompleted"
             />
+
+            <!-- 视频播放器 - 当有视频生成结果时显示 -->
+            <div v-if="getStage('video_generation')?.output_data?.human_text?.scenes" class="mt-6">
+              <div class="divider">
+                <h3 class="text-lg font-bold">生成的视频</h3>
+              </div>
+              <video-player
+                :videos="getStage('video_generation').output_data.human_text.scenes.filter(scene => scene.video_urls && scene.video_urls.length > 0)"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -224,6 +235,7 @@ import StatusBadge from '@/components/common/StatusBadge.vue';
 import LoadingContainer from '@/components/common/LoadingContainer.vue';
 import StageContent from '@/components/projects/StageContent.vue';
 import JianyingDraftButton from '@/components/projects/JianyingDraftButton.vue';
+import VideoPlayer from '@/components/common/VideoPlayer.vue';
 import { formatDate } from '@/utils/helpers';
 import websocketClient from '@/services/websocketClient';
 
@@ -234,6 +246,7 @@ export default {
     LoadingContainer,
     StageContent,
     JianyingDraftButton,
+    VideoPlayer,
   },
   data() {
     return {

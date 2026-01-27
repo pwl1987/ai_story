@@ -202,7 +202,6 @@ export default {
 
         // DRF分页响应格式: {count, next, previous, results}
         // 或非分页直接返回数组
-        console.log(133333, response)
         this.templateSets = response.results || response || [];
         console.log('成功加载提示词集:', this.templateSets.length, '个');
       } catch (error) {
@@ -290,14 +289,8 @@ export default {
     },
 
     showToast(message, type = 'info') {
-      // TODO: 实现全局Toast组件后替换
-      if (type === 'success') {
-        alert(`✓ ${message}`);
-      } else if (type === 'error') {
-        alert(`✗ ${message}`);
-      } else {
-        alert(message);
-      }
+      // 使用全局$message工具
+      this.$message[type](message);
     },
   },
 };

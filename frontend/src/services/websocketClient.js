@@ -1,94 +1,146 @@
-import io from 'socket.io-client';
-
+/**
+ * WebSocket客户端 - 用于实时接收项目阶段更新
+ * 使用原生WebSocket协议连接Django Channels
+ */
 class WebSocketClient {
   constructor() {
-    this.socket = null;
+    this.ws = null;
     this.listeners = new Map();
+    this.reconnectAttempts = 0;
+    this.maxReconnectAttempts = 5;
+    this.reconnectDelay = 1000;
+    this.projectId = null;
   }
 
   connect(projectId) {
-    if (this.socket) {
+    if (this.ws) {
       this.disconnect();
     }
 
-    // 临时禁用 WebSocket 连接
-    // 原因：后端 Django Channels Consumer 尚未实现
-    // TODO: 实现 apps/projects/consumers.py 后启用
-    console.warn('[WebSocket] 连接已禁用 - 后端 Consumer 尚未实现');
+    this.projectId = projectId;
+
+    // 构建WebSocket URL
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsHost = process.env.VUE_APP_WS_URL || window.location.host;
+    const wsUrl = `${wsProtocol}//${wsHost}/ws/projects/${projectId}/`;
+
+    console.log('[WebSocket] 正在连接:', wsUrl);
+
+    try {
+      this.ws = new WebSocket(wsUrl);
+
+      // 连接成功
+      this.ws.onopen = () => {
+        console.log('[WebSocket] 已连接 - 项目:', projectId);
+        this.reconnectAttempts = 0;
+        this._triggerEvent('connected', { projectId });
+      };
+
+      // 接收消息
+      this.ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('[WebSocket] 收到消息:', data);
+
+          // 根据消息类型触发对应事件
+          if (data.type) {
+            this._triggerEvent(data.type, data);
+          }
+          // 兼容通用消息事件
+          this._triggerEvent('message', data);
+        } catch (error) {
+          console.error('[WebSocket] 解析消息失败:', error);
+        }
+      };
+
+      // 连接关闭
+      this.ws.onclose = (event) => {
+        console.log('[WebSocket] 已断开:', event.code, event.reason);
+
+        // 尝试重连
+        if (this.reconnectAttempts < this.maxReconnectAttempts) {
+          this.reconnectAttempts++;
+          const delay = this.reconnectDelay * this.reconnectAttempts;
+          console.log(`[WebSocket] ${delay}ms后尝试重连 (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+
+          setTimeout(() => {
+            this.connect(this.projectId);
+          }, delay);
+        } else {
+          console.error('[WebSocket] 达到最大重连次数，放弃重连');
+          this._triggerEvent('disconnect', { code: event.code, reason: event.reason });
+        }
+      };
+
+      // 连接错误
+      this.ws.onerror = (error) => {
+        console.error('[WebSocket] 错误:', error);
+        this._triggerEvent('error', { error });
+      };
+
+    } catch (error) {
+      console.error('[WebSocket] 创建连接失败:', error);
+    }
+
     return this;
-
-    /* eslint-disable no-unreachable */
-    // 以下代码待后端实现后启用
-    const wsUrl = process.env.VUE_APP_WS_URL || 'ws://localhost:8010';
-    this.socket = io(`${wsUrl}/ws/projects/${projectId}/`, {
-      transports: ['websocket'],
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
-      timeout: 3000,
-      autoConnect: false, // 禁用自动连接
-    });
-
-    this.socket.on('connect', () => {
-      console.log('[WebSocket] 已连接');
-    });
-
-    this.socket.on('disconnect', (reason) => {
-      console.log('[WebSocket] 已断开:', reason);
-    });
-
-    this.socket.on('connect_error', (error) => {
-      console.error('[WebSocket] 连接错误:', error.message);
-    });
-
-    this.socket.on('error', (error) => {
-      console.error('[WebSocket] 错误:', error);
-    });
-
-    // 手动连接
-    this.socket.connect();
-
-    return this;
-    /* eslint-enable no-unreachable */
   }
 
   disconnect() {
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
+    if (this.ws) {
+      console.log('[WebSocket] 主动断开连接');
+      this.ws.close();
+      this.ws = null;
       this.listeners.clear();
+      this.reconnectAttempts = 0;
+      this.projectId = null;
     }
   }
 
   on(event, callback) {
-    if (!this.socket) {
-      console.warn('WebSocket not connected');
-      return;
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, []);
     }
-
-    this.socket.on(event, callback);
-    this.listeners.set(event, callback);
+    this.listeners.get(event).push(callback);
   }
 
-  off(event) {
-    if (!this.socket) {
+  off(event, callback) {
+    if (!this.listeners.has(event)) {
       return;
     }
 
-    const callback = this.listeners.get(event);
-    if (callback) {
-      this.socket.off(event, callback);
-      this.listeners.delete(event);
+    const callbacks = this.listeners.get(event);
+    const index = callbacks.indexOf(callback);
+    if (index > -1) {
+      callbacks.splice(index, 1);
     }
   }
 
   emit(event, data) {
-    if (!this.socket) {
-      console.warn('WebSocket not connected');
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.warn('[WebSocket] 未连接，无法发送消息');
       return;
     }
 
-    this.socket.emit(event, data);
+    const message = JSON.stringify({ type: event, ...data });
+    this.ws.send(message);
+  }
+
+  /**
+   * 内部方法：触发事件监听器
+   */
+  _triggerEvent(event, data) {
+    if (!this.listeners.has(event)) {
+      return;
+    }
+
+    const callbacks = this.listeners.get(event);
+    callbacks.forEach(callback => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.error(`[WebSocket] 事件处理器错误 (${event}):`, error);
+      }
+    });
   }
 }
 
