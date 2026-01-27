@@ -113,6 +113,7 @@ class TestModelProviderViewSet:
             'provider_type': 'llm',
             'model_name': 'gpt-4',
             'api_url': 'https://api.openai.com/v1',
+            'api_key': 'test-api-key-12345',
             'executor_class': 'core.ai_client.openai_client.OpenAIClient',
             'priority': 10,
             'is_active': True
@@ -205,12 +206,12 @@ class TestModelProviderViewSet:
         ModelUsageLogFactory(
             model_provider=provider,
             status='success',
-            total_tokens=1000
+            tokens_used=1000
         )
         ModelUsageLogFactory(
             model_provider=provider,
             status='success',
-            total_tokens=2000
+            tokens_used=2000
         )
 
         response = self.client.get(f'/api/v1/models/providers/{provider.id}/statistics/')
@@ -228,8 +229,9 @@ class TestModelProviderViewSet:
 
         data = {'test_prompt': 'Hello'}
         response = self.client.post(
-            f'/api/v1/models/providers/{provider.id}/test-connection/',
-            data
+            f'/api/v1/models/providers/{provider.id}/test_connection/',
+            data,
+            format='json'
         )
 
         # 可能成功或失败,取决于实际API配置
@@ -250,7 +252,7 @@ class TestModelProviderViewSet:
             status='success'
         )
 
-        response = self.client.get(f'/api/v1/models/providers/{provider.id}/usage-logs/')
+        response = self.client.get(f'/api/v1/models/providers/{provider.id}/usage_logs/')
 
         assert response.status_code == status.HTTP_200_OK
         assert 'count' in response.data
@@ -269,7 +271,7 @@ class TestModelProviderViewSet:
             is_active=False
         )
 
-        response = self.client.get('/api/v1/models/providers/active-providers/')
+        response = self.client.get('/api/v1/models/providers/active_providers/')
 
         assert response.status_code == status.HTTP_200_OK
         # 应该只返回激活的提供商
@@ -288,7 +290,7 @@ class TestModelProviderViewSet:
             is_active=True
         )
 
-        response = self.client.get('/api/v1/models/providers/active-providers/?provider_type=llm')
+        response = self.client.get('/api/v1/models/providers/active_providers/?provider_type=llm')
 
         assert response.status_code == status.HTTP_200_OK
         for provider in response.data['results']:
@@ -307,7 +309,7 @@ class TestModelProviderViewSet:
             is_active=True
         )
 
-        response = self.client.get('/api/v1/models/providers/by-type/')
+        response = self.client.get('/api/v1/models/providers/by_type/')
 
         assert response.status_code == status.HTTP_200_OK
         assert 'llm' in response.data
@@ -326,7 +328,7 @@ class TestModelProviderViewSet:
             is_active=True
         )
 
-        response = self.client.get('/api/v1/models/providers/simple-list/')
+        response = self.client.get('/api/v1/models/providers/simple_list/')
 
         assert response.status_code == status.HTTP_200_OK
         # 简化列表应该只包含id和name
@@ -346,7 +348,7 @@ class TestModelProviderViewSet:
             is_active=True
         )
 
-        response = self.client.get('/api/v1/models/providers/simple-list/?provider_type=llm')
+        response = self.client.get('/api/v1/models/providers/simple_list/?provider_type=llm')
 
         assert response.status_code == status.HTTP_200_OK
         for provider in response.data['results']:
@@ -354,7 +356,7 @@ class TestModelProviderViewSet:
 
     def test_get_executor_choices(self):
         """测试获取执行器选项"""
-        response = self.client.get('/api/v1/models/providers/executor-choices/')
+        response = self.client.get('/api/v1/models/providers/executor_choices/')
 
         assert response.status_code == status.HTTP_200_OK
         # 应该包含所有类型的执行器
@@ -362,7 +364,7 @@ class TestModelProviderViewSet:
 
     def test_get_executor_choices_by_type(self):
         """测试获取特定类型的执行器选项"""
-        response = self.client.get('/api/v1/models/providers/executor-choices/?provider_type=llm')
+        response = self.client.get('/api/v1/models/providers/executor_choices/?provider_type=llm')
 
         assert response.status_code == status.HTTP_200_OK
         assert 'provider_type' in response.data
@@ -436,34 +438,37 @@ class TestModelUsageLogViewSet:
 
     def test_filter_logs_by_project(self):
         """测试按项目过滤日志"""
+        import uuid
+        test_project_id = str(uuid.uuid4())
         log = ModelUsageLogFactory(
             model_provider=self.provider,
             status='success',
-            project_id='test-project-123'
+            project_id=test_project_id
         )
 
-        response = self.client.get(f'/api/v1/models/usage-logs/?project_id={log.project_id}')
+        response = self.client.get(f'/api/v1/models/usage-logs/?project_id={test_project_id}')
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data['count'] >= 1
 
     def test_get_logs_by_project(self):
         """测试按项目获取日志"""
-        project_id = 'test-project-123'
+        import uuid
+        project_id = str(uuid.uuid4())
         ModelUsageLogFactory(
             model_provider=self.provider,
             status='success',
             project_id=project_id
         )
 
-        response = self.client.get(f'/api/v1/models/usage-logs/by-project/?project_id={project_id}')
+        response = self.client.get(f'/api/v1/models/usage-logs/by_project/?project_id={project_id}')
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data['count'] >= 1
 
     def test_get_logs_by_project_missing_project_id(self):
         """测试按项目获取日志 - 缺少project_id"""
-        response = self.client.get('/api/v1/models/usage-logs/by-project/')
+        response = self.client.get('/api/v1/models/usage-logs/by_project/')
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert 'error' in response.data
@@ -480,7 +485,7 @@ class TestModelUsageLogViewSet:
             error_message='API error'
         )
 
-        response = self.client.get('/api/v1/models/usage-logs/failed-logs/')
+        response = self.client.get('/api/v1/models/usage-logs/failed_logs/')
 
         assert response.status_code == status.HTTP_200_OK
         # 应该只包含失败的日志

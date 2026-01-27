@@ -37,8 +37,10 @@ class TestStorageImageListView:
 
         response = self.client.get('/api/v1/content/storage/image/')
 
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert '图片目录不存在' in response.data['message']
+        # API返回200 with success=False (不是404)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['success'] is False
+        assert '图片目录不存在' in response.data.get('message', '')
 
         # 清理
         image_dir.rmdir()
