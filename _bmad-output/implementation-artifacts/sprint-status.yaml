@@ -42,8 +42,9 @@ development_status:
   1-2-test-framework-setup: done
   1-3-mock-ai-client: done
   1-4-core-module-tests: done
-  1-5-api-integration-tests: ready-for-dev
-  1-6-database-migration-docs: done
+  1-5-api-integration-tests: done
+  1-6-services-tests: review
+  1-7-database-migration-docs: done
   epic-1-retrospective: optional
 
   # Epic 2: 系统可观测性
