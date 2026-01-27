@@ -13,23 +13,23 @@ from datetime import timedelta
 from apps.models.services import ModelProviderService, ModelUsageLogService
 from apps.models.models import ModelProvider, ModelUsageLog
 from apps.models.tests.factories import ModelProviderFactory, ModelUsageLogFactory
+from apps.models.tests.conftest import filter_mock_data
+
+
+# 测试常量
+MIN_PRIORITY_IMPOSSIBLY_HIGH = 999  # 远高于任何实际provider优先级
 
 
 @pytest.mark.django_db
 class TestModelProviderService:
     """测试ModelProviderService业务逻辑"""
 
-    @staticmethod
-    def _filter_mock_data(queryset):
-        """过滤掉Mock迁移数据"""
-        return [item for item in queryset if not item.name.startswith('Mock')]
-
     def test_get_active_providers_all(self):
         """测试获取激活的提供商 - 全部"""
         # Given
-        ModelProviderFactory(is_active=True, name='Active1', priority=5)
-        ModelProviderFactory(is_active=True, name='Active2', priority=3)
-        ModelProviderFactory(is_active=False, name='Inactive', priority=10)
+        ModelProviderFactory(is_active=True, name='HighPriorityProvider', priority=5)
+        ModelProviderFactory(is_active=True, name='LowPriorityProvider', priority=3)
+        ModelProviderFactory(is_active=False, name='InactiveProvider', priority=10)
 
         # When
         result = ModelProviderService.get_active_providers()
@@ -53,7 +53,7 @@ class TestModelProviderService:
         result = ModelProviderService.get_active_providers(provider_type='llm')
 
         # Then
-        test_providers = self._filter_mock_data(result)
+        test_providers = filter_mock_data(result)
         assert len(test_providers) == 1
         assert test_providers[0].provider_type == 'llm'
         assert result[0].is_active is True
@@ -105,7 +105,7 @@ class TestModelProviderService:
         # When - 使用极高的min_priority，确保找不到
         result = ModelProviderService.get_provider_by_type_and_priority(
             'llm',
-            min_priority=999  # 远高于任何provider（包括Mock数据）
+            min_priority=MIN_PRIORITY_IMPOSSIBLY_HIGH
         )
 
         # Then
@@ -150,7 +150,7 @@ class TestModelProviderService:
         )
 
         # Then - 过滤掉Mock数据
-        test_providers = self._filter_mock_data(result)
+        test_providers = filter_mock_data(result)
         assert len(test_providers) == 1
         assert test_providers[0].provider_type == 'llm'
         assert test_providers[0].name == 'LLM1'
@@ -168,7 +168,7 @@ class TestModelProviderService:
         )
 
         # Then - 过滤Mock数据
-        test_providers = self._filter_mock_data(result)
+        test_providers = filter_mock_data(result)
         assert len(test_providers) == 1
         assert test_providers[0].is_active is True
         assert test_providers[0].name == 'TestActive'
@@ -380,9 +380,12 @@ class TestModelProviderService:
                 provider.id
             )
 
-        # Then
+        # Then - 验证异常被正确捕获并返回有意义的错误
         assert result['success'] is False
-        assert 'error' in result or 'latency_ms' in result
+        assert 'error' in result  # 必须有error字段
+        assert isinstance(result['error'], str)
+        assert len(result['error']) > 0  # 错误消息不能为空
+        assert 'Network error' in result['error']  # 验证保留了原始异常信息
 
     def test_get_provider_statistics_aggregation(self):
         """测试获取提供商统计信息 - 聚合函数"""
@@ -410,11 +413,6 @@ class TestModelProviderService:
 @pytest.mark.django_db
 class TestModelUsageLogService:
     """测试ModelUsageLogService业务逻辑"""
-
-    @staticmethod
-    def _filter_mock_data(queryset):
-        """过滤掉Mock迁移数据"""
-        return [item for item in queryset if not item.name.startswith('Mock')]
 
     def test_get_logs_by_provider(self):
         """测试获取提供商的使用日志"""
@@ -617,17 +615,17 @@ class TestModelUsageLogService:
         assert 'gpt' in result[0].model_name.lower()
 
     def test_get_active_providers_empty_result(self):
-        """测试获取激活的提供商 - 空结果（排除Mock数据）"""
+        """测试获取激活的提供商 - 无我们自己创建的激活provider（排除Mock迁移数据）"""
         # Given - 创建一个非激活的provider
         ModelProviderFactory(is_active=False, name='InactiveProvider')
 
         # When
         result = ModelProviderService.get_active_providers()
 
-        # Then - 验证没有我们创建的激活provider（Mock数据会被过滤）
-        test_providers = self._filter_mock_data(result)
+        # Then - 验证没有我们创建的激活provider（Mock迁移数据会被过滤）
+        test_providers = filter_mock_data(result)
         assert len(test_providers) == 0
-        # 确认Mock数据存在但不计入测试结果
+        # 确认Mock迁移数据存在但不计入测试结果
         assert len(result) >= 3  # Mock LLM, Text2Image, Image2Video
 
     def test_search_providers_combined_filters(self):

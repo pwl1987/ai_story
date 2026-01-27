@@ -24,7 +24,7 @@ Status: review
 ### ✅ AC #2: 测试执行成功
 **Given** 测试文件已创建
 **When** 执行`uv run pytest apps/*/tests/test_services.py`
-**Then** ✅ 66/73测试通过 (通过率90.4%)
+**Then** ✅ 73/73测试通过 (通过率100%)
 **And** ✅ 使用pytest-mock模拟外部依赖
 **And** ✅ 测试独立运行,不依赖真实AI API
 

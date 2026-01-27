@@ -30,6 +30,7 @@ class TestProjectWorkflowService:
         # Given & When & Then
         assert ProjectWorkflowService.get_stage_index('invalid_stage') == -1
         assert ProjectWorkflowService.get_stage_index('') == -1
+        assert ProjectWorkflowService.get_stage_index(None) == -1  # 边界值: None输入
 
     def test_get_next_stage_middle(self):
         """测试获取下一阶段 - 中间阶段"""

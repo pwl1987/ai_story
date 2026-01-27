@@ -18,7 +18,7 @@ class UserFactory(factory.django.DjangoModelFactory):
         model = User
 
     username = factory.Sequence(lambda n: f"user_{n}")
-    email = factory.LazyFunction(lambda: fake.email())
+    email = factory.LazyAttribute(lambda obj: f"user_{obj.username}@test.com")
 
 
 class PromptTemplateSetFactory(factory.django.DjangoModelFactory):
