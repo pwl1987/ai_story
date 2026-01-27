@@ -9,7 +9,7 @@ from .sse_views import (
 
 # 创建路由器
 router = DefaultRouter()
-router.register(r'projects', ProjectViewSet, basename='project')
+router.register(r'', ProjectViewSet, basename='project')
 router.register(r'stages', ProjectStageViewSet, basename='stage')
 router.register(r'model-configs', ProjectModelConfigViewSet, basename='model-config')
 

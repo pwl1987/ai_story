@@ -1,0 +1,78 @@
+# Sprint Status Tracking
+# generated: 2026-01-26
+# project: ai_story
+# project_key: ai-story
+# tracking_system: file-system
+# story_location: {project-root}/_bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created, ready for development
+#   - in-progress: Developer actively working on implementation
+#   - review: Implementation complete, ready for review
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Mark epic as 'in-progress' when starting work on its first story
+# - SM typically creates next story ONLY after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then Dev runs code-review (fresh context, ideally different LLM)
+
+generated: 2026-01-26
+project: ai_story
+project_key: ai-story
+tracking_system: file-system
+story_location: "{project-root}/_bmad-output/implementation-artifacts"
+
+development_status:
+  # Epic 1: 测试基础设施
+  epic-1: in-progress
+  1-1-readme-documentation: done
+  1-2-test-framework-setup: done
+  1-3-mock-ai-client: done
+  1-4-core-module-tests: done
+  1-5-api-integration-tests: ready-for-dev
+  1-6-database-migration-docs: done
+  epic-1-retrospective: optional
+
+  # Epic 2: 系统可观测性
+  epic-2: backlog
+  2-1-structured-logging: backlog
+  2-2-health-check-endpoint: backlog
+  2-3-api-error-middleware: backlog
+  2-4-celery-failure-logging: backlog
+  2-5-api-response-monitoring: backlog
+  2-6-celery-task-monitoring: backlog
+  2-7-logging-query-guide: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3: 实时通信稳定性 (Stories待创建)
+  epic-3: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: 项目管理 (Stories待创建)
+  epic-4: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5: 内容生成工作流 (Stories待创建)
+  epic-5: backlog
+  epic-5-retrospective: optional
+
+  # Epic 6: 文件管理与预览 (Stories待创建)
+  epic-6: backlog
+  epic-6-retrospective: optional
+
+  # Epic 7: 开发者工具与API完善 (Stories待创建)
+  epic-7: backlog
+  epic-7-retrospective: optional

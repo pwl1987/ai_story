@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'apps.content',
     'apps.users',
     'apps.mock_api',
+    'apps.core',
 ]
 
 MIDDLEWARE = [
@@ -192,3 +193,73 @@ CACHES = {
         }
     }
 }
+
+# 日志目录配置
+LOG_DIR = BASE_DIR / 'logs'
+# 确保日志目录存在（如果可写）
+try:
+    LOG_DIR.mkdir(exist_ok=True)
+except (OSError, PermissionError):
+    # 如果无法创建目录，仅使用console日志
+    LOG_DIR = None
+
+# 日志配置
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+
+    'formatters': {
+        'json': {
+            '()': 'core.logging.json_formatter.JSONFormatter',
+        },
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+    },
+
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'json',
+        },
+    },
+
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'apps': {
+            'handlers': ['console'] + (['file'] if LOG_DIR else []),
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'core': {
+            'handlers': ['console'] + (['file'] if LOG_DIR else []),
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
+
+# 如果日志目录可用，添加file handler
+if LOG_DIR:
+    LOGGING['handlers']['file'] = {
+        'class': 'logging.handlers.RotatingFileHandler',
+        'filename': str(LOG_DIR / 'django.log'),
+        'maxBytes': 1024 * 1024 * 10,  # 10MB
+        'backupCount': 5,
+        'formatter': 'json',
+    }

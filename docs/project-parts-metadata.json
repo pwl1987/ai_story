@@ -1,0 +1,61 @@
+{
+  "repository_type": "multi-part",
+  "scan_mode": "deep",
+  "generated_at": "2026-01-26T12:12:48Z",
+  "parts": [
+    {
+      "part_id": "backend",
+      "project_type_id": "backend",
+      "root_path": "/home/code/ai_story/backend",
+      "primary_language": "Python",
+      "framework": "Django 3.2.15",
+      "description": "Django-based REST API backend with Celery task queue and WebSocket support",
+      "key_files": [
+        "pyproject.toml",
+        "backend/manage.py",
+        "backend/config/"
+      ],
+      "documentation_requirements": {
+        "requires_api_scan": true,
+        "requires_data_models": true,
+        "requires_state_management": false,
+        "requires_ui_components": false,
+        "requires_deployment_config": true,
+        "requires_hardware_docs": false,
+        "requires_asset_inventory": false
+      }
+    },
+    {
+      "part_id": "frontend",
+      "project_type_id": "web",
+      "root_path": "/home/code/ai_story/frontend",
+      "primary_language": "JavaScript",
+      "framework": "Vue 2.7.14",
+      "build_tool": "Webpack 5.89.0",
+      "description": "Vue 2 frontend application with daisyUI and Tailwind CSS",
+      "key_files": [
+        "frontend/package.json",
+        "frontend/src/",
+        "frontend/config/"
+      ],
+      "documentation_requirements": {
+        "requires_api_scan": true,
+        "requires_data_models": true,
+        "requires_state_management": true,
+        "requires_ui_components": true,
+        "requires_deployment_config": true,
+        "requires_hardware_docs": false,
+        "requires_asset_inventory": false
+      }
+    }
+  ],
+  "integration_points": [
+    {
+      "from": "frontend",
+      "to": "backend",
+      "type": "REST API + WebSocket",
+      "protocol": "HTTP/HTTPS + WebSocket",
+      "details": "Axios for HTTP, Socket.IO client for real-time updates"
+    }
+  ]
+}

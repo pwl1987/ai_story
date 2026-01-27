@@ -16,6 +16,7 @@ urlpatterns = [
     path('api/v1/content/', include('apps.content.urls')),
     path('api/v1/users/', include('apps.users.urls')),
     path('api/mock/', include('apps.mock_api.urls')),
+    path('api/v1/core/', include('apps.core.urls')),
 ]
 
 # 开发环境下提供媒体文件访问

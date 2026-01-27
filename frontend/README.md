@@ -87,7 +87,41 @@ npm run dev
 
 应用将在 http://localhost:3000 启动。
 
-### 3. 生产构建
+### 2. 配置环境变量
+
+```bash
+# 复制环境变量模板
+cp .env.example .env.local
+
+# 编辑.env.local文件配置后端API地址
+# VUE_APP_API_BASE_URL=http://localhost:8000/api/v1
+# VUE_APP_WS_URL=ws://localhost:8000
+```
+
+**重要:** Vue项目使用`.env.local`文件存储本地环境变量(该文件已加入.gitignore)。
+
+### 3. 与后端集成
+
+**API端点配置:**
+- 开发环境默认: `http://localhost:8000/api/v1`
+- WebSocket地址: `ws://localhost:8000`
+
+**前端如何连接后端:**
+```javascript
+// src/services/apiClient.js
+const API_BASE_URL = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8000/api/v1';
+
+// WebSocket连接
+const WS_URL = process.env.VUE_APP_WS_URL || 'ws://localhost:8000';
+```
+
+**确保后端已启动:**
+1. 检查后端健康状态: `curl http://localhost:8000/api/v1/health/`
+2. 如果后端运行在不同端口,更新`.env.local`文件
+
+### 4. 开发模式
+
+### 4. 生产构建
 
 ```bash
 npm run build
@@ -195,8 +229,51 @@ VUE_APP_WS_URL=ws://localhost:8000
 - Chrome DevTools 网络面板监控API
 - WebSocket调试工具
 
+## Phase 1 - P0 MVP验证实施计划
+
+**当前阶段:** Phase 1 - 系统稳定性验证 (预计3周)
+
+**前端在Phase 1的主要工作:**
+
+### Epic 3: 实时通信稳定性 (与后端Epic 3并行)
+
+**目标:** 确保WebSocket连接稳定可靠,实时进度推送正常工作
+
+**关键组件开发:**
+- ⏳ WebSocket连接管理器 (自动重连机制)
+- ⏳ 实时进度条组件
+- ⏳ 进度推送延迟优化(<500ms)
+- ⏳ SSE备用方案(降级支持)
+
+**Phase 1完成标准:**
+- ✅ WebSocket实时进度推送正常工作
+- ✅ WebSocket自动重连机制正常(最多5次)
+- ✅ 进度推送延迟<500ms
+- ✅ 连接断开时显示友好提示
+
+### Epic 4: 项目管理 (Phase 2,已在规划中)
+
+**核心页面开发:**
+- ⏳ 项目列表页 (基于UX设计规范)
+- ⏳ 项目详情页 (包含实时进度显示)
+- ⏳ 创建项目表单
+- ⏳ 控制按钮组(开始、暂停、重试、删除)
+
+**关键UI组件:**
+- ⏳ ProjectCard (项目卡片)
+- ⏳ StageProgressBar (阶段进度条)
+- ⏳ RealTimeProgressBar (实时进度条)
+- ⏳ FilePreview (文件预览)
+
+**详细UX设计规范:** 参见 `_bmad-output/planning-artifacts/ux-design-specification.md`
+
+**详细实施计划:** 参见 `_bmad-output/planning-artifacts/implementation-plan.md`
+
+---
+
 ## 待开发功能
 
+### Phase 1后 (Phase 2/3)
 - [ ] 用户认证和权限管理
 - [ ] 图片查看器组件
 - [ ] 视频播放器组件
@@ -228,6 +305,29 @@ devServer: {
 - 检查后端服务是否启动
 - 确认环境变量配置正确
 - 查看浏览器控制台网络请求
+
+### 新增问题排查
+
+**WebSocket连接失败**
+```bash
+# 检查后端是否使用ASGI服务器
+# 错误: "WebSocket connection failed"
+# 解决: 后端必须使用 ./run_asgi.sh 而不是 python manage.py runserver
+```
+
+**CORS错误**
+```bash
+# 后端需要配置CORS
+# 检查 backend/config/settings/base.py
+# CORS_ALLOWED_ORIGINS 应包含 http://localhost:3000
+```
+
+### 更多文档
+
+- **后端文档:** [backend/README.md](../backend/README.md)
+- **项目架构:** [CLAUDE.md](../CLAUDE.md)
+- **Celery + Redis:** [docs/CELERY_REDIS_STREAMING.md](../docs/CELERY_REDIS_STREAMING.md)
+- **项目概览:** [docs/project-overview.md](../docs/project-overview.md)
 
 ## 贡献指南
 

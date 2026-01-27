@@ -1,0 +1,124 @@
+# Workflow Status Template
+
+# This tracks progress through BMM methodology Analysis, Planning, and Solutioning phases.
+# Implementation phase is tracked separately in sprint-status.yaml
+
+# STATUS DEFINITIONS:
+# ==================
+# Initial Status (before completion):
+#   - required: Must be completed to progress
+#   - optional: Can be completed but not required
+#   - recommended: Strongly suggested but not required
+#   - conditional: Required only if certain conditions met (e.g., if_has_ui)
+#
+# Completion Status:
+#   - {file-path}: File created/found (e.g., "docs/product-brief.md")
+#   - skipped: Optional/conditional workflow that was skipped
+
+generated: "2026-01-26"
+project: "ai_story"
+project_type: "AI驱动的故事视频自动化生成平台"
+selected_track: "bmad-method"
+field_type: "brownfield"
+workflow_path: "{project-root}/_bmad/bmm/workflows/workflow-status/paths/method-brownfield.yaml"
+workflow_status:
+  # Phase 0: Documentation (Prerequisite for brownfield)
+  - phase: "0"
+    name: "Documentation"
+    workflows:
+      - id: "document-project"
+        name: "Document Project"
+        status: "/home/code/ai_story/docs/index.md"
+        agent: "analyst"
+        command: "/bmad:bmm:workflows:document-project"
+        output: "Comprehensive project documentation"
+        purpose: "Understand existing codebase before planning"
+
+  # Phase 1: Analysis (Optional)
+  - phase: "1"
+    name: "Analysis (Optional)"
+    workflows:
+      - id: "brainstorm-project"
+        name: "Brainstorm Project"
+        status: "optional"
+        agent: "analyst"
+        command: "/bmad:bmm:workflows:brainstorming"
+        output: "Creative exploration and ideation"
+        purpose: "Explore creative possibilities and approaches"
+
+      - id: "research"
+        name: "Research"
+        status: "optional"
+        agent: "analyst"
+        command: "/bmad:bmm:workflows:research"
+        output: "Technical and competitive analysis"
+        purpose: "Domain analysis and technical research"
+
+  # Phase 2: Planning (Required)
+  - phase: "2"
+    name: "Planning"
+    workflows:
+      - id: "prd"
+        name: "Create PRD"
+        status: "required"
+        agent: "pm"
+        command: "/bmad:bmm:workflows:create-prd"
+        output: "Product Requirements Document"
+        purpose: "Define product requirements with FRs and NFRs"
+
+      - id: "create-ux-design"
+        name: "Create UX Design"
+        status: "conditional"
+        condition: "if_has_ui"
+        agent: "ux-designer"
+        command: "/bmad:bmm:workflows:create-ux-design"
+        output: "User experience design specifications"
+        purpose: "Design UX patterns and user journey"
+
+  # Phase 3: Solutioning (Required)
+  - phase: "3"
+    name: "Solutioning"
+    workflows:
+      - id: "create-architecture"
+        name: "Create Architecture"
+        status: "required"
+        agent: "architect"
+        command: "/bmad:bmm:workflows:create-architecture"
+        output: "System architecture document"
+        purpose: "Complete system design for the project"
+
+      - id: "create-epics-and-stories"
+        name: "Create Epics and Stories"
+        status: "required"
+        agent: "pm"
+        command: "/bmad:bmm:workflows:create-epics-and-stories"
+        output: "Epics and user stories with full context"
+        purpose: "Break down PRD into implementable stories"
+
+      - id: "test-design"
+        name: "Test Design"
+        status: "optional"
+        agent: "tea"
+        command: "/bmad:bmm:workflows:test-design"
+        output: "System-level testability review"
+        purpose: "Testability assessment before implementation"
+
+      - id: "implementation-readiness"
+        name: "Implementation Readiness Check"
+        status: "required"
+        agent: "architect"
+        command: "/bmad:bmm:workflows:check-implementation-readiness"
+        output: "Implementation readiness validation"
+        purpose: "Validates PRD + Architecture + Epics + UX"
+
+  # Phase 4: Implementation (Required)
+  - phase: "4"
+    name: "Implementation"
+    workflows:
+      - id: "sprint-planning"
+        name: "Sprint Planning"
+        status: "required"
+        agent: "sm"
+        command: "/bmad:bmm:workflows:sprint-planning"
+        output: "Sprint plan"
+        purpose: "Create sprint plan and track implementation"

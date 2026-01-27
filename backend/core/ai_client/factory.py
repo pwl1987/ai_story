@@ -4,6 +4,7 @@
 遵循工厂模式: 封装复杂的对象创建逻辑
 """
 
+import os
 import logging
 from typing import Optional
 from .base import BaseAIClient
@@ -15,6 +16,8 @@ logger = logging.getLogger(__name__)
 def create_ai_client(provider) -> BaseAIClient:
     """
     根据ModelProvider实例创建AI客户端
+
+    支持通过环境变量 ENABLE_MOCK_AI=true 启用Mock客户端用于离线测试
 
     Args:
         provider: ModelProvider实例（来自apps.models.models）
@@ -30,6 +33,11 @@ def create_ai_client(provider) -> BaseAIClient:
     # 验证provider对象
     if not provider:
         raise ValueError("ModelProvider实例不能为空")
+
+    # 检查是否启用Mock AI模式（用于离线测试）
+    if os.environ.get('ENABLE_MOCK_AI', '').lower() == 'true':
+        logger.info("检测到ENABLE_MOCK_AI=true，使用Mock客户端")
+        return _create_mock_client(provider)
 
     # 获取执行器类路径
     executor_class_path = provider.executor_class
@@ -104,3 +112,67 @@ def create_ai_client_safe(provider) -> Optional[BaseAIClient]:
     except Exception as e:
         logger.error(f"创建AI客户端失败（安全模式）: {str(e)}")
         return None
+
+
+def _create_mock_client(provider) -> BaseAIClient:
+    """
+    创建Mock AI客户端用于离线测试
+
+    根据provider类型自动选择合适的Mock客户端：
+    - LLM类型 → MockLLMClient
+    - 文生图类型 → MockText2ImageClient
+    - 图生视频类型 → MockImage2VideoClient
+
+    Args:
+        provider: ModelProvider实例
+
+    Returns:
+        BaseAIClient: Mock客户端实例
+    """
+    from .mock_llm_client import MockLLMClient
+    from .mock_text2image_client import MockText2ImageClient
+    from .mock_image2video_client import MockImage2VideoClient
+    from .base import LLMClient, Text2ImageClient, Image2VideoClient
+
+    # 获取provider的类型/类别
+    provider_type = getattr(provider, 'provider_type', '').lower()
+    provider_name = getattr(provider, 'name', '').lower()
+
+    # 根据provider类型选择合适的Mock客户端
+    # 检查executor_class来判断客户端类型
+    executor_class = getattr(provider, 'executor_class', '')
+
+    # 创建Mock客户端
+    if 'llm' in executor_class.lower() or 'openai' in executor_class.lower():
+        logger.info(f"创建MockLLMClient for provider '{provider.name}'")
+        return MockLLMClient(
+            api_url='mock://llm',
+            api_key='mock_key',
+            model_name=provider.model_name or 'mock-llm'
+        )
+    elif 'text2image' in executor_class.lower() or 'stable' in executor_class.lower():
+        logger.info(f"创建MockText2ImageClient for provider '{provider.name}'")
+        return MockText2ImageClient(
+            api_url='mock://text2image',
+            api_key='mock_key',
+            model_name=provider.model_name or 'mock-text2image'
+        )
+    elif 'image2video' in executor_class.lower() or 'runway' in executor_class.lower():
+        logger.info(f"创建MockImage2VideoClient for provider '{provider.name}'")
+        return MockImage2VideoClient(
+            api_url='mock://image2video',
+            api_key='mock_key',
+            model_name=provider.model_name or 'mock-image2video'
+        )
+    else:
+        # 默认使用MockLLMClient
+        logger.warning(
+            f"无法识别provider类型 '{executor_class}'，"
+            f"使用默认MockLLMClient"
+        )
+        return MockLLMClient(
+            api_url='mock://llm',
+            api_key='mock_key',
+            model_name=provider.model_name or 'mock-llm'  # 使用provider的model_name
+        )
+

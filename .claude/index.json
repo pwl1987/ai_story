@@ -1,0 +1,221 @@
+{
+  "timestamp": "2026-01-26T12:08:52+00:00",
+  "project_name": "ai_story",
+  "description": "AI Story生成系统 - 基于Django + Vue的AI驱动的故事脚本到视频的自动化生成平台",
+  "tech_stack": {
+    "backend": ["Django 3.2.15", "DRF", "Celery", "Redis", "Channels"],
+    "frontend": ["Vue 2.7.14", "Vuex", "daisyUI 4.12.23", "Tailwind CSS 3.4.17"],
+    "package_managers": ["uv (Python)", "npm (Node.js)"],
+    "databases": ["SQLite (dev)", "PostgreSQL (prod)"],
+    "ai_integrations": ["OpenAI", "Claude", "Stable Diffusion", "Runway", "ComfyUI"]
+  },
+  "modules": [
+    {
+      "path": "backend/config",
+      "name": "配置模块",
+      "description": "Django配置、Celery配置、ASGI/WSGI配置",
+      "language": "Python",
+      "entry_points": ["config/settings/base.py", "config/celery.py", "config/asgi.py"],
+      "has_tests": false,
+      "documentation": "backend/config/CLAUDE.md"
+    },
+    {
+      "path": "backend/core/ai_client",
+      "name": "AI客户端模块",
+      "description": "AI客户端抽象层与实现（策略模式）",
+      "language": "Python",
+      "entry_points": ["core/ai_client/base.py", "core/ai_client/factory.py"],
+      "has_tests": false,
+      "documentation": "backend/core/ai_client/CLAUDE.md"
+    },
+    {
+      "path": "backend/core/pipeline",
+      "name": "工作流引擎模块",
+      "description": "Pipeline工作流引擎（责任链模式）",
+      "language": "Python",
+      "entry_points": ["core/pipeline/base.py", "core/pipeline/orchestrator.py"],
+      "has_tests": false,
+      "documentation": "backend/core/pipeline/CLAUDE.md"
+    },
+    {
+      "path": "backend/core/redis",
+      "name": "Redis Pub/Sub模块",
+      "description": "Redis发布订阅、实时进度推送",
+      "language": "Python",
+      "entry_points": ["core/redis/publisher.py", "core/redis/subscriber.py"],
+      "has_tests": true,
+      "documentation": "backend/core/redis/CLAUDE.md"
+    },
+    {
+      "path": "backend/apps/projects",
+      "name": "项目管理域",
+      "description": "项目聚合根、阶段追踪、Celery任务",
+      "language": "Python",
+      "entry_points": ["apps/projects/models.py", "apps/projects/views.py", "apps/projects/tasks.py"],
+      "has_tests": false,
+      "documentation": "backend/apps/projects/CLAUDE.md"
+    },
+    {
+      "path": "backend/apps/content",
+      "name": "内容生成域",
+      "description": "Pipeline处理器、内容模型",
+      "language": "Python",
+      "entry_points": ["apps/content/models.py", "apps/content/processors/llm_stage.py"],
+      "has_tests": false,
+      "documentation": "backend/apps/content/CLAUDE.md"
+    },
+    {
+      "path": "backend/apps/prompts",
+      "name": "提示词管理域",
+      "description": "提示词模板、全局变量管理",
+      "language": "Python",
+      "entry_points": ["apps/prompts/models.py", "apps/prompts/views.py"],
+      "has_tests": false,
+      "documentation": "backend/apps/prompts/CLAUDE.md"
+    },
+    {
+      "path": "backend/apps/models",
+      "name": "模型管理域",
+      "description": "AI模型提供商、负载均衡",
+      "language": "Python",
+      "entry_points": ["apps/models/models.py", "apps/models/services.py"],
+      "has_tests": false,
+      "documentation": "backend/apps/models/CLAUDE.md"
+    },
+    {
+      "path": "backend/apps/users",
+      "name": "用户域",
+      "description": "用户认证、权限管理",
+      "language": "Python",
+      "entry_points": ["apps/users/models.py", "apps/users/views.py"],
+      "has_tests": false,
+      "documentation": "backend/apps/users/CLAUDE.md"
+    },
+    {
+      "path": "backend/apps/mock_api",
+      "name": "Mock API模块",
+      "description": "Mock API（测试用）",
+      "language": "Python",
+      "entry_points": ["apps/mock_api/views.py"],
+      "has_tests": true,
+      "documentation": "backend/apps/mock_api/CLAUDE.md"
+    },
+    {
+      "path": "frontend/src/views",
+      "name": "前端视图模块",
+      "description": "页面视图组件（Vue）",
+      "language": "Vue/JavaScript",
+      "entry_points": ["src/main.js", "src/router/index.js"],
+      "has_tests": false,
+      "documentation": "frontend/src/views/CLAUDE.md"
+    },
+    {
+      "path": "frontend/src/store",
+      "name": "前端状态管理模块",
+      "description": "Vuex状态管理",
+      "language": "Vue/JavaScript",
+      "entry_points": ["src/store/index.js"],
+      "has_tests": false,
+      "documentation": "frontend/src/store/CLAUDE.md"
+    },
+    {
+      "path": "frontend/src/components",
+      "name": "前端组件模块",
+      "description": "可复用组件",
+      "language": "Vue/JavaScript",
+      "entry_points": [],
+      "has_tests": false,
+      "documentation": "frontend/src/components/CLAUDE.md"
+    },
+    {
+      "path": "frontend/src/services",
+      "name": "前端服务模块",
+      "description": "API服务封装",
+      "language": "JavaScript",
+      "entry_points": ["src/services/apiClient.js"],
+      "has_tests": false,
+      "documentation": "frontend/src/services/CLAUDE.md"
+    },
+    {
+      "path": "frontend/src/utils",
+      "name": "前端工具模块",
+      "description": "工具函数（WebSocket、SSE等）",
+      "language": "JavaScript",
+      "entry_points": ["src/utils/wsClient.js"],
+      "has_tests": false,
+      "documentation": "frontend/src/utils/CLAUDE.md"
+    }
+  ],
+  "coverage": {
+    "total_files_estimated": 180,
+    "scanned_files": 95,
+    "coverage_percentage": 53,
+    "modules_documented": 15,
+    "modules_with_tests": 2,
+    "modules_missing_tests": 13
+  },
+  "gaps": [
+    {
+      "module": "apps/projects",
+      "missing": "单元测试（models.py, views.py, tasks.py）",
+      "priority": "high"
+    },
+    {
+      "module": "apps/content",
+      "missing": "处理器测试（llm_stage.py, text2image_stage.py, image2video_stage.py）",
+      "priority": "high"
+    },
+    {
+      "module": "core/ai_client",
+      "missing": "AI客户端测试（openai_client.py, factory.py）",
+      "priority": "medium"
+    },
+    {
+      "module": "core/pipeline",
+      "missing": "工作流测试（orchestrator.py, base.py）",
+      "priority": "medium"
+    },
+    {
+      "module": "frontend",
+      "missing": "单元测试和E2E测试",
+      "priority": "low"
+    }
+  ],
+  "next_steps": [
+    "补扫 backend/apps/projects/tests/ - 添加项目域单元测试",
+    "补扫 backend/apps/content/processors/ - 添加处理器单元测试",
+    "补扫 backend/core/ai_client/tests/ - 添加AI客户端测试",
+    "补扫 backend/core/pipeline/tests/ - 添加Pipeline测试",
+    "补扫 frontend/tests/ - 添加前端单元测试"
+  ],
+  "truncated": false,
+  "ignore_rules": [
+    "node_modules/**",
+    ".git/**",
+    ".github/**",
+    "dist/**",
+    "build/**",
+    ".next/**",
+    "__pycache__/**",
+    "*.lock",
+    "*.log",
+    "*.bin",
+    "*.pdf",
+    "*.png",
+    "*.jpg",
+    "*.jpeg",
+    "*.gif",
+    "*.mp4",
+    "*.zip",
+    "*.tar",
+    "*.gz",
+    "/storage/",
+    "/backend/storage/image/"
+  ],
+  "top_ignored_dirs": [
+    "node_modules (前端依赖)",
+    ".git (版本控制)",
+    "__pycache__ (Python缓存)",
+    ".venv (Python虚拟环境)"
+  ]
+}

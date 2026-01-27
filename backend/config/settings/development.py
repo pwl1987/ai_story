@@ -20,18 +20,49 @@ DATABASES = {
     }
 }
 
-# 日志配置
+# 日志配置 - 开发环境使用JSON格式
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+
+    'formatters': {
+        'json': {
+            '()': 'core.logging.json_formatter.JSONFormatter',
+        },
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'json',  # 使用JSON格式化器
         },
     },
+
     'root': {
         'handlers': ['console'],
         'level': 'DEBUG',
+    },
+
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'apps': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'core': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
     },
 }
 JIANYING_DRAFT_FOLDER = "D:\JianyingPro Drafts"
