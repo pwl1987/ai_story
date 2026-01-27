@@ -6,7 +6,7 @@
 import factory
 from faker import Faker
 
-from apps.models.models import ModelProvider
+from apps.models.models import ModelProvider, ModelUsageLog
 
 fake = Faker(['zh_CN'])
 
@@ -43,3 +43,25 @@ class ModelProviderFactory(factory.django.DjangoModelFactory):
         'temperature': 0.7,
         'top_p': 0.9
     })
+
+
+class ModelUsageLogFactory(factory.django.DjangoModelFactory):
+    """
+    模型使用日志工厂
+    职责: 创建ModelUsageLog测试数据
+    """
+    class Meta:
+        model = ModelUsageLog
+
+    model_provider = factory.SubFactory(ModelProviderFactory)
+    project_id = factory.LazyFunction(lambda: fake.uuid4())
+    stage_type = factory.Iterator(['rewrite', 'storyboard', 'image_generation', 'video_generation'])
+    status = factory.Iterator(['success', 'failed'])
+
+    tokens_used = factory.LazyFunction(lambda: fake.random_int(min=300, max=13000))
+    latency_ms = factory.LazyFunction(lambda: fake.random_int(min=500, max=10000))
+
+    request_data = factory.LazyFunction(lambda: {'test': 'data'})
+    response_data = factory.LazyFunction(lambda: {'result': 'success'})
+
+    error_message = factory.LazyFunction(lambda: fake.sentence() if fake.boolean(chance_of_getting_true=30) else '')

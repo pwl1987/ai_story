@@ -1,6 +1,6 @@
 # Story 1.5: API集成测试
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
