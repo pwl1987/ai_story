@@ -1,9 +1,10 @@
 """
-Mock LLM 客户端实现
+Mock LLM 客户端实现（异步版本）
 用于测试和开发环境，返回模拟的 LLM 响应
+使用真正的异步操作，不阻塞事件循环
 """
 
-import time
+import asyncio
 import json
 from typing import Dict, Any, Generator
 from .base import LLMClient, AIResponse
@@ -98,7 +99,7 @@ class MockLLMClient(LLMClient):
         **kwargs
     ) -> AIResponse:
         """
-        生成模拟的文本响应
+        生成模拟的文本响应（异步版本）
 
         Args:
             prompt: 输入提示词
@@ -109,10 +110,12 @@ class MockLLMClient(LLMClient):
         Returns:
             AIResponse: 模拟响应对象
         """
-        start_time = time.time()
+        start_time = asyncio.get_event_loop().time()
 
-        # 模拟API延迟
-        time.sleep(0.5)
+        # 模拟API延迟（使用asyncio.sleep，不阻塞事件循环）
+        # 延迟时间：0.5-2秒随机，模拟真实AI服务的响应时间
+        delay = 0.5 + asyncio.get_event_loop().time() % 1.5
+        await asyncio.sleep(delay)
 
         # 根据提示词内容判断响应类型
         response_text = self._get_mock_response(prompt)
@@ -120,7 +123,8 @@ class MockLLMClient(LLMClient):
         # 模拟token使用量
         tokens_used = len(response_text) // 4  # 粗略估算
 
-        latency_ms = int((time.time() - start_time) * 1000)
+        end_time = asyncio.get_event_loop().time()
+        latency_ms = int((end_time - start_time) * 1000)
 
         return AIResponse(
             success=True,
@@ -142,7 +146,7 @@ class MockLLMClient(LLMClient):
         **kwargs
     ) -> Generator[Dict[str, Any], None, None]:
         """
-        流式生成模拟文本
+        流式生成模拟文本（使用异步实现）
 
         Args:
             prompt: 输入提示词
@@ -154,41 +158,64 @@ class MockLLMClient(LLMClient):
         Yields:
             Dict包含: type (token/done/error), content, metadata
         """
-        start_time = time.time()
+        # 注意：这个方法是同步的生成器，为了向后兼容保留
+        # 内部使用asyncio运行异步操作
+        import asyncio
 
-        # 获取模拟响应（优先检查system_prompt，因为真正的提示词在那里）
-        response_text = self._get_mock_response(system_prompt or prompt)
+        async def _async_generate():
+            start_time = asyncio.get_event_loop().time()
 
-        # 模拟流式输出，每次返回几个字符
-        chunk_size = 10
-        full_text = ""
+            # 获取模拟响应（优先检查system_prompt，因为真正的提示词在那里）
+            response_text = self._get_mock_response(system_prompt or prompt)
 
-        for i in range(0, len(response_text), chunk_size):
-            chunk = response_text[i:i + chunk_size]
-            full_text += chunk
+            # 模拟流式输出，每次返回几个字符
+            chunk_size = 10
+            full_text = ""
 
-            # 模拟网络延迟
-            time.sleep(0.05)
+            for i in range(0, len(response_text), chunk_size):
+                chunk = response_text[i:i + chunk_size]
+                full_text += chunk
+
+                # 模拟网络延迟（使用asyncio.sleep）
+                await asyncio.sleep(0.05)
+
+                yield {
+                    'type': 'token',
+                    'content': chunk,
+                    'full_text': full_text
+                }
+
+            # 发送完成信号
+            end_time = asyncio.get_event_loop().time()
+            latency_ms = int((end_time - start_time) * 1000)
 
             yield {
-                'type': 'token',
-                'content': chunk,
-                'full_text': full_text
+                'type': 'done',
+                'full_text': full_text,
+                'metadata': {
+                    'latency_ms': latency_ms,
+                    'model': self.model_name,
+                    'finish_reason': 'stop',
+                    'is_mock': True
+                }
             }
 
-        # 发送完成信号
-        latency_ms = int((time.time() - start_time) * 1000)
+        # 运行异步生成器并同步yield
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
-        yield {
-            'type': 'done',
-            'full_text': full_text,
-            'metadata': {
-                'latency_ms': latency_ms,
-                'model': self.model_name,
-                'finish_reason': 'stop',
-                'is_mock': True
-            }
-        }
+        try:
+            gen = _async_generate()
+            while True:
+                try:
+                    item = loop.run_until_complete(asyncio.as_shown(gen, loop))
+                    if item is None:
+                        break
+                    yield item
+                except StopAsyncIteration:
+                    break
+        finally:
+            loop.close()
 
     def _get_mock_response(self, prompt: str) -> str:
         """

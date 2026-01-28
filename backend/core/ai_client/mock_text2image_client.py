@@ -1,16 +1,18 @@
 """
-Mock 文生图客户端实现
+Mock 文生图客户端实现（异步版本）
 用于测试和开发环境，返回模拟的图片URL
+使用真正的异步操作，不阻塞事件循环
 """
 
-import time
+import asyncio
+import random
 from typing import Dict, Any
 from .base import Text2ImageClient, AIResponse
 
 
 class MockText2ImageClient(Text2ImageClient):
     """
-    Mock 文生图客户端
+    Mock 文生图客户端（异步版本）
     返回预定义的模拟图片URL，用于测试工作流
     """
 
@@ -23,7 +25,7 @@ class MockText2ImageClient(Text2ImageClient):
         "https://picsum.photos/1024/1024?random=5",
     ]
 
-    def _generate_image(
+    async def _generate_image(
         self,
         prompt: str,
         negative_prompt: str = "",
@@ -33,7 +35,7 @@ class MockText2ImageClient(Text2ImageClient):
         **kwargs
     ) -> AIResponse:
         """
-        生成模拟的图片响应
+        生成模拟的图片响应（异步版本）
 
         Args:
             prompt: 图片提示词
@@ -46,10 +48,11 @@ class MockText2ImageClient(Text2ImageClient):
         Returns:
             AIResponse: 包含模拟图片URL的响应对象
         """
-        start_time = time.time()
+        start_time = asyncio.get_event_loop().time()
 
-        # 模拟API延迟（图片生成通常较慢）
-        time.sleep(1.0)
+        # 模拟API延迟（图片生成通常较慢，1-3秒）
+        delay = 1.0 + (asyncio.get_event_loop().time() % 2.0)
+        await asyncio.sleep(delay)
 
         # 从kwargs获取参数
         ratio = kwargs.get('ratio', '1:1')
@@ -75,38 +78,29 @@ class MockText2ImageClient(Text2ImageClient):
                 "format": "jpeg"
             })
 
-        latency_ms = int((time.time() - start_time) * 1000)
+        end_time = asyncio.get_event_loop().time()
+        latency_ms = int((end_time - start_time) * 1000)
 
         return AIResponse(
             success=True,
             data={
-                'urls': image_urls,
-                'images': images_data
+                'image_urls': image_urls,
+                'images': images_data,
+                'first_image': image_urls[0] if image_urls else None
             },
             metadata={
                 'latency_ms': latency_ms,
                 'model': self.model_name,
-                'ratio': ratio,
-                'resolution': resolution,
-                'is_mock': True,
-                'prompt': prompt[:100]  # 记录部分提示词
+                'width': width,
+                'height': height,
+                'is_mock': True
             }
         )
 
     async def validate_config(self) -> bool:
-        """
-        验证配置（Mock客户端始终返回True）
-
-        Returns:
-            bool: 始终返回True
-        """
+        """验证配置（Mock客户端始终返回True）"""
         return True
 
     async def health_check(self) -> bool:
-        """
-        健康检查（Mock客户端始终返回True）
-
-        Returns:
-            bool: 始终返回True
-        """
+        """健康检查（Mock客户端始终返回True）"""
         return True

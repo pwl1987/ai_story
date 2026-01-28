@@ -1,16 +1,17 @@
 """
-Mock 图生视频客户端实现
+Mock 图生视频客户端实现（异步版本）
 用于测试和开发环境，返回模拟的视频URL
+使用真正的异步操作，不阻塞事件循环
 """
 
-import time
+import asyncio
 from typing import Dict, Any
 from .base import Image2VideoClient, AIResponse
 
 
 class MockImage2VideoClient(Image2VideoClient):
     """
-    Mock 图生视频客户端
+    Mock 图生视频客户端（异步版本）
     返回预定义的模拟视频URL，用于测试工作流
     """
 
@@ -30,7 +31,7 @@ class MockImage2VideoClient(Image2VideoClient):
         **kwargs
     ) -> AIResponse:
         """
-        生成模拟的视频响应
+        生成模拟的视频响应（异步版本）
 
         Args:
             image_url: 源图片URL
@@ -42,10 +43,11 @@ class MockImage2VideoClient(Image2VideoClient):
         Returns:
             AIResponse: 包含模拟视频URL的响应对象
         """
-        start_time = time.time()
+        start_time = asyncio.get_event_loop().time()
 
-        # 模拟API延迟（视频生成通常很慢）
-        time.sleep(2.0)
+        # 模拟API延迟（视频生成通常很慢，2-4秒）
+        delay = 2.0 + (asyncio.get_event_loop().time() % 2.0)
+        await asyncio.sleep(delay)
 
         # 从kwargs获取参数
         width = kwargs.get('width', 1280)
@@ -68,7 +70,8 @@ class MockImage2VideoClient(Image2VideoClient):
             "camera_movement": camera_movement
         }
 
-        latency_ms = int((time.time() - start_time) * 1000)
+        end_time = asyncio.get_event_loop().time()
+        latency_ms = int((end_time - start_time) * 1000)
 
         return AIResponse(
             success=True,
@@ -80,25 +83,16 @@ class MockImage2VideoClient(Image2VideoClient):
             metadata={
                 'latency_ms': latency_ms,
                 'model': model,
-                'is_mock': True,
-                'source_image': image_url[:100]  # 记录部分源图片URL
+                'duration': duration,
+                'fps': fps,
+                'is_mock': True
             }
         )
 
     async def validate_config(self) -> bool:
-        """
-        验证配置（Mock客户端始终返回True）
-
-        Returns:
-            bool: 始终返回True
-        """
+        """验证配置（Mock客户端始终返回True）"""
         return True
 
     async def health_check(self) -> bool:
-        """
-        健康检查（Mock客户端始终返回True）
-
-        Returns:
-            bool: 始终返回True
-        """
+        """健康检查（Mock客户端始终返回True）"""
         return True
