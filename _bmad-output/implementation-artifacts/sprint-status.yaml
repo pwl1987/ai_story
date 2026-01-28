@@ -51,9 +51,9 @@ development_status:
   epic-2: in-progress
   2-1-structured-logging: done
   2-2-health-check-endpoint: done
-  2-3-api-error-middleware: backlog
+  2-3-api-error-middleware: done
   2-4-celery-failure-logging: backlog
-  2-5-api-response-monitoring: backlog
+  2-5-api-response-monitoring: in-progress
   2-6-celery-task-monitoring: backlog
   2-7-logging-query-guide: backlog
   epic-2-retrospective: optional

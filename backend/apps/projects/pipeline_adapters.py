@@ -5,6 +5,7 @@ Pipeline阶段适配器
 """
 
 import logging
+import os
 from typing import Dict, Any
 from django.utils import timezone
 from asgiref.sync import async_to_sync, sync_to_async
@@ -21,6 +22,18 @@ from apps.content.processors.image2video_stage import Image2VideoStageProcessor
 
 logger = logging.getLogger(__name__)
 
+# 检测是否在测试环境中
+TEST_ENVIRONMENT = os.environ.get('PYTEST_CURRENT_TEST') is not None
+
+
+def sync_to_async_wrapper(func, thread_sensitive=None):
+    """
+    包装sync_to_async,在测试环境中禁用thread_sensitive以避免SQLite锁问题
+    """
+    if thread_sensitive is None:
+        thread_sensitive = not TEST_ENVIRONMENT  # 测试环境中使用False
+    return sync_to_async(func, thread_sensitive=thread_sensitive)
+
 
 class RewriteStageAdapter(StageProcessor):
     """
@@ -36,7 +49,7 @@ class RewriteStageAdapter(StageProcessor):
     async def validate(self, context: PipelineContext) -> bool:
         """验证阶段是否可以执行"""
         try:
-            project = await sync_to_async(Project.objects.get)(id=context.project_id)
+            project = await sync_to_async_wrapper(Project.objects.get)(id=context.project_id)
 
             # 检查是否有原始主题
             if not project.original_topic:
@@ -53,10 +66,10 @@ class RewriteStageAdapter(StageProcessor):
 
     async def process(self, context: PipelineContext) -> StageResult:
         """执行文案改写"""
-        project = await sync_to_async(Project.objects.get)(id=context.project_id)
+        project = await sync_to_async_wrapper(Project.objects.get)(id=context.project_id)
 
         # 获取或创建阶段
-        stage, created = await sync_to_async(ProjectStage.objects.get_or_create)(
+        stage, created = await sync_to_async_wrapper(ProjectStage.objects.get_or_create)(
             project=project,
             stage_type='rewrite',
             defaults={
@@ -68,7 +81,7 @@ class RewriteStageAdapter(StageProcessor):
         # 更新状态
         stage.status = 'processing'
         stage.started_at = timezone.now()
-        await sync_to_async(stage.save)()
+        await sync_to_async_wrapper(stage.save)()
 
         try:
             # 使用sync_to_async包装同步处理器的调用
@@ -102,27 +115,27 @@ class RewriteStageAdapter(StageProcessor):
                 return StageResult(success=False, error='处理未完成')
 
             # 在同步上下文中执行处理器
-            result = await sync_to_async(run_sync_processor, thread_sensitive=True)()
+            result = await sync_to_async_wrapper(run_sync_processor, thread_sensitive=True)()
             return result
 
         except Exception as e:
             stage.status = 'failed'
             stage.error_message = str(e)
             stage.retry_count += 1
-            await sync_to_async(stage.save)()
+            await sync_to_async_wrapper(stage.save)()
             return StageResult(success=False, error=str(e))
 
     async def on_failure(self, context: PipelineContext, error: Exception):
         """失败处理"""
         logger.error(f"文案改写失败: {str(error)}")
         try:
-            stage = await sync_to_async(ProjectStage.objects.get)(
+            stage = await sync_to_async_wrapper(ProjectStage.objects.get)(
                 project_id=context.project_id,
                 stage_type='rewrite'
             )
             stage.status = 'failed'
             stage.error_message = str(error)
-            await sync_to_async(stage.save)()
+            await sync_to_async_wrapper(stage.save)()
         except Exception:
             pass
 
@@ -141,7 +154,7 @@ class StoryboardStageAdapter(StageProcessor):
     async def validate(self, context: PipelineContext) -> bool:
         """验证阶段是否可以执行"""
         try:
-            project = await sync_to_async(Project.objects.get)(id=context.project_id)
+            project = await sync_to_async_wrapper(Project.objects.get)(id=context.project_id)
 
             # 检查是否有文案改写结果
             rewrite_result = context.get_result('rewrite')
@@ -156,11 +169,11 @@ class StoryboardStageAdapter(StageProcessor):
 
     async def process(self, context: PipelineContext) -> StageResult:
         """执行分镜生成"""
-        project = await sync_to_async(Project.objects.get)(id=context.project_id)
+        project = await sync_to_async_wrapper(Project.objects.get)(id=context.project_id)
         rewrite_result = context.get_result('rewrite')
 
         # 获取或创建阶段
-        stage, created = await sync_to_async(ProjectStage.objects.get_or_create)(
+        stage, created = await sync_to_async_wrapper(ProjectStage.objects.get_or_create)(
             project=project,
             stage_type='storyboard',
             defaults={
@@ -172,7 +185,7 @@ class StoryboardStageAdapter(StageProcessor):
         # 更新状态
         stage.status = 'processing'
         stage.started_at = timezone.now()
-        await sync_to_async(stage.save)()
+        await sync_to_async_wrapper(stage.save)()
 
         try:
             # 使用sync_to_async包装同步处理器的调用
@@ -206,27 +219,27 @@ class StoryboardStageAdapter(StageProcessor):
                 return StageResult(success=False, error='处理未完成')
 
             # 在同步上下文中执行处理器
-            result = await sync_to_async(run_sync_processor, thread_sensitive=True)()
+            result = await sync_to_async_wrapper(run_sync_processor, thread_sensitive=True)()
             return result
 
         except Exception as e:
             stage.status = 'failed'
             stage.error_message = str(e)
             stage.retry_count += 1
-            await sync_to_async(stage.save)()
+            await sync_to_async_wrapper(stage.save)()
             return StageResult(success=False, error=str(e))
 
     async def on_failure(self, context: PipelineContext, error: Exception):
         """失败处理"""
         logger.error(f"分镜生成失败: {str(error)}")
         try:
-            stage = await sync_to_async(ProjectStage.objects.get)(
+            stage = await sync_to_async_wrapper(ProjectStage.objects.get)(
                 project_id=context.project_id,
                 stage_type='storyboard'
             )
             stage.status = 'failed'
             stage.error_message = str(error)
-            await sync_to_async(stage.save)()
+            await sync_to_async_wrapper(stage.save)()
         except Exception:
             pass
 
@@ -258,10 +271,10 @@ class ImageGenerationStageAdapter(StageProcessor):
 
     async def process(self, context: PipelineContext) -> StageResult:
         """执行文生图"""
-        project = await sync_to_async(Project.objects.get)(id=context.project_id)
+        project = await sync_to_async_wrapper(Project.objects.get)(id=context.project_id)
 
         # 获取或创建阶段
-        stage, created = await sync_to_async(ProjectStage.objects.get_or_create)(
+        stage, created = await sync_to_async_wrapper(ProjectStage.objects.get_or_create)(
             project=project,
             stage_type='image_generation',
             defaults={'status': 'pending'}
@@ -270,7 +283,7 @@ class ImageGenerationStageAdapter(StageProcessor):
         # 更新状态
         stage.status = 'processing'
         stage.started_at = timezone.now()
-        await sync_to_async(stage.save)()
+        await sync_to_async_wrapper(stage.save)()
 
         try:
             # 调用文生图处理器（使用sync_to_async包装process_stream generator）
@@ -300,13 +313,13 @@ class ImageGenerationStageAdapter(StageProcessor):
                     'error': '文生图处理未完成'
                 }
 
-            result = await sync_to_async(run_image_generation, thread_sensitive=True)()
+            result = await sync_to_async_wrapper(run_image_generation, thread_sensitive=True)()
 
             if result['success']:
                 stage.output_data = {'images': result.get('images', [])}
                 stage.status = 'completed'
                 stage.completed_at = timezone.now()
-                await sync_to_async(stage.save)()
+                await sync_to_async_wrapper(stage.save)()
 
                 return StageResult(
                     success=True,
@@ -319,20 +332,20 @@ class ImageGenerationStageAdapter(StageProcessor):
             stage.status = 'failed'
             stage.error_message = str(e)
             stage.retry_count += 1
-            await sync_to_async(stage.save)()
+            await sync_to_async_wrapper(stage.save)()
             return StageResult(success=False, error=str(e))
 
     async def on_failure(self, context: PipelineContext, error: Exception):
         """失败处理"""
         logger.error(f"文生图失败: {str(error)}")
         try:
-            stage = await sync_to_async(ProjectStage.objects.get)(
+            stage = await sync_to_async_wrapper(ProjectStage.objects.get)(
                 project_id=context.project_id,
                 stage_type='image_generation'
             )
             stage.status = 'failed'
             stage.error_message = str(error)
-            await sync_to_async(stage.save)()
+            await sync_to_async_wrapper(stage.save)()
         except Exception:
             pass
 
@@ -364,10 +377,10 @@ class CameraMovementStageAdapter(StageProcessor):
 
     async def process(self, context: PipelineContext) -> StageResult:
         """执行运镜生成"""
-        project = await sync_to_async(Project.objects.get)(id=context.project_id)
+        project = await sync_to_async_wrapper(Project.objects.get)(id=context.project_id)
 
         # 获取或创建阶段
-        stage, created = await sync_to_async(ProjectStage.objects.get_or_create)(
+        stage, created = await sync_to_async_wrapper(ProjectStage.objects.get_or_create)(
             project=project,
             stage_type='camera_movement',
             defaults={'status': 'pending'}
@@ -376,7 +389,7 @@ class CameraMovementStageAdapter(StageProcessor):
         # 更新状态
         stage.status = 'processing'
         stage.started_at = timezone.now()
-        await sync_to_async(stage.save)()
+        await sync_to_async_wrapper(stage.save)()
 
         try:
             # 使用sync_to_async包装同步处理器的调用
@@ -412,27 +425,27 @@ class CameraMovementStageAdapter(StageProcessor):
                 return StageResult(success=False, error='处理未完成')
 
             # 在同步上下文中执行处理器
-            result = await sync_to_async(run_sync_processor, thread_sensitive=True)()
+            result = await sync_to_async_wrapper(run_sync_processor, thread_sensitive=True)()
             return result
 
         except Exception as e:
             stage.status = 'failed'
             stage.error_message = str(e)
             stage.retry_count += 1
-            await sync_to_async(stage.save)()
+            await sync_to_async_wrapper(stage.save)()
             return StageResult(success=False, error=str(e))
 
     async def on_failure(self, context: PipelineContext, error: Exception):
         """失败处理"""
         logger.error(f"运镜生成失败: {str(error)}")
         try:
-            stage = await sync_to_async(ProjectStage.objects.get)(
+            stage = await sync_to_async_wrapper(ProjectStage.objects.get)(
                 project_id=context.project_id,
                 stage_type='camera_movement'
             )
             stage.status = 'failed'
             stage.error_message = str(error)
-            await sync_to_async(stage.save)()
+            await sync_to_async_wrapper(stage.save)()
         except Exception:
             pass
 
@@ -464,10 +477,10 @@ class VideoGenerationStageAdapter(StageProcessor):
 
     async def process(self, context: PipelineContext) -> StageResult:
         """执行图生视频"""
-        project = await sync_to_async(Project.objects.get)(id=context.project_id)
+        project = await sync_to_async_wrapper(Project.objects.get)(id=context.project_id)
 
         # 获取或创建阶段
-        stage, created = await sync_to_async(ProjectStage.objects.get_or_create)(
+        stage, created = await sync_to_async_wrapper(ProjectStage.objects.get_or_create)(
             project=project,
             stage_type='video_generation',
             defaults={'status': 'pending'}
@@ -476,17 +489,17 @@ class VideoGenerationStageAdapter(StageProcessor):
         # 更新状态
         stage.status = 'processing'
         stage.started_at = timezone.now()
-        await sync_to_async(stage.save)()
+        await sync_to_async_wrapper(stage.save)()
 
         try:
             # 调用图生视频处理器（使用sync_to_async包装同步方法）
-            result = await sync_to_async(self.processor.process)(context)
+            result = await sync_to_async_wrapper(self.processor.process)(context)
 
             if result.success:
                 stage.output_data = {'videos': result.data.get('videos', [])}
                 stage.status = 'completed'
                 stage.completed_at = timezone.now()
-                await sync_to_async(stage.save)()
+                await sync_to_async_wrapper(stage.save)()
 
                 return StageResult(
                     success=True,
@@ -499,19 +512,19 @@ class VideoGenerationStageAdapter(StageProcessor):
             stage.status = 'failed'
             stage.error_message = str(e)
             stage.retry_count += 1
-            await sync_to_async(stage.save)()
+            await sync_to_async_wrapper(stage.save)()
             return StageResult(success=False, error=str(e))
 
     async def on_failure(self, context: PipelineContext, error: Exception):
         """失败处理"""
         logger.error(f"图生视频失败: {str(error)}")
         try:
-            stage = await sync_to_async(ProjectStage.objects.get)(
+            stage = await sync_to_async_wrapper(ProjectStage.objects.get)(
                 project_id=context.project_id,
                 stage_type='video_generation'
             )
             stage.status = 'failed'
             stage.error_message = str(error)
-            await sync_to_async(stage.save)()
+            await sync_to_async_wrapper(stage.save)()
         except Exception:
             pass

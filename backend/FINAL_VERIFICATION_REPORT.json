@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-01-28T04:57:49.167004+00:00",
+  "timestamp": "2026-01-28T05:08:38.057497+00:00",
   "project": {
     "id": "72a1aaf0-1497-4bfc-be35-2a8d5c89e898",
     "name": "E2E Test Project",
@@ -12,9 +12,9 @@
       "retry_count": 0,
       "has_input_data": true,
       "has_output_data": true,
-      "started_at": "2026-01-28T04:57:46.066585+00:00",
-      "completed_at": "2026-01-28T04:57:49.121690+00:00",
-      "duration_seconds": 3.055105
+      "started_at": "2026-01-28T05:08:34.950138+00:00",
+      "completed_at": "2026-01-28T05:08:38.007329+00:00",
+      "duration_seconds": 3.057191
     },
     {
       "stage_type": "image_generation",
@@ -22,9 +22,9 @@
       "retry_count": 0,
       "has_input_data": true,
       "has_output_data": true,
-      "started_at": "2026-01-28T04:57:43.032912+00:00",
-      "completed_at": "2026-01-28T04:57:46.058572+00:00",
-      "duration_seconds": 3.02566
+      "started_at": "2026-01-28T05:08:31.914128+00:00",
+      "completed_at": "2026-01-28T05:08:34.941222+00:00",
+      "duration_seconds": 3.027094
     },
     {
       "stage_type": "rewrite",
@@ -32,9 +32,9 @@
       "retry_count": 0,
       "has_input_data": false,
       "has_output_data": true,
-      "started_at": "2026-01-28T04:57:38.256216+00:00",
-      "completed_at": "2026-01-28T04:57:39.033993+00:00",
-      "duration_seconds": 0.777777
+      "started_at": "2026-01-28T05:08:27.135534+00:00",
+      "completed_at": "2026-01-28T05:08:27.913349+00:00",
+      "duration_seconds": 0.777815
     },
     {
       "stage_type": "storyboard",
@@ -42,9 +42,9 @@
       "retry_count": 0,
       "has_input_data": true,
       "has_output_data": true,
-      "started_at": "2026-01-28T04:57:39.042211+00:00",
-      "completed_at": "2026-01-28T04:57:43.026223+00:00",
-      "duration_seconds": 3.984012
+      "started_at": "2026-01-28T05:08:27.921918+00:00",
+      "completed_at": "2026-01-28T05:08:31.906964+00:00",
+      "duration_seconds": 3.985046
     },
     {
       "stage_type": "video_generation",
@@ -52,9 +52,9 @@
       "retry_count": 0,
       "has_input_data": true,
       "has_output_data": true,
-      "started_at": "2026-01-28T04:57:49.128506+00:00",
-      "completed_at": "2026-01-28T04:57:49.145299+00:00",
-      "duration_seconds": 0.016793
+      "started_at": "2026-01-28T05:08:38.014714+00:00",
+      "completed_at": "2026-01-28T05:08:38.031374+00:00",
+      "duration_seconds": 0.01666
     }
   ]
 }
