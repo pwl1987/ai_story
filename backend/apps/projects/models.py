@@ -126,6 +126,63 @@ class ProjectStage(models.Model):
         return f'{self.project.name} - {self.get_stage_type_display()}'
 
 
+class ProjectProgressHistory(models.Model):
+    """
+    项目进度历史记录
+    Epic 3: 实时通信稳定性
+    职责: 追踪所有阶段的实时进度更新,支持历史查询
+    """
+
+    MESSAGE_TYPES = [
+        ('token', 'Token消息'),
+        ('stage_update', '阶段更新'),
+        ('progress', '批量进度'),
+        ('done', '完成'),
+        ('error', '错误'),
+        ('connected', '连接成功'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name='progress_history',
+        verbose_name='项目',
+        db_index=True
+    )
+
+    # 阶段信息
+    stage = models.CharField('阶段名称', max_length=50, db_index=True)
+    message_type = models.CharField('消息类型', max_length=20, choices=MESSAGE_TYPES, default='stage_update')
+
+    # 进度数据
+    progress = models.IntegerField('进度百分比', default=0, help_text='0-100')
+    status = models.CharField('状态', max_length=20, default='pending')
+    message = models.TextField('消息内容', blank=True)
+
+    # 元数据(JSON格式,存储额外的上下文信息)
+    metadata = models.JSONField('元数据', default=dict, blank=True)
+
+    # 时间戳
+    timestamp = models.DateTimeField('时间戳', auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = 'project_progress_history'
+        verbose_name = '项目进度历史'
+        verbose_name_plural = '项目进度历史'
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['project', '-timestamp']),
+            models.Index(fields=['project', 'stage', '-timestamp']),
+            models.Index(fields=['stage', '-timestamp']),
+        ]
+        # 每个项目每个阶段保留最近1000条记录
+        # 通过定期清理任务维护
+
+    def __str__(self):
+        return f'{self.project.name} - {self.stage} - {self.progress}% - {self.timestamp}'
+
+
 class ProjectModelConfig(models.Model):
     """
     项目模型配置

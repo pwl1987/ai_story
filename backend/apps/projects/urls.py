@@ -2,6 +2,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import ProjectViewSet, ProjectStageViewSet, ProjectModelConfigViewSet
+from .views_progress_history import ProjectProgressHistoryViewSet
 from .sse_views import (
     ProjectStageSSEView,
     ProjectAllStagesSSEView,
@@ -13,8 +14,19 @@ router.register(r'', ProjectViewSet, basename='project')
 router.register(r'stages', ProjectStageViewSet, basename='stage')
 router.register(r'model-configs', ProjectModelConfigViewSet, basename='model-config')
 
+# Epic 3: 进度历史路由 (使用简单路由,需要project_id前缀)
+progress_history_router = DefaultRouter()
+progress_history_router.register(
+    r'(?P<project_id>[^/.]+)/progress-history',
+    ProjectProgressHistoryViewSet,
+    basename='progress-history'
+)
+
 urlpatterns = [
     path('', include(router.urls)),
+
+    # Epic 3: 进度历史API端点
+    path('', include(progress_history_router.urls)),
 
     path('sse/projects/<str:project_id>/stages/<str:stage_name>/',
          ProjectStageSSEView.as_view(),

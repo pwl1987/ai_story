@@ -2,6 +2,7 @@
 Redis流式发布器
 职责: 将流式数据发布到Redis Pub/Sub频道
 遵循单一职责原则(SRP)
+Epic 3: 集成进度历史记录功能
 """
 
 import json
@@ -84,6 +85,9 @@ class RedisStreamPublisher:
             # 发布到频道
             subscribers = self.redis_client.publish(self.channel, message_json)
 
+            # Epic 3: 记录关键消息到历史数据库
+            self._record_to_history(message)
+
             # logger.debug(f"发布消息到 {self.channel}: {message.get('type')} (订阅者: {subscribers})")
 
             return True
@@ -93,6 +97,74 @@ class RedisStreamPublisher:
             return False
         except Exception as e:
             logger.error(f"消息发布异常: {str(e)}")
+            return False
+
+    def _record_to_history(self, message: Dict[str, Any]) -> bool:
+        """
+        Epic 3: 记录消息到历史数据库
+
+        仅记录关键消息类型:
+        - stage_update: 阶段状态更新
+        - done: 任务完成
+        - error: 错误
+        - progress: 批量进度
+
+        不记录高频token消息,避免数据库压力
+
+        Args:
+            message: 消息字典
+
+        Returns:
+            bool: 是否记录成功
+        """
+        message_type = message.get('type')
+
+        # 仅记录关键消息类型
+        if message_type not in ['stage_update', 'done', 'error', 'progress']:
+            return True
+
+        try:
+            # 延迟导入,避免循环依赖
+            from apps.projects.services import ProgressHistoryRecorder
+
+            # 映射消息类型到历史记录类型
+            if message_type == 'stage_update':
+                ProgressHistoryRecorder.record_stage_update(
+                    project_id=self.project_id,
+                    stage=self.stage_name,
+                    status=message.get('status', 'pending'),
+                    progress=message.get('progress', 0),
+                    message=message.get('message', '')
+                )
+            elif message_type == 'done':
+                ProgressHistoryRecorder.record_done(
+                    project_id=self.project_id,
+                    stage=self.stage_name,
+                    result=message.get('full_text', ''),
+                    metadata=message.get('metadata')
+                )
+            elif message_type == 'error':
+                ProgressHistoryRecorder.record_error(
+                    project_id=self.project_id,
+                    stage=self.stage_name,
+                    error=message.get('error', ''),
+                    retry_count=message.get('retry_count', 0)
+                )
+            elif message_type == 'progress':
+                # 批量进度消息,也记录为stage_update
+                ProgressHistoryRecorder.record_stage_update(
+                    project_id=self.project_id,
+                    stage=self.stage_name,
+                    status='processing',
+                    progress=message.get('progress', 0),
+                    message=f"处理进度: {message.get('current', 0)}/{message.get('total', 0)}"
+                )
+
+            return True
+
+        except Exception as e:
+            # 历史记录失败不应影响Redis发布
+            logger.warning(f"记录历史失败: {str(e)}")
             return False
 
     def publish_token(self, content: str, full_text: str = "") -> bool:
