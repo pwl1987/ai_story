@@ -2,7 +2,7 @@
 
 [根目录](../../CLAUDE.md) > [backend](../) > [apps](../) > **projects**
 
-> 最后更新: 2026-01-26 12:08:52
+> 最后更新: 2026-01-28 (Epic 3: WebSocket实时通信稳定性)
 
 ---
 
@@ -13,6 +13,7 @@
 - 工作流阶段的状态追踪（5个阶段）
 - Celery异步任务的编排和调度
 - WebSocket实时通信
+  - **Epic 3**: 历史进度记录、性能监控、自动重连
 - 剪映草稿路径管理
 
 ---
@@ -23,11 +24,13 @@
 
 | 文件 | 职责 |
 |------|------|
-| [models.py](./models.py) | Project, ProjectStage, ProjectModelConfig 领域模型 |
+| [models.py](./models.py) | Project, ProjectStage, ProjectProgressHistory 领域模型 |
 | [views.py](./views.py) | ProjectViewSet（18个action，704行） |
+| [views_progress_history.py](./views_progress_history.py) | 进度历史API（Epic 3阶段1） |
 | [tasks.py](./tasks.py) | Celery异步任务（execute_llm_stage等） |
-| [consumers.py](./consumers.py) | WebSocket消费者（实时进度推送） |
+| [consumers.py](./consumers.py) | WebSocket消费者（Epic 3：自动重连） |
 | [services.py](./services.py) | 业务服务层 |
+| [services/progress_history.py](./services/progress_history.py) | 进度历史服务（Epic 3阶段1） |
 | [urls.py](./urls.py) | URL路由配置 |
 | [serializers.py](./serializers.py) | DRF序列化器 |
 | [sse_views.py](./sse_views.py) | SSE流式响应视图（备用） |
@@ -72,7 +75,9 @@
 
 ### WebSocket 端点
 
-**路径:** `ws://localhost:8000/ws/projects/{project_id}/`
+**路径:**
+- 项目级: `ws://localhost:8000/ws/projects/{project_id}/`
+- 阶段级: `ws://localhost:8000/ws/projects/{project_id}/stage/{stage_name}/`
 
 **消息格式:**
 ```json
@@ -83,6 +88,51 @@
   "progress": 50,
   "message": "正在生成文案..."
 }
+```
+
+**Epic 3: WebSocket自动重连机制 (阶段3)**
+
+WebSocket消费者已集成自动重连管理器，提供以下功能：
+
+1. **自动重连策略**
+   - 最大重连次数: 5次
+   - 指数退避延迟: 1s → 2s → 4s → 8s → 16s
+   - 总重连时间: 最多31秒
+
+2. **心跳检测**
+   - 心跳间隔: 30秒
+   - 心跳超时: 60秒
+   - 消息类型: ping/pong
+
+3. **连接健康监控**
+   - 状态追踪: DISCONNECTED, CONNECTING, CONNECTED, RECONNECTING, FAILED
+   - 重连计数: 实时追踪
+   - 健康检查: 基于心跳和连接状态
+
+**使用示例:**
+```javascript
+// 前端WebSocket连接示例
+const ws = new WebSocket('ws://localhost:8000/ws/projects/{project_id}/stage/rewrite/');
+
+// 发送心跳
+setInterval(() => {
+  ws.send(JSON.stringify({
+    type: 'ping',
+    timestamp: Date.now() / 1000
+  }));
+}, 30000); // 每30秒
+
+// 接收消息
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  if (data.type === 'pong') {
+    console.log('心跳响应:', data.timestamp);
+  } else if (data.type === 'connected') {
+    console.log('WebSocket已连接');
+  } else if (data.type === 'stage_update') {
+    console.log('进度更新:', data.progress);
+  }
+};
 ```
 
 ---
