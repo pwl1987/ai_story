@@ -203,15 +203,42 @@ class StoryboardStageAdapter(StageProcessor):
                         full_text = chunk.get('full_text', full_text)
 
                     elif chunk_type == 'done':
+                        # 尝试解析JSON格式的分镜数据
+                        import json
+                        try:
+                            # 尝试从full_text中提取JSON
+                            if '```json' in full_text:
+                                # 提取markdown代码块中的JSON
+                                start = full_text.find('```json') + 7
+                                end = full_text.find('```', start)
+                                json_str = full_text[start:end].strip()
+                                scenes = json.loads(json_str)
+                            elif '[' in full_text and ']' in full_text:
+                                # 提取JSON数组
+                                start = full_text.find('[')
+                                end = full_text.rfind(']') + 1
+                                json_str = full_text[start:end]
+                                scenes = json.loads(json_str)
+                            else:
+                                # 纯文本格式，尝试解析
+                                scenes = [{'scene_number': 1, 'scene_description': full_text}]
+                        except json.JSONDecodeError:
+                            # JSON解析失败，使用原始文本
+                            logger.warning(f"项目 {project.id}: JSON解析失败，使用原始文本")
+                            scenes = [{'scene_number': 1, 'scene_description': full_text}]
+
                         # 保存结果
-                        stage.output_data = {'raw_text': full_text}
+                        stage.output_data = {
+                            'raw_text': full_text,
+                            'scenes': scenes
+                        }
                         stage.status = 'completed'
                         stage.completed_at = timezone.now()
                         stage.save()
 
                         return StageResult(
                             success=True,
-                            data={'storyboard_text': full_text}
+                            data={'storyboard': scenes}  # 返回解析后的scenes列表
                         )
 
                     elif chunk_type == 'error':

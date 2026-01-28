@@ -236,3 +236,34 @@ class GlobalVariable(models.Model):
             variables[var.key] = var.get_typed_value()
 
         return variables
+
+    @classmethod
+    def get_variables_for_user_sync(cls, user, include_system=True):
+        """
+        获取用户可用的所有变量（同步版本）
+
+        用于同步上下文，避免asyncio死锁问题
+
+        Args:
+            user: 用户对象
+            include_system: 是否包含系统级变量
+
+        Returns:
+            变量字典 {key: typed_value}
+        """
+        from django.db.models import Q
+
+        query = Q(created_by=user, scope='user', is_active=True)
+
+        if include_system:
+            query |= Q(scope='system', is_active=True)
+
+        variables = {}
+
+        # 同步ORM查询
+        variables_list = list(cls.objects.filter(query))
+
+        for var in variables_list:
+            variables[var.key] = var.get_typed_value()
+
+        return variables
