@@ -257,7 +257,8 @@ class OSSStorageBackend(BaseStorageBackend):
         try:
             self.bucket.head_object(file_path)
             return True
-        except oss2.exceptions.NoSuchKey:
+        except Exception:
+            # 文件不存在或其他OSS错误
             return False
 
     def url(self, file_path):

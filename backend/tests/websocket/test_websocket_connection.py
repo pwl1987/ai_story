@@ -161,7 +161,7 @@ class TestWebSocketConnection:
                 try:
                     response = await communicator.receive_json_from(timeout=1)
                     assert response.get('type') in ['error', 'close'], "应该收到错误消息"
-                except:
+                except (asyncio.TimeoutError, Exception):
                     pass  # 超时也是可接受的
                 await communicator.disconnect()
         except Exception:

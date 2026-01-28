@@ -99,7 +99,7 @@ def query_logs_from_file(log_file, filters=None, limit=100, since=None):
                                 log_time = datetime.strptime(log_time_str.split(',')[0], '%Y-%m-%d %H:%M:%S')
                                 if log_time < since_time:
                                     continue
-                            except:
+                            except (ValueError, TypeError):
                                 pass
 
                     results.append(log_entry)

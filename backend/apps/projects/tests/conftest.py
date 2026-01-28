@@ -33,7 +33,7 @@ def django_db_setup():
         if os.path.exists(db_path):
             os.remove(db_path)
         os.rmdir(temp_dir)
-    except:
+    except OSError:
         pass
 
 

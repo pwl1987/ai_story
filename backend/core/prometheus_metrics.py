@@ -104,44 +104,35 @@ api_slow_request_counter = Counter(
 )
 
 # ============ Celery指标 ============
-# Epic 2.6: Celery metrics已移至 config/celery.py，避免重复定义
-# 以下metrics已迁移到config/celery.py统一管理
 
 # Celery任务计数器
-# celery_task_counter = Counter(
-#     'celery_tasks_total',
-#     'Total Celery tasks executed',
-#     ['task_name', 'status']
-# )
+celery_task_counter = Counter(
+    'celery_tasks_total',
+    'Total Celery tasks executed',
+    ['task_name', 'status']
+)
 
 # Celery任务执行时间直方图（秒）
-# celery_task_duration_histogram = Histogram(
-#     'celery_task_duration_seconds',
-#     'Celery task execution time in seconds',
-#     ['task_name'],
-#     buckets=[1, 5, 10, 30, 60, 120, 300, 600, 1800, 3600]
-# )
+celery_task_duration_histogram = Histogram(
+    'celery_task_duration_seconds',
+    'Celery task execution time in seconds',
+    ['task_name'],
+    buckets=[1, 5, 10, 30, 60, 120, 300, 600, 1800, 3600]
+)
 
 # 慢任务计数器
-# celery_slow_task_counter = Counter(
-#     'celery_slow_tasks_total',
-#     'Total slow Celery tasks (above threshold)',
-#     ['task_name']
-# )
-
-# Celery任务重试计数器
-# celery_task_retry_counter = Counter(
-#     'celery_task_retries_total',
-#     'Total Celery task retries',
-#     ['task_name']
-# )
+celery_slow_task_counter = Counter(
+    'celery_slow_tasks_total',
+    'Total slow Celery tasks (above threshold)',
+    ['task_name']
+)
 
 # Celery任务失败计数器
-# celery_task_failure_counter = Counter(
-#     'celery_task_failures_total',
-#     'Total Celery task failures',
-#     ['task_name', 'exception_type']
-# )
+celery_task_failure_counter = Counter(
+    'celery_task_failures_total',
+    'Total Celery task failures',
+    ['task_name', 'exception_type']
+)
 
 
 # ============ 辅助函数 ============

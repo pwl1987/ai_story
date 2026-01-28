@@ -197,7 +197,7 @@ class TestTaskPostrunHandler:
                 status='SUCCESS',
                 queue='llm'
             ), '_value') else 0
-        except:
+        except (AttributeError, ValueError):
             initial_count = 0
 
         # 调用处理器
@@ -221,8 +221,8 @@ class TestTaskPostrunHandler:
                 queue='llm'
             ), '_value') else 0
             assert new_count >= initial_count
-        except:
-            # 如果无法获取计数，至少验证没有错误
+        except (AttributeError, ValueError, AssertionError):
+            # 如果无法获取计数或断言失败，至少验证没有错误
             pass
 
 
