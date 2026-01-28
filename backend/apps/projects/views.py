@@ -657,7 +657,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 videos.append({
                     'sequence_number': storyboard.sequence_number,
                     'video_url': video.video_url,
-                    'duration': video.metadata.get('duration', 5) if video.metadata else 5
+                    'duration': 5  # 默认5秒，实际应该从generation_params获取
                 })
 
         if not videos:
@@ -672,7 +672,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         # 记录导出历史
         ProjectProgressHistory.objects.create(
             project=project,
-            stage_type='export',
+            stage='export',
             status='processing',
             progress=0,
             message=f"开始导出视频，共{len(videos)}个片段",
