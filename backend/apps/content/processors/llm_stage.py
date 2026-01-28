@@ -7,7 +7,7 @@
 import copy
 import logging
 from typing import Any, Dict, Generator, Optional
-from core.pipeline.base import PipelineContext, StageProcessor, StageResult
+from core.pipeline.base import PipelineContext, StageProcessor
 from django.utils import timezone
 from jinja2 import Template, TemplateError
 
@@ -209,7 +209,7 @@ class LLMStageProcessor(StageProcessor):
                     stage.status = 'failed'
                     stage.error_message = str(e)
                     stage.save()
-                except:
+                except Exception:
                     pass
 
             yield {
@@ -458,7 +458,7 @@ class LLMStageProcessor(StageProcessor):
             }
             ProjectStage.objects.filter(
                 project=project,
-                stage_type__in=["image_generation","camera_movement", "video_generation"]
+                stage_type__in=["image_generation", "camera_movement", "video_generation"]
             ).update(
                 input_data=output_data,
                 output_data=output_data
@@ -523,7 +523,7 @@ class LLMStageProcessor(StageProcessor):
                 'raw_text': generated_text,
                 'human_text': generated_text,
             }
-    
+
     def _get_max_tokens(self) -> int:
         """获取最大token数(根据阶段类型)"""
         token_map = {

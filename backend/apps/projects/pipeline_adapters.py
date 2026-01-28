@@ -8,9 +8,9 @@ import asyncio
 import json
 import logging
 import os
-from typing import Dict, Any, List
+from typing import Dict, Any
 from django.utils import timezone
-from asgiref.sync import async_to_sync, sync_to_async
+from asgiref.sync import sync_to_async
 
 from core.pipeline.base import (
     StageProcessor,
@@ -156,7 +156,7 @@ class StoryboardStageAdapter(StageProcessor):
     async def validate(self, context: PipelineContext) -> bool:
         """验证阶段是否可以执行"""
         try:
-            project = await sync_to_async_wrapper(Project.objects.get)(id=context.project_id)
+            await sync_to_async_wrapper(Project.objects.get)(id=context.project_id)
 
             # 检查是否有文案改写结果
             rewrite_result = context.get_result('rewrite')
@@ -195,7 +195,7 @@ class StoryboardStageAdapter(StageProcessor):
             logger.info(f"项目 {project.id}: 开始两阶段并行生成分镜")
 
             # 阶段1: 快速生成场景大纲
-            logger.info(f"阶段1: 生成场景大纲...")
+            logger.info("阶段1: 生成场景大纲...")
             scene_outline = await self._generate_scene_outline(project, rewritten_text)
 
             if not scene_outline or 'scenes' not in scene_outline:
@@ -762,7 +762,7 @@ class CameraMovementStageAdapter(StageProcessor):
                     try:
                         import json
                         scenes = json.loads(storyboard_text)
-                    except:
+                    except (json.JSONDecodeError, TypeError):
                         # 解析失败，创建单个场景
                         scenes = [{'scene_number': 1, 'scene_description': storyboard_text}]
             elif isinstance(storyboard_result, list):

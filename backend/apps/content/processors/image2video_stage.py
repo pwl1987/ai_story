@@ -6,12 +6,11 @@
 
 import copy
 import logging
-import os
 from typing import Any, Dict, Generator, List, Optional
 
 from django.conf import settings
 from core.ai_client.factory import create_ai_client
-from core.ai_client.image2video_client import TaskStatus, VideoGenerator
+from core.ai_client.image2video_client import VideoGenerator
 from core.pipeline.base import PipelineContext, StageProcessor, StageResult
 from django.utils import timezone
 from jinja2 import Template, TemplateError
@@ -345,7 +344,6 @@ class Image2VideoStageProcessor(StageProcessor):
                         continue
 
                     # 生成视频 (流式推送状态更新)
-                    video_url = None
                     for event in self._generate_single_video_stream(
                         project=project,
                         storyboard=storyboard,
@@ -394,7 +392,7 @@ class Image2VideoStageProcessor(StageProcessor):
 
             # 保存最终结果
             success_count = len(generated_videos)
-            
+
             yield {
                 "type": "done",
                 "message": f"视频生成完成: 成功 {success_count}/{total}",
@@ -588,7 +586,6 @@ class Image2VideoStageProcessor(StageProcessor):
                 prompt=prompt,
             )
 
-
             yield {
                 "type": "video_generated",
                 "scene_number": scene_number,
@@ -601,6 +598,7 @@ class Image2VideoStageProcessor(StageProcessor):
             )
 
             yield {"type": "error", "error": str(e), "scene_number": scene_number}
+
     def _get_prompt_template(self, project: Project):
         """获取提示词模板"""
         # 从项目的prompt_template_set中获取
@@ -621,7 +619,7 @@ class Image2VideoStageProcessor(StageProcessor):
         ).first()
 
         return template
-    
+
     def _build_prompt(self, project: Project, storyboard: dict) -> str:
         """
         构建提示词
