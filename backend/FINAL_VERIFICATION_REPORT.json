@@ -1,0 +1,60 @@
+{
+  "timestamp": "2026-01-28T04:57:49.167004+00:00",
+  "project": {
+    "id": "72a1aaf0-1497-4bfc-be35-2a8d5c89e898",
+    "name": "E2E Test Project",
+    "status": "completed"
+  },
+  "stages": [
+    {
+      "stage_type": "camera_movement",
+      "status": "completed",
+      "retry_count": 0,
+      "has_input_data": true,
+      "has_output_data": true,
+      "started_at": "2026-01-28T04:57:46.066585+00:00",
+      "completed_at": "2026-01-28T04:57:49.121690+00:00",
+      "duration_seconds": 3.055105
+    },
+    {
+      "stage_type": "image_generation",
+      "status": "completed",
+      "retry_count": 0,
+      "has_input_data": true,
+      "has_output_data": true,
+      "started_at": "2026-01-28T04:57:43.032912+00:00",
+      "completed_at": "2026-01-28T04:57:46.058572+00:00",
+      "duration_seconds": 3.02566
+    },
+    {
+      "stage_type": "rewrite",
+      "status": "completed",
+      "retry_count": 0,
+      "has_input_data": false,
+      "has_output_data": true,
+      "started_at": "2026-01-28T04:57:38.256216+00:00",
+      "completed_at": "2026-01-28T04:57:39.033993+00:00",
+      "duration_seconds": 0.777777
+    },
+    {
+      "stage_type": "storyboard",
+      "status": "completed",
+      "retry_count": 0,
+      "has_input_data": true,
+      "has_output_data": true,
+      "started_at": "2026-01-28T04:57:39.042211+00:00",
+      "completed_at": "2026-01-28T04:57:43.026223+00:00",
+      "duration_seconds": 3.984012
+    },
+    {
+      "stage_type": "video_generation",
+      "status": "completed",
+      "retry_count": 0,
+      "has_input_data": true,
+      "has_output_data": true,
+      "started_at": "2026-01-28T04:57:49.128506+00:00",
+      "completed_at": "2026-01-28T04:57:49.145299+00:00",
+      "duration_seconds": 0.016793
+    }
+  ]
+}
