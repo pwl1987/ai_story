@@ -4,9 +4,10 @@
 遵循工厂模式: 封装复杂的对象创建逻辑
 """
 
-import os
 import logging
+import os
 from typing import Optional
+
 from .base import BaseAIClient
 from .registry import get_executor_class, validate_executor_for_provider
 
@@ -88,16 +89,16 @@ def create_ai_client(provider) -> BaseAIClient:
         return client
 
     except ImportError as e:
-        logger.error(f"无法导入执行器类 '{executor_class_path}': {str(e)}")
+        logger.error(f"无法导入执行器类 '{executor_class_path}': {e!s}")
         raise
 
     except Exception as e:
         logger.error(
             f"创建AI客户端失败: provider='{provider.name}', "
-            f"executor='{executor_class_path}', error={str(e)}",
+            f"executor='{executor_class_path}', error={e!s}",
             exc_info=True
         )
-        raise Exception(f"创建AI客户端失败: {str(e)}")
+        raise Exception(f"创建AI客户端失败: {e!s}")
 
 
 def create_ai_client_safe(provider) -> Optional[BaseAIClient]:
@@ -113,7 +114,7 @@ def create_ai_client_safe(provider) -> Optional[BaseAIClient]:
     try:
         return create_ai_client(provider)
     except Exception as e:
-        logger.error(f"创建AI客户端失败（安全模式）: {str(e)}")
+        logger.error(f"创建AI客户端失败（安全模式）: {e!s}")
         return None
 
 
@@ -133,14 +134,14 @@ def _create_mock_client(provider, use_enhanced=False) -> BaseAIClient:
     Returns:
         BaseAIClient: Mock客户端实例
     """
+    from .base import Image2VideoClient, LLMClient, Text2ImageClient
+    from .mock_image2video_client import MockImage2VideoClient
     from .mock_llm_client import MockLLMClient
     from .mock_text2image_client import MockText2ImageClient
-    from .mock_image2video_client import MockImage2VideoClient
-    from .base import LLMClient, Text2ImageClient, Image2VideoClient
 
     # 获取provider的类型/类别
-    provider_type = getattr(provider, 'provider_type', '').lower()
-    provider_name = getattr(provider, 'name', '').lower()
+    getattr(provider, 'provider_type', '').lower()
+    getattr(provider, 'name', '').lower()
 
     # 根据provider类型选择合适的Mock客户端
     # 检查executor_class来判断客户端类型

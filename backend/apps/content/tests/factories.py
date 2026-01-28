@@ -3,20 +3,21 @@
 使用Factory Boy创建测试数据，遵循DRY原则
 """
 
-import factory
 import uuid
+
+import factory
 from django.contrib.auth import get_user_model
 from faker import Faker
 
 from apps.content.models import (
-    ContentRewrite,
-    Storyboard,
-    GeneratedImage,
     CameraMovement,
-    GeneratedVideo
+    ContentRewrite,
+    GeneratedImage,
+    GeneratedVideo,
+    Storyboard,
 )
-from apps.projects.tests.factories import ProjectFactory, ProjectStageFactory
 from apps.models.tests.factories import ModelProviderFactory
+from apps.projects.tests.factories import ProjectFactory, ProjectStageFactory
 
 User = get_user_model()
 fake = Faker(['zh_CN'])

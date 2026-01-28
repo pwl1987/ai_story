@@ -3,21 +3,23 @@ ComfyUI 文生图客户端实现
 支持 ComfyUI API 接口，包括 WebSocket 实时进度监听
 """
 
+import asyncio
 import json
+import os
 import time
 import uuid
-import asyncio
-import os
-from typing import Dict, Any, Optional, Callable
 from io import BytesIO
-from PIL import Image
+from typing import Any, Callable, Dict, Optional
 
 import aiohttp
 import requests
 import websocket
+from PIL import Image
 
-from .base import Text2ImageClient as BaseText2ImageClient, AIResponse
 from core.utils.file_storage import image_storage, video_storage
+
+from .base import AIResponse
+from .base import Text2ImageClient as BaseText2ImageClient
 
 
 class ComfyUIClient(BaseText2ImageClient):
@@ -261,7 +263,7 @@ class ComfyUIClient(BaseText2ImageClient):
             try:
                 out = ws.recv()
             except Exception as e:
-                raise Exception(f"WebSocket 接收失败: {str(e)}")
+                raise Exception(f"WebSocket 接收失败: {e!s}")
 
             if isinstance(out, str):
                 message = json.loads(out)
@@ -287,7 +289,7 @@ class ComfyUIClient(BaseText2ImageClient):
                             progress_callback(current_progress)
                     else:
                         # 执行完成
-                        break        
+                        break
                 else:
                     null_queue.append("null")
                     if len(null_queue) > 10:
@@ -333,7 +335,7 @@ class ComfyUIClient(BaseText2ImageClient):
         try:
             # 提取参数
             cfg = kwargs.get('cfg', 7.0)
-            seed = kwargs.get('seed')
+            kwargs.get('seed')
             num_images = kwargs.get('num_images', 1)
             progress_callback = kwargs.get('progress_callback')
 
@@ -374,15 +376,14 @@ class ComfyUIClient(BaseText2ImageClient):
             history = self._get_history(prompt_id)
 
             if prompt_id not in history:
-                return dict(
-                    success=False,
-                    error=f'任务 {prompt_id} 未找到历史记录'
-                )
+                return {
+                    'success': False,
+                    'error': f'任务 {prompt_id} 未找到历史记录'
+                }
 
             task_history = history[prompt_id]
 
             # 提取图片
-            generated_images = []
             image_urls = []
 
             for node_id in task_history.get('outputs', {}):
@@ -411,7 +412,7 @@ class ComfyUIClient(BaseText2ImageClient):
                             img_bytes.seek(0)
 
                             # 使用日期分层存储保存文件
-                            full_path, relative_path = image_storage.save_file(
+                            _full_path, relative_path = image_storage.save_file(
                                 filename=filename,
                                 content=img_bytes.getvalue()
                             )
@@ -430,10 +431,10 @@ class ComfyUIClient(BaseText2ImageClient):
 
             latency_ms = int((time.time() - start_time) * 1000)
 
-            return dict(
-                success=True,
-                data=image_urls,
-                metadata={
+            return {
+                'success': True,
+                'data': image_urls,
+                'metadata': {
                     'latency_ms': latency_ms,
                     'model': self.checkpoint_name,
                     'prompt_id': prompt_id,
@@ -443,19 +444,19 @@ class ComfyUIClient(BaseText2ImageClient):
                     'steps': steps,
                     'cfg': cfg,
                 }
-            )
+            }
 
         except requests.Timeout:
-            return dict(
-                success=False,
-                error=f'请求超时 (超过 {self.timeout} 秒)'
-            )
+            return {
+                'success': False,
+                'error': f'请求超时 (超过 {self.timeout} 秒)'
+            }
         except Exception as e:
-            print(f"生成图片失败: {str(e)}")
-            return dict(
-                success=False,
-                error=f'生成图片失败: {str(e)}'
-            )
+            print(f"生成图片失败: {e!s}")
+            return {
+                'success': False,
+                'error': f'生成图片失败: {e!s}'
+            }
     def _generate_video(
         self,
         prompt: str,
@@ -491,7 +492,7 @@ class ComfyUIClient(BaseText2ImageClient):
         try:
             # 提取参数
             cfg = kwargs.get('cfg', 7.0)
-            seed = kwargs.get('seed')
+            kwargs.get('seed')
             num_images = kwargs.get('num_images', 1)
             progress_callback = kwargs.get('progress_callback')
 
@@ -532,15 +533,14 @@ class ComfyUIClient(BaseText2ImageClient):
             history = self._get_history(prompt_id)
 
             if prompt_id not in history:
-                return dict(
-                    success=False,
-                    error=f'任务 {prompt_id} 未找到历史记录'
-                )
+                return {
+                    'success': False,
+                    'error': f'任务 {prompt_id} 未找到历史记录'
+                }
 
             task_history = history[prompt_id]
 
             # 提取图片
-            generated_images = []
             image_urls = []
 
             for node_id in task_history.get('outputs', {}):
@@ -588,10 +588,10 @@ class ComfyUIClient(BaseText2ImageClient):
 
             latency_ms = int((time.time() - start_time) * 1000)
 
-            return dict(
-                success=True,
-                data=image_urls,
-                metadata={
+            return {
+                'success': True,
+                'data': image_urls,
+                'metadata': {
                     'latency_ms': latency_ms,
                     'model': self.checkpoint_name,
                     'prompt_id': prompt_id,
@@ -601,19 +601,19 @@ class ComfyUIClient(BaseText2ImageClient):
                     'steps': steps,
                     'cfg': cfg,
                 }
-            )
+            }
 
         except requests.Timeout:
-            return dict(
-                success=False,
-                error=f'请求超时 (超过 {self.timeout} 秒)'
-            )
+            return {
+                'success': False,
+                'error': f'请求超时 (超过 {self.timeout} 秒)'
+            }
         except Exception as e:
-            print(f"生成图片失败: {str(e)}")
-            return dict(
-                success=False,
-                error=f'生成图片失败: {str(e)}'
-            )
+            print(f"生成图片失败: {e!s}")
+            return {
+                'success': False,
+                'error': f'生成图片失败: {e!s}'
+            }
     def validate_config(self) -> bool:
         """
         验证配置

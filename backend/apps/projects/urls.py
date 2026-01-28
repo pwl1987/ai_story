@@ -1,12 +1,13 @@
 """项目管理URL路由"""
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from .views import ProjectViewSet, ProjectStageViewSet, ProjectModelConfigViewSet
-from .views_progress_history import ProjectProgressHistoryViewSet
+
 from .sse_views import (
-    ProjectStageSSEView,
     ProjectAllStagesSSEView,
+    ProjectStageSSEView,
 )
+from .views import ProjectModelConfigViewSet, ProjectStageViewSet, ProjectViewSet
+from .views_progress_history import ProjectProgressHistoryViewSet
 
 # 创建路由器
 router = DefaultRouter()

@@ -4,21 +4,19 @@ Epic 3: 实时通信稳定性 - 性能优化
 职责: 测试WebSocket连接和消息推送性能
 """
 
-import pytest
 import asyncio
-import time
-from unittest.mock import AsyncMock, patch
+import os
 
 # 避免循环导入
 import sys
-import os
+import time
+from unittest.mock import AsyncMock, patch
+
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
-from core.metrics.websocket_metrics import (
-    WebSocketMetrics,
-    ConnectionTimer,
-    MessageLatencyTimer
-)
+from core.metrics.websocket_metrics import ConnectionTimer, MessageLatencyTimer, WebSocketMetrics
 from core.redis.connection_pool import RedisConnectionPool, RedisPublisherWithContext
 
 
@@ -81,7 +79,7 @@ class TestWebSocketMetrics:
             # 验证基本结构
             assert 'total_connections' in summary
             assert 'average_connection_time' in summary
-        except (ValueError, KeyError) as e:
+        except (ValueError, KeyError):
             # Prometheus样本解析问题,暂时跳过
             # 这是已知的Prometheus客户端库兼容性问题
             pass
@@ -94,7 +92,7 @@ class TestConnectionTimer:
     def test_connection_timer(self):
         """测试连接计时器"""
         # 模拟快速连接
-        with ConnectionTimer('proj-1', 'rewrite') as timer:
+        with ConnectionTimer('proj-1', 'rewrite'):
             time.sleep(0.1)  # 模拟100ms连接时间
 
         # 计时器自动记录,不需要断言
@@ -102,7 +100,7 @@ class TestConnectionTimer:
     def test_slow_connection_timer(self):
         """测试慢速连接计时器"""
         # 模拟慢速连接(超过1秒)
-        with ConnectionTimer('proj-1', 'rewrite') as timer:
+        with ConnectionTimer('proj-1', 'rewrite'):
             time.sleep(1.1)  # 模拟1.1秒连接时间
 
 
@@ -113,20 +111,20 @@ class TestMessageLatencyTimer:
     def test_message_latency_timer(self):
         """测试消息延迟计时器"""
         # 模拟正常延迟
-        with MessageLatencyTimer('proj-1', 'rewrite', 'stage_update') as timer:
+        with MessageLatencyTimer('proj-1', 'rewrite', 'stage_update'):
             time.sleep(0.05)  # 模拟50ms延迟
 
     def test_slow_message_latency_timer(self):
         """测试慢速消息延迟计时器"""
         # 模拟超标延迟(超过500ms)
-        with MessageLatencyTimer('proj-1', 'rewrite', 'stage_update') as timer:
+        with MessageLatencyTimer('proj-1', 'rewrite', 'stage_update'):
             time.sleep(0.6)  # 模拟600ms延迟
 
     def test_error_latency_timer(self):
         """测试错误延迟计时器"""
         # 模拟发送失败
         with pytest.raises(Exception):
-            with MessageLatencyTimer('proj-1', 'rewrite', 'stage_update') as timer:
+            with MessageLatencyTimer('proj-1', 'rewrite', 'stage_update'):
                 time.sleep(0.1)
                 raise Exception("Send failed")
 
@@ -146,7 +144,7 @@ class TestWebSocketPerformance:
         # 模拟WebSocket连接
         connection_times = []
 
-        for i in range(100):
+        for _i in range(100):
             start_time = time.time()
 
             # 模拟连接建立
@@ -174,7 +172,7 @@ class TestWebSocketPerformance:
         # 模拟消息推送
         message_latencies = []
 
-        for i in range(100):
+        for _i in range(100):
             start_time = time.time()
 
             # 模拟消息发送
@@ -205,7 +203,7 @@ class TestWebSocketPerformance:
         publish_latencies = []
 
         # 模拟Redis发布
-        for i in range(100):
+        for _i in range(100):
             start_time = time.time()
 
             # 模拟Redis操作(实际应该用真实Redis)
@@ -235,8 +233,7 @@ class TestRedisConnectionPool:
         """测试连接池复用"""
         # 注意: 这只是示例测试,实际连接池测试需要真实Redis
         # 这里测试方法调用不出错即可
-        pool_key = ('localhost', 6379, 2)
-        assert pool_key in RedisConnectionPool._pools or True  # 允许为空
+        assert True  # 允许为空
 
     async def test_health_check(self):
         """测试健康检查"""

@@ -1,8 +1,9 @@
 # 导入模块
 import os
-import pyJianYingDraft as draft
-from pyJianYingDraft import IntroType, TransitionType, trange, tim
 from pathlib import Path
+
+import pyJianYingDraft as draft
+from pyJianYingDraft import IntroType, TransitionType, tim, trange
 
 # 设置草稿文件夹
 draft_folder = draft.DraftFolder(r"D:\JianyingPro Drafts")
@@ -19,10 +20,10 @@ SUPPORTED_SUBTITLE_FORMATS = ('.txt', '.srt')
 # ---------------------- 函数：获取视频对应的字幕内容 ----------------------
 def get_video_subtitle(video_file, subtitle_dir=None):
     """
-    获取视频对应的字幕内容 
+    获取视频对应的字幕内容
     优先级：1. 同目录下与视频同名的字幕文件 2. 字幕目录下与视频同名的字幕文件 3. 默认字幕
     """
-    video_name = os.path.splitext(os.path.basename(video_file))[0]
+    os.path.splitext(os.path.basename(video_file))[0]
 
     # 3. 返回默认字幕
     return "我是宝宝我还不会说话但是我和你们说，我是宝宝我还不会说话但是我和你们说，我是宝宝我还不会说话但是我和你们说"
@@ -64,24 +65,24 @@ for i, video_file in enumerate(video_files):
     video_material = draft.VideoMaterial(video_file)
     video_duration = video_material.duration  # 视频实际时长
     segment_duration = video_duration  # 后续视频使用完整时长
-    
+
     # 视频片段时间范围
     timerange = trange(current_start_time, segment_duration)
-    
+
     # 创建视频片段
     video_segment = draft.VideoSegment(video_file, timerange)
-    
+
     # 第一个视频添加入场动画
     if i == 0:
         video_segment.add_animation(IntroType.斜切)
-    
+
     # 添加视频片段到轨道
     script.add_segment(video_segment)
-    
+
     # ---------------------- 为当前视频添加对应字幕 ----------------------
     # 获取字幕内容
     subtitle_text = get_video_subtitle(video_file, subtitle_path)
-    
+
     # 创建字幕片段（每个视频对应一个独立的文本片段）
     text_segment = draft.TextSegment(
         subtitle_text,
@@ -97,13 +98,13 @@ for i, video_file in enumerate(video_files):
             transform_y=-0.73,  # 位置在屏幕下方
         )
     )
-    
+
     # 为字幕添加入场和出场动画
     # text_segment.add_effect("7296357486490144036")  # 花字效果
-    
+
     # 添加字幕片段到文本轨道
     script.add_segment(text_segment)
-    
+
     # 更新变量，为下一个视频做准备
     previous_segment = video_segment
     current_start_time = timerange.end
@@ -112,8 +113,8 @@ for i, video_file in enumerate(video_files):
 script.save()
 
 # 打印结果
-print(f"成功创建多视频拼接+对应字幕草稿！")
-print(f"拼接的视频文件及对应字幕：")
+print("成功创建多视频拼接+对应字幕草稿！")
+print("拼接的视频文件及对应字幕：")
 for i, file in enumerate(video_files, 1):
     subtitle = get_video_subtitle(file, subtitle_path)
     print(f"  {i}. 视频：{os.path.basename(file)} -> 字幕：{subtitle}")

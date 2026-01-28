@@ -4,17 +4,18 @@
 遵循SOLID原则和TDD红绿重构循环
 """
 
-import pytest
 import uuid
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from django.utils import timezone
-from asgiref.sync import sync_to_async
 from datetime import timedelta
-from apps.models.services import ModelProviderService, ModelUsageLogService
-from apps.models.models import ModelProvider, ModelUsageLog
-from apps.models.tests.factories import ModelProviderFactory, ModelUsageLogFactory
-from apps.models.tests.conftest import filter_mock_data
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
+import pytest
+from asgiref.sync import sync_to_async
+from django.utils import timezone
+
+from apps.models.models import ModelProvider, ModelUsageLog
+from apps.models.services import ModelProviderService, ModelUsageLogService
+from apps.models.tests.conftest import filter_mock_data
+from apps.models.tests.factories import ModelProviderFactory, ModelUsageLogFactory
 
 # 测试常量
 MIN_PRIORITY_IMPOSSIBLY_HIGH = 999  # 远高于任何实际provider优先级
@@ -265,19 +266,19 @@ class TestModelProviderService:
         """测试获取提供商统计信息"""
         # Given - 使用特定名称的provider避免污染
         provider = ModelProviderFactory(name='StatsTestProvider')
-        log1 = ModelUsageLogFactory(
+        ModelUsageLogFactory(
             model_provider=provider,
             status='success',
             tokens_used=1000,
             latency_ms=500
         )
-        log2 = ModelUsageLogFactory(
+        ModelUsageLogFactory(
             model_provider=provider,
             status='failed',
             tokens_used=0,
             latency_ms=0
         )
-        log3 = ModelUsageLogFactory(
+        ModelUsageLogFactory(
             model_provider=provider,
             status='success',
             tokens_used=2000,
@@ -443,7 +444,7 @@ class TestModelUsageLogService:
         """测试获取提供商的使用日志 - 带限制"""
         # Given
         provider = ModelProviderFactory()
-        for i in range(20):
+        for _i in range(20):
             ModelUsageLogFactory(model_provider=provider)
 
         # When
@@ -509,9 +510,9 @@ class TestModelUsageLogService:
     def test_get_failed_logs(self):
         """测试获取失败的日志"""
         # Given
-        provider = ModelProviderFactory()
-        log1 = ModelUsageLogFactory(status='failed')
-        log2 = ModelUsageLogFactory(status='failed')
+        ModelProviderFactory()
+        ModelUsageLogFactory(status='failed')
+        ModelUsageLogFactory(status='failed')
         ModelUsageLogFactory(status='success')
         ModelUsageLogFactory(status='success')
 
@@ -528,7 +529,7 @@ class TestModelUsageLogService:
     def test_get_failed_logs_with_limit(self):
         """测试获取失败的日志 - 带限制"""
         # Given
-        for i in range(20):
+        for _i in range(20):
             ModelUsageLogFactory(status='failed')
 
         # When

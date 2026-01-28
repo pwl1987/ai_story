@@ -2,11 +2,12 @@
 API响应时间监控中间件测试（Prometheus集成）
 Epic 2.5 - API响应时间监控（Prometheus集成）
 """
-import pytest
-from unittest.mock import patch, MagicMock, Mock
-import time
-import sys
 import os
+import sys
+import time
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 # 避免Django设置问题
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../'))
@@ -25,8 +26,8 @@ class TestAPIResponseTimeMiddlewarePrometheus:
         try:
             from core.middleware.api_response_time import (
                 PROMETHEUS_ENABLED,
+                http_request_duration_seconds,
                 http_requests_total,
-                http_request_duration_seconds
             )
             # 验证指标存在
             assert http_requests_total is not None
@@ -38,8 +39,8 @@ class TestAPIResponseTimeMiddlewarePrometheus:
         """测试Prometheus指标标签配置正确"""
         try:
             from core.middleware.api_response_time import (
+                http_request_duration_seconds,
                 http_requests_total,
-                http_request_duration_seconds
             )
             # 验证标签
             assert 'method' in http_requests_total._labelnames
@@ -206,8 +207,8 @@ class TestPrometheusMetricsStructure:
         """测试指标有适当的文档字符串"""
         try:
             from core.middleware.api_response_time import (
+                http_request_duration_seconds,
                 http_requests_total,
-                http_request_duration_seconds
             )
 
             # 验证文档字符串

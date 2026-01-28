@@ -14,8 +14,11 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import PromptTemplate, PromptTemplateSet, GlobalVariable
+from .models import GlobalVariable, PromptTemplate, PromptTemplateSet
 from .serializers import (
+    GlobalVariableBatchSerializer,
+    GlobalVariableListSerializer,
+    GlobalVariableSerializer,
     PromptTemplateEvaluationSerializer,
     PromptTemplateListSerializer,
     PromptTemplatePreviewSerializer,
@@ -23,9 +26,6 @@ from .serializers import (
     PromptTemplateSetListSerializer,
     PromptTemplateSetSerializer,
     PromptTemplateValidateSerializer,
-    GlobalVariableSerializer,
-    GlobalVariableListSerializer,
-    GlobalVariableBatchSerializer,
 )
 from .services import PromptEvaluationService
 
@@ -314,7 +314,7 @@ class PromptTemplateViewSet(viewsets.ModelViewSet):
             return Response(
                 {
                     'success': False,
-                    'error': f'渲染失败: {str(e)}'
+                    'error': f'渲染失败: {e!s}'
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
@@ -343,7 +343,7 @@ class PromptTemplateViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response(
                 {
-                    'error': f'评估失败: {str(e)}'
+                    'error': f'评估失败: {e!s}'
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
@@ -532,8 +532,8 @@ class GlobalVariableViewSet(viewsets.ModelViewSet):
             )
 
         # 检查格式
-        import re
         import keyword
+        import re
 
         if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', key):
             return Response({

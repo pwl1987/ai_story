@@ -3,11 +3,13 @@ OpenAI兼容的LLM客户端实现
 支持OpenAI API和兼容接口
 """
 
-import requests
 import json
 import time
-from typing import Dict, Any, Generator
-from .base import LLMClient, AIResponse
+from typing import Any, Dict, Generator
+
+import requests
+
+from .base import AIResponse, LLMClient
 
 
 class OpenAIClient(LLMClient):
@@ -75,12 +77,12 @@ class OpenAIClient(LLMClient):
         except requests.RequestException as e:
             return AIResponse(
                 success=False,
-                error=f'网络请求错误: {str(e)}'
+                error=f'网络请求错误: {e!s}'
             )
         except Exception as e:
             return AIResponse(
                 success=False,
-                error=f'未知错误: {str(e)}'
+                error=f'未知错误: {e!s}'
             )
 
     def generate_stream(
@@ -201,12 +203,12 @@ class OpenAIClient(LLMClient):
         except requests.RequestException as e:
             yield {
                 'type': 'error',
-                'error': f'网络请求错误: {str(e)}'
+                'error': f'网络请求错误: {e!s}'
             }
         except Exception as e:
             yield {
                 'type': 'error',
-                'error': f'未知错误: {str(e)}'
+                'error': f'未知错误: {e!s}'
             }
 
     def validate_config(self) -> bool:

@@ -3,20 +3,21 @@ Content API集成测试
 测试内容管理API: StorageImageListView, StorageImageDetailView, StorageVideoDetailView
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
 from django.conf import settings
 from django.test import override_settings
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.content.models import ContentRewrite, Storyboard, GeneratedImage, GeneratedVideo
+from apps.content.models import ContentRewrite, GeneratedImage, GeneratedVideo, Storyboard
 from apps.content.tests.factories import (
     ContentRewriteFactory,
-    StoryboardFactory,
     GeneratedImageFactory,
     GeneratedVideoFactory,
     ProjectFactory,
+    StoryboardFactory,
 )
 
 

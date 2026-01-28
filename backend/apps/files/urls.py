@@ -3,9 +3,10 @@
 Epic 6: 文件管理与预览
 """
 
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from .views import FileUploadViewSet, FilePreviewView, PublicFileView
+
+from .views import FilePreviewView, FileUploadViewSet, PublicFileView
 
 router = DefaultRouter()
 router.register(r'', FileUploadViewSet, basename='uploaded-file')

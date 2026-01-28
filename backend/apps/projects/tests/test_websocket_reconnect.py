@@ -4,20 +4,22 @@ Epic 3: 实时通信稳定性 - 自动重连机制
 职责: 测试WebSocket自动重连功能
 """
 
-import pytest
 import asyncio
-import time
-from unittest.mock import AsyncMock, patch, MagicMock
+import os
 
 # 避免循环导入
 import sys
-import os
+import time
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 from core.websocket.reconnect_manager import (
-    ReconnectStrategy,
     ReconnectState,
-    WebSocketReconnectManager
+    ReconnectStrategy,
+    WebSocketReconnectManager,
 )
 
 
@@ -60,7 +62,7 @@ class TestReconnectStrategy:
         strategy = ReconnectStrategy(max_retries=5)
 
         # 模拟5次失败
-        for i in range(5):
+        for _i in range(5):
             asyncio.run(strategy.on_failure())
 
         assert strategy.retry_count == 5
@@ -330,9 +332,7 @@ class TestReconnectPerformance:
 
         async def mock_connect():
             call_count[0] += 1
-            if call_count[0] < 5:
-                return False
-            return True
+            return not call_count[0] < 5
 
         manager = WebSocketReconnectManager(
             project_id='proj-1',

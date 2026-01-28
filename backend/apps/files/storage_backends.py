@@ -11,10 +11,11 @@ Epic 6.2: 文件存储服务实现
 设计模式：策略模式 + 工厂模式
 """
 
+import os
+
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 from storages.backends.s3boto3 import S3Boto3Storage
-import os
 
 
 class BaseStorageBackend:
@@ -234,7 +235,7 @@ class OSSStorageBackend(BaseStorageBackend):
         file.seek(0)
 
         # 上传文件
-        result = self.bucket.put_object(file_path, file)
+        self.bucket.put_object(file_path, file)
 
         # 返回文件URL
         if self.custom_domain:

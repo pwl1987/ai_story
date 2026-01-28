@@ -3,12 +3,14 @@
 遵循单一职责原则(SRP): 每个序列化器只负责一个模型的序列化
 """
 
-from rest_framework import serializers
-from django.contrib.auth import get_user_model
-from .models import PromptTemplateSet, PromptTemplate, GlobalVariable
-import re
 import json
-from jinja2 import Template, TemplateSyntaxError, Environment, meta
+import re
+
+from django.contrib.auth import get_user_model
+from jinja2 import Environment, Template, TemplateSyntaxError, meta
+from rest_framework import serializers
+
+from .models import GlobalVariable, PromptTemplate, PromptTemplateSet
 
 User = get_user_model()
 
@@ -72,7 +74,7 @@ class PromptTemplateSerializer(serializers.ModelSerializer):
         try:
             Template(value)
         except TemplateSyntaxError as e:
-            raise serializers.ValidationError(f'模板语法错误: {str(e)}')
+            raise serializers.ValidationError(f'模板语法错误: {e!s}')
         return value
 
     def validate_variables(self, value):
@@ -271,7 +273,7 @@ class PromptTemplateValidateSerializer(serializers.Serializer):
         try:
             Template(value)
         except TemplateSyntaxError as e:
-            raise serializers.ValidationError(f'模板语法错误: {str(e)}')
+            raise serializers.ValidationError(f'模板语法错误: {e!s}')
         return value
 
 
@@ -365,7 +367,7 @@ class GlobalVariableSerializer(serializers.ModelSerializer):
             try:
                 json.loads(value)
             except json.JSONDecodeError as e:
-                raise serializers.ValidationError(f'JSON格式错误: {str(e)}')
+                raise serializers.ValidationError(f'JSON格式错误: {e!s}')
 
         return value
 

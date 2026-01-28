@@ -3,12 +3,14 @@ Stable Diffusion文生图客户端实现
 支持Automatic1111 WebUI和Stability AI API
 """
 
-import requests
+import base64
 import json
 import time
-import base64
-from typing import Dict, Any, List
-from .base import Text2ImageClient, AIResponse
+from typing import Any, Dict, List
+
+import requests
+
+from .base import AIResponse, Text2ImageClient
 
 
 class StableDiffusionClient(Text2ImageClient):
@@ -58,7 +60,7 @@ class StableDiffusionClient(Text2ImageClient):
         Returns:
             AIResponse: 包含base64图片数据的响应对象
         """
-        start_time = time.time()
+        time.time()
 
         # 判断API类型
         api_url = self.api_url
@@ -216,12 +218,12 @@ class StableDiffusionClient(Text2ImageClient):
         except requests.RequestException as e:
             return AIResponse(
                 success=False,
-                error=f'网络请求错误: {str(e)}'
+                error=f'网络请求错误: {e!s}'
             )
         except Exception as e:
             return AIResponse(
                 success=False,
-                error=f'未知错误: {str(e)}'
+                error=f'未知错误: {e!s}'
             )
 
     def _generate_stability_ai(
@@ -328,12 +330,12 @@ class StableDiffusionClient(Text2ImageClient):
         except requests.RequestException as e:
             return AIResponse(
                 success=False,
-                error=f'网络请求错误: {str(e)}'
+                error=f'网络请求错误: {e!s}'
             )
         except Exception as e:
             return AIResponse(
                 success=False,
-                error=f'未知错误: {str(e)}'
+                error=f'未知错误: {e!s}'
             )
 
     def validate_config(self) -> bool:

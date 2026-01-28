@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 视频生成API客户端
 支持视频生成任务提交和轮询查询
 """
 
-import requests
 import time
-from typing import Optional, Dict, Any, List
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+import requests
 
 
 class TaskStatus(Enum):
@@ -130,7 +130,7 @@ class VideoGenerator:
             print(result)
             return result["data"] # [{"url": "xx"}]
         except requests.exceptions.RequestException as e:
-            raise Exception(f"创建视频任务失败: {str(e)}")
+            raise Exception(f"创建视频任务失败: {e!s}")
 
     def get_task_status(self, task_id: str) -> Dict[str, Any]:
         """查询视频生成任务状态
@@ -148,7 +148,7 @@ class VideoGenerator:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            raise Exception(f"查询任务状态失败: {str(e)}")
+            raise Exception(f"查询任务状态失败: {e!s}")
 
     def wait_for_completion(
         self,

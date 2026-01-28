@@ -16,9 +16,9 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.ai_client.mock_image2video_client import MockImage2VideoClient
 from core.ai_client.mock_llm_client import MockLLMClient
 from core.ai_client.mock_text2image_client import MockText2ImageClient
-from core.ai_client.mock_image2video_client import MockImage2VideoClient
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +131,7 @@ class MockLLMGenerateView(MockAPIBaseView):
 
     def post(self, request):
         prompt = (request.data.get('prompt') or "").strip()
-        
+
 
         max_tokens = self._get_int(request.data.get('max_tokens'), 500)
         temperature = self._get_float(request.data.get('temperature'), 0.7)
@@ -257,7 +257,7 @@ class MockLLMGenerateView(MockAPIBaseView):
     @staticmethod
     def _format_sse(payload: Dict[str, Any]) -> bytes:
         """Format payload as SSE data bytes."""
-        return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n".encode('utf-8')
+        return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n".encode()
 
 
 class MockText2ImageGenerateView(MockAPIBaseView):

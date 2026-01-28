@@ -6,8 +6,8 @@ Epic 2优化：确保阈值可以通过环境变量配置
 import pytest
 from django.test import override_settings
 
-from core.middleware.api_response_time import SLOW_REQUEST_THRESHOLD_MS
 from config.celery import _get_slow_task_threshold
+from core.middleware.api_response_time import SLOW_REQUEST_THRESHOLD_MS
 
 
 class TestThresholdsFromSettings:
@@ -31,6 +31,7 @@ class TestThresholdsFromSettings:
         """测试从settings读取自定义API阈值"""
         # 重新导入模块以获取新的settings值
         from importlib import reload
+
         import core.middleware.api_response_time as api_module
 
         reload(api_module)

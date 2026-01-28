@@ -5,12 +5,13 @@
 遵循依赖倒置原则(DIP): 依赖AI客户端抽象而非具体实现
 """
 
-from typing import Dict, Any, List
-from core.ai_client.openai_client import OpenAIClient
+from typing import Any, Dict, List
+
 from apps.models.models import ModelProvider
 
 # 导入异步ORM包装函数
 from apps.projects.pipeline_adapters import sync_to_async_wrapper
+from core.ai_client.openai_client import OpenAIClient
 
 
 class PromptEvaluationService:

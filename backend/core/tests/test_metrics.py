@@ -3,24 +3,25 @@
 Epic 2优化：测试Prometheus指标模块
 """
 
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from django.test import override_settings
 from django.http import HttpResponse
+from django.test import override_settings
 
 from core.prometheus_metrics import (
-    get_endpoint_from_request,
-    track_api_request,
-    track_celery_task,
-    metrics_view,
+    PROMETHEUS_AVAILABLE,
     PrometheusMetricsMiddleware,
     api_request_counter,
     api_response_time_histogram,
     api_slow_request_counter,
+    celery_slow_task_counter,
     celery_task_counter,
     celery_task_duration_histogram,
-    celery_slow_task_counter,
-    PROMETHEUS_AVAILABLE
+    get_endpoint_from_request,
+    metrics_view,
+    track_api_request,
+    track_celery_task,
 )
 
 

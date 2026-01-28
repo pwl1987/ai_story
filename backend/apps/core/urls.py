@@ -3,8 +3,9 @@ Core app URL配置
 """
 
 from django.urls import path
+
+from .api_views import LatestPercentileStatsView, PercentileStatsView
 from .views import health_check, metrics
-from .api_views import PercentileStatsView, LatestPercentileStatsView
 
 app_name = 'core'
 

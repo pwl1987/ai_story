@@ -4,16 +4,14 @@ Epic 3: 实时通信稳定性 - 历史进度记录功能
 测试ProgressHistoryRecorder和ProgressHistoryQuery服务
 """
 
-import pytest
 from datetime import datetime, timedelta
-from django.utils import timezone
+
+import pytest
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 from apps.projects.models import Project, ProjectProgressHistory
-from apps.projects.services import (
-    ProgressHistoryRecorder,
-    ProgressHistoryQuery
-)
+from apps.projects.services import ProgressHistoryQuery, ProgressHistoryRecorder
 
 User = get_user_model()
 
@@ -386,7 +384,7 @@ class TestProgressHistoryQuery:
         assert deleted_count == 5
 
         # 验证剩余记录
-        remaining = ProjectProgressHistory.objects.filter(project=self.project)
+        ProjectProgressHistory.objects.filter(project=self.project)
         # 注意: pytest环境下数据库事务未提交,可能无法验证
         # 这里仅作示例
 

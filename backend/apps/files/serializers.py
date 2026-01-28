@@ -4,13 +4,15 @@ Epic 6: 文件管理与预览
 Story 6.1: 文件上传API
 """
 
-import os
 import hashlib
-from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
+import os
+
 from django.core.files.base import File
 from django.core.validators import FileExtensionValidator
-from .models import UploadedFile, FileQuota
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
+
+from .models import FileQuota, UploadedFile
 
 
 class UploadedFileSerializer(serializers.ModelSerializer):
@@ -87,7 +89,7 @@ class UploadedFileSerializer(serializers.ModelSerializer):
 
         if user and file:
             # 获取或创建用户配额
-            quota, created = FileQuota.objects.get_or_create(user=user)
+            quota, _created = FileQuota.objects.get_or_create(user=user)
 
             # 检查配额
             allowed, message = quota.check_quota(file.size)
@@ -115,7 +117,7 @@ class UploadedFileSerializer(serializers.ModelSerializer):
 
         # 更新用户配额
         if user:
-            quota, created = FileQuota.objects.get_or_create(user=user)
+            quota, _created = FileQuota.objects.get_or_create(user=user)
             quota.update_usage(file.size, increment=True)
 
         return uploaded_file

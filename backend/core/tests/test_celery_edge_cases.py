@@ -3,18 +3,19 @@
 补充测试以提高Story 2.6的覆盖率
 """
 
-import pytest
 import time
-from unittest.mock import Mock, patch, MagicMock
-from celery.exceptions import Retry, Ignore
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
+from celery.exceptions import Ignore, Retry
 
 from config.celery import (
-    task_prerun_handler,
-    task_postrun_handler,
-    task_retry_handler,
-    task_failure_handler,
+    _get_slow_task_threshold,
     debug_task,
-    _get_slow_task_threshold
+    task_failure_handler,
+    task_postrun_handler,
+    task_prerun_handler,
+    task_retry_handler,
 )
 
 
@@ -195,7 +196,6 @@ class TestCeleryEdgeCases:
         # debug_task是一个Celery任务，用于调试
         # 它使用print输出，不涉及日志记录
         # 我们只需验证它能被调用即可
-        from config.celery import debug_task
         assert callable(debug_task)
         # 注意：debug_task在第88行，这是未覆盖的代码
         # 但它是用于调试的，不涉及生产功能

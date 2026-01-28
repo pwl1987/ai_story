@@ -4,8 +4,9 @@
 """
 
 import uuid
-from django.db import models
+
 from django.contrib.auth import get_user_model
+from django.db import models
 
 User = get_user_model()
 
@@ -217,8 +218,8 @@ class GlobalVariable(models.Model):
         Returns:
             变量字典 {key: typed_value}
         """
-        from django.db.models import Q
         from asgiref.sync import sync_to_async
+        from django.db.models import Q
 
         query = Q(created_by=user, scope='user', is_active=True)
 

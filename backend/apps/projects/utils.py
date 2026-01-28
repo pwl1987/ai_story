@@ -42,9 +42,9 @@ def parse_storyboard_json(json_text: str) -> dict:
         return storyboard_data
 
     except json.JSONDecodeError as e:
-        raise ValueError(f"JSON解析失败: {str(e)}\n原始内容:\n{json_text[:200]}...")
+        raise ValueError(f"JSON解析失败: {e!s}\n原始内容:\n{json_text[:200]}...")
     except Exception as e:
-        raise ValueError(f"分镜数据解析失败: {str(e)}")
+        raise ValueError(f"分镜数据解析失败: {e!s}")
 
 
 def parse_json(json_text: str) -> dict:

@@ -5,6 +5,7 @@
 """
 
 from rest_framework import serializers
+
 from .models import ModelProvider, ModelUsageLog
 
 
@@ -36,8 +37,9 @@ class ModelProviderListSerializer(serializers.ModelSerializer):
 
     def get_recent_usage_count(self, obj):
         """获取最近7天使用次数"""
-        from django.utils import timezone
         from datetime import timedelta
+
+        from django.utils import timezone
         seven_days_ago = timezone.now() - timedelta(days=7)
         return obj.usage_logs.filter(created_at__gte=seven_days_ago).count()
 

@@ -8,11 +8,12 @@ Epic 6.3: 文件预览功能
 3. 文档预览（PDF/文本）
 """
 
+import io
 import os
 from pathlib import Path
+
 from django.conf import settings
 from PIL import Image
-import io
 
 
 class FilePreviewService:
@@ -60,7 +61,7 @@ class FilePreviewService:
                 return f"previews/{preview_filename}"
 
         except Exception as e:
-            raise Exception(f'生成缩略图失败: {str(e)}')
+            raise Exception(f'生成缩略图失败: {e!s}')
 
     def extract_video_frame(self, file_path, time_offset=0):
         """
@@ -104,7 +105,7 @@ class FilePreviewService:
             # 如果没有cv2，返回None
             return None
         except Exception as e:
-            raise Exception(f'提取视频帧失败: {str(e)}')
+            raise Exception(f'提取视频帧失败: {e!s}')
 
     def generate_pdf_preview(self, file_path, page=0):
         """
@@ -141,7 +142,7 @@ class FilePreviewService:
             # 如果没有pdf2image，返回None
             return None
         except Exception as e:
-            raise Exception(f'生成PDF预览失败: {str(e)}')
+            raise Exception(f'生成PDF预览失败: {e!s}')
 
     def get_preview(self, file_type, file_path):
         """

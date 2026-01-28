@@ -5,12 +5,11 @@
 """
 
 import pytest
-from django.db.utils import IntegrityError
 from django.core.exceptions import ValidationError
+from django.db.utils import IntegrityError
 
 from apps.models.models import ModelProvider, ModelUsageLog
 from apps.models.tests.factories import ModelProviderFactory
-
 
 # ============================================================================
 # ModelProvider 测试
@@ -101,9 +100,9 @@ class TestModelProviderModel:
         # 清除现有数据以确保测试隔离
         ModelProvider.objects.all().delete()
 
-        provider1 = ModelProviderFactory(priority=10)
-        provider2 = ModelProviderFactory(priority=20)
-        provider3 = ModelProviderFactory(priority=5)
+        ModelProviderFactory(priority=10)
+        ModelProviderFactory(priority=20)
+        ModelProviderFactory(priority=5)
 
         providers = list(ModelProvider.objects.all())
         assert providers[0].priority == 20  # provider2

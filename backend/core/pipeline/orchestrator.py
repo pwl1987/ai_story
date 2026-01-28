@@ -6,7 +6,8 @@ Pipeline编排器
 import asyncio
 import logging
 from typing import List
-from .base import StageProcessor, PipelineContext, StageResult, ValidationError
+
+from .base import PipelineContext, StageProcessor, StageResult, ValidationError
 
 logger = logging.getLogger(__name__)
 

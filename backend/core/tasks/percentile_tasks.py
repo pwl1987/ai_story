@@ -14,6 +14,7 @@ Epic 2优化：Celery Beat定时任务自动计算百分位数
 """
 
 import logging
+
 from celery import shared_task
 
 from core.services.percentile_stats import PercentileStats
@@ -41,7 +42,7 @@ def calculate_percentile_stats_task(self, time_window_minutes: int = 15):
         Dict: 统计结果
     """
     logger.info(
-        f"开始执行百分位数统计任务",
+        "开始执行百分位数统计任务",
         extra={'extra_fields': {
             'task_id': self.request.id,
             'time_window_minutes': time_window_minutes
@@ -53,7 +54,7 @@ def calculate_percentile_stats_task(self, time_window_minutes: int = 15):
         result = PercentileStats.calculate_all_percentiles(time_window_minutes)
 
         logger.info(
-            f"百分位数统计任务完成",
+            "百分位数统计任务完成",
             extra={'extra_fields': {
                 'task_id': self.request.id,
                 'api_sample_count': result['api']['sample_count'],
@@ -97,7 +98,7 @@ def calculate_api_percentiles_task(self, time_window_minutes: int = 15):
         Dict: API百分位数统计
     """
     logger.info(
-        f"开始计算API响应时间百分位数",
+        "开始计算API响应时间百分位数",
         extra={'extra_fields': {
             'task_id': self.request.id,
             'time_window_minutes': time_window_minutes
@@ -108,7 +109,7 @@ def calculate_api_percentiles_task(self, time_window_minutes: int = 15):
         result = PercentileStats.calculate_api_percentiles(time_window_minutes)
 
         logger.info(
-            f"API百分位数计算完成",
+            "API百分位数计算完成",
             extra={'extra_fields': {
                 'task_id': self.request.id,
                 'sample_count': result['sample_count'],
@@ -148,7 +149,7 @@ def calculate_celery_percentiles_task(self, time_window_minutes: int = 15):
         Dict: Celery百分位数统计
     """
     logger.info(
-        f"开始计算Celery任务执行时间百分位数",
+        "开始计算Celery任务执行时间百分位数",
         extra={'extra_fields': {
             'task_id': self.request.id,
             'time_window_minutes': time_window_minutes
@@ -159,7 +160,7 @@ def calculate_celery_percentiles_task(self, time_window_minutes: int = 15):
         result = PercentileStats.calculate_celery_percentiles(time_window_minutes)
 
         logger.info(
-            f"Celery百分位数计算完成",
+            "Celery百分位数计算完成",
             extra={'extra_fields': {
                 'task_id': self.request.id,
                 'sample_count': result['sample_count'],

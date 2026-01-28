@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.prompts.models import PromptTemplateSet, PromptTemplate, GlobalVariable
+from apps.prompts.models import GlobalVariable, PromptTemplate, PromptTemplateSet
 
 User = get_user_model()
 

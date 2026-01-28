@@ -4,9 +4,9 @@ from django.urls import path
 
 from .views import (
     MockAPIRootView,
+    MockImage2VideoGenerateView,
     MockLLMGenerateView,
     MockText2ImageGenerateView,
-    MockImage2VideoGenerateView,
 )
 
 app_name = 'mock_api'

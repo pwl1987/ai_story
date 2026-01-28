@@ -3,16 +3,13 @@
 测试任务执行时间记录和慢任务检测功能
 """
 
-import pytest
 import time
 from unittest.mock import Mock, patch
-from celery.exceptions import Retry, Ignore
 
-from config.celery import (
-    task_prerun_handler,
-    task_postrun_handler,
-    _get_slow_task_threshold
-)
+import pytest
+from celery.exceptions import Ignore, Retry
+
+from config.celery import _get_slow_task_threshold, task_postrun_handler, task_prerun_handler
 
 
 class TestTaskExecutionTime:

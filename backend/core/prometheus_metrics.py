@@ -16,14 +16,14 @@ Epic 2优化：提供系统监控指标
 """
 
 import time
-from typing import Callable, Optional
 from functools import wraps
+from typing import Callable, Optional
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 
 try:
-    from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
+    from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
     PROMETHEUS_AVAILABLE = True
 except ImportError:
     # 如果prometheus_client未安装，提供mock实现
@@ -219,7 +219,7 @@ def track_api_request(func: Callable) -> Callable:
 
             return response
 
-        except Exception as e:
+        except Exception:
             # 记录失败的请求
             api_request_counter.labels(
                 method=method,
@@ -382,7 +382,7 @@ class PrometheusMetricsMiddleware:
 
             return response
 
-        except Exception as e:
+        except Exception:
             # 记录失败的请求
             api_request_counter.labels(
                 method=method,

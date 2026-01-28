@@ -6,8 +6,9 @@ Mock 文生图客户端实现（异步版本）
 
 import asyncio
 import random
-from typing import Dict, Any
-from .base import Text2ImageClient, AIResponse
+from typing import Any, Dict
+
+from .base import AIResponse, Text2ImageClient
 
 
 class MockText2ImageClient(Text2ImageClient):
@@ -55,8 +56,8 @@ class MockText2ImageClient(Text2ImageClient):
         await asyncio.sleep(delay)
 
         # 从kwargs获取参数
-        ratio = kwargs.get('ratio', '1:1')
-        resolution = kwargs.get('resolution', '2k')
+        kwargs.get('ratio', '1:1')
+        kwargs.get('resolution', '2k')
         sample_count = kwargs.get('sample_count', 1)
 
         # 根据提示词哈希选择图片（保证相同提示词返回相同图片）

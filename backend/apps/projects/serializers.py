@@ -4,10 +4,13 @@
 遵循单一职责原则(SRP)
 """
 
+import contextlib
+
 from rest_framework import serializers
 
 from apps.projects.utils import parse_storyboard_json
-from .models import Project, ProjectStage, ProjectModelConfig
+
+from .models import Project, ProjectModelConfig, ProjectStage
 
 
 class ProjectStageSerializer(serializers.ModelSerializer):
@@ -30,15 +33,11 @@ class ProjectStageSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         stage_type = data.get("stage_type")
         if stage_type == "storyboard":
-            try:    
+            with contextlib.suppress(Exception):
                 data["output_data"]["human_text"] = parse_storyboard_json(data["output_data"].get("storyboard_text", ""))
-            except Exception:
-                pass
         elif stage_type == "image_generation":
-            try:
+            with contextlib.suppress(Exception):
                 data["input_data"]["human_text"] = parse_storyboard_json(data["input_data"].get("storyboard_text", ""))
-            except Exception:
-                pass
         return data
 
 
@@ -217,7 +216,7 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
                         "human_text": ""
                     }
             )
-        
+
         # 创建默认模型配置
         ProjectModelConfig.objects.create(project=project)
 
@@ -302,7 +301,7 @@ class StageExecuteSerializer(serializers.Serializer):
 
         # 检查阶段是否存在
         try:
-            stage = ProjectStage.objects.get(project_id=project_id, stage_type=stage_name)
+            ProjectStage.objects.get(project_id=project_id, stage_type=stage_name)
         except ProjectStage.DoesNotExist:
             raise serializers.ValidationError(f"阶段 {stage_name} 不存在")
 

@@ -17,7 +17,7 @@ from apps.projects.tests.factories import (
     ProjectStageFactory,
     UserFactory,
 )
-from apps.projects.views import ProjectViewSet, ProjectStageViewSet, ProjectModelConfigViewSet
+from apps.projects.views import ProjectModelConfigViewSet, ProjectStageViewSet, ProjectViewSet
 
 User = get_user_model()
 
@@ -35,8 +35,8 @@ class TestProjectViewSet:
     def test_list_projects(self):
         """测试获取项目列表"""
         # 创建测试数据
-        project1 = ProjectFactory(user=self.user, name="项目1")
-        project2 = ProjectFactory(user=self.user, name="项目2")
+        ProjectFactory(user=self.user, name="项目1")
+        ProjectFactory(user=self.user, name="项目2")
 
         # 发送请求
         url = reverse('project-list')
@@ -196,8 +196,8 @@ class TestProjectStageViewSet:
     def test_list_stages(self):
         """测试获取阶段列表"""
         project = ProjectFactory(user=self.user)
-        stage1 = ProjectStageFactory(project=project, stage_type='rewrite')
-        stage2 = ProjectStageFactory(project=project, stage_type='storyboard')
+        ProjectStageFactory(project=project, stage_type='rewrite')
+        ProjectStageFactory(project=project, stage_type='storyboard')
 
         url = reverse('stage-list')
         response = self.client.get(url)
@@ -613,7 +613,7 @@ class TestProjectPermissions:
 
     def test_admin_can_access_all_projects(self):
         """测试管理员可以访问所有项目"""
-        user_project = ProjectFactory(user=self.user, name='用户项目')
+        ProjectFactory(user=self.user, name='用户项目')
         other_project = ProjectFactory(user=self.other_user, name='其他用户项目')
 
         # 使用管理员认证
@@ -641,7 +641,7 @@ class TestProjectStageDetail:
     def test_get_stage_detail(self):
         """测试获取阶段详情"""
         project = ProjectFactory(user=self.user)
-        stage = ProjectStageFactory(
+        ProjectStageFactory(
             project=project,
             stage_type='rewrite',
             status='completed',
@@ -693,7 +693,7 @@ class TestProjectStatistics:
         # 创建两个用户的项目
         other_user = UserFactory()
         ProjectFactory(user=other_user, status='draft')
-        my_project = ProjectFactory(user=self.user, status='draft')
+        ProjectFactory(user=self.user, status='draft')
 
         url = reverse('project-statistics')
         response = self.client.get(url)

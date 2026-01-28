@@ -4,9 +4,11 @@
 """
 
 import uuid
+
 from django.db import models
-from apps.projects.models import Project
+
 from apps.models.models import ModelProvider
+from apps.projects.models import Project
 
 
 class ContentRewrite(models.Model):

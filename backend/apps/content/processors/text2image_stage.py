@@ -4,19 +4,20 @@
 遵循单一职责原则(SRP) + 开闭原则(OCP)
 """
 
+import contextlib
 import copy
 import logging
 import random
 from typing import Any, Dict, Generator, List, Optional
-from jinja2 import Template, TemplateError
 
-from core.ai_client.factory import create_ai_client
-from core.pipeline.base import PipelineContext, StageProcessor
 from django.utils import timezone
+from jinja2 import Template, TemplateError
 
 from apps.content.models import GeneratedImage, Storyboard
 from apps.models.models import ModelProvider
 from apps.projects.models import Project, ProjectStage
+from core.ai_client.factory import create_ai_client
+from core.pipeline.base import PipelineContext, StageProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +87,7 @@ class Text2ImageStageProcessor(StageProcessor):
             logger.error(f"项目 {context.project_id} 不存在")
             return False
         except Exception as e:
-            logger.error(f"验证失败: {str(e)}", exc_info=True)
+            logger.error(f"验证失败: {e!s}", exc_info=True)
             return False
 
     def process(
@@ -116,7 +117,7 @@ class Text2ImageStageProcessor(StageProcessor):
         try:
             # 获取项目和阶段
             project = Project.objects.get(id=project_id)
-            stage, created = ProjectStage.objects.get_or_create(
+            stage, _created = ProjectStage.objects.get_or_create(
                 project=project,
                 stage_type=self.stage_type
             )
@@ -144,10 +145,10 @@ class Text2ImageStageProcessor(StageProcessor):
                 else:
                     storyboards = stage.output_data.get("human_text", {}).get("scenes", [])
             except Exception as e:
-                logger.error(f"获取分镜数据失败: {str(e)}", exc_info=True)
+                logger.error(f"获取分镜数据失败: {e!s}", exc_info=True)
                 yield {
                     'type': 'error',
-                    'error': f'获取分镜数据失败: {str(e)}'
+                    'error': f'获取分镜数据失败: {e!s}'
                 }
                 raise e
 
@@ -216,10 +217,10 @@ class Text2ImageStageProcessor(StageProcessor):
 
                 except Exception as e:
                     failed_count += 1
-                    logger.error(f"分镜 {index} 生成失败: {str(e)}")
+                    logger.error(f"分镜 {index} 生成失败: {e!s}")
                     yield {
                         'type': 'error',
-                        'error': f'分镜 {index} 生成失败: {str(e)}',
+                        'error': f'分镜 {index} 生成失败: {e!s}',
                         'storyboard_id': str(storyboard["scene_number"])
                     }
 
@@ -245,7 +246,7 @@ class Text2ImageStageProcessor(StageProcessor):
             }
 
         except Exception as e:
-            logger.error(f"流式文生图处理失败: {str(e)}", exc_info=True)
+            logger.error(f"流式文生图处理失败: {e!s}", exc_info=True)
 
             # 更新阶段状态
             if stage:
@@ -276,7 +277,7 @@ class Text2ImageStageProcessor(StageProcessor):
                 stage.save()
 
         except Exception as e:
-            logger.error(f"更新失败状态失败: {str(e)}")
+            logger.error(f"更新失败状态失败: {e!s}")
 
     # ===== 私有辅助方法 =====
 
@@ -385,12 +386,12 @@ class Text2ImageStageProcessor(StageProcessor):
             raise Exception("未找到可用的文生图模型提供商，请在后台配置")
 
         return provider
-        
+
     def _get_prompt_template(self, project: Project):
         """获取提示词模板"""
         # 从项目的prompt_template_set中获取
         template_set = getattr(project, 'prompt_template_set', None)
-        from apps.prompts.models import PromptTemplateSet, PromptTemplate
+        from apps.prompts.models import PromptTemplate, PromptTemplateSet
 
         if not template_set:
             # 尝试获取默认提示词集
@@ -463,9 +464,9 @@ class Text2ImageStageProcessor(StageProcessor):
             return rendered_prompt
 
         except TemplateError as e:
-            logger.error(f"提示词模板渲染失败: {str(e)}")
-            raise ValueError(f"提示词模板渲染失败: {str(e)}")
-            
+            logger.error(f"提示词模板渲染失败: {e!s}")
+            raise ValueError(f"提示词模板渲染失败: {e!s}")
+
     def _generate_single_image(
         self,
         project: Project,
@@ -527,10 +528,10 @@ class Text2ImageStageProcessor(StageProcessor):
             return image_data
 
         except Exception as e:
-            logger.error(f"分镜 {storyboard.get('sequence_number')} 图片生成异常: {str(e)}", exc_info=True)
+            logger.error(f"分镜 {storyboard.get('sequence_number')} 图片生成异常: {e!s}", exc_info=True)
 
             # 创建失败记录
-            try:
+            with contextlib.suppress(BaseException):
                 GeneratedImage.objects.create(
                     storyboard=storyboard,
                     image_url='',
@@ -538,7 +539,5 @@ class Text2ImageStageProcessor(StageProcessor):
                     model_provider=provider,
                     status='failed'
                 )
-            except:
-                pass
 
             return None

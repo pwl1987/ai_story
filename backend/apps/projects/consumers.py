@@ -6,16 +6,18 @@ WebSocket消费者
 Epic 3: 集成自动重连机制
 """
 
+import asyncio
+import contextlib
 import json
 import logging
-import asyncio
 import time
+
 import redis.asyncio as aioredis
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.conf import settings
 
 # Epic 3: 导入自动重连管理器
-from core.websocket import WebSocketReconnectManager, ReconnectState
+from core.websocket import ReconnectState, WebSocketReconnectManager
 
 logger = logging.getLogger(__name__)
 
@@ -214,13 +216,11 @@ class ProjectStageConsumer(AsyncWebsocketConsumer):
             logger.error(f"Redis消息监听失败: {e}")
 
             # Epic 3: 发送错误消息到前端
-            try:
+            with contextlib.suppress(Exception):
                 await self.send(text_data=json.dumps({
                     'type': 'error',
-                    'error': f'Redis连接失败: {str(e)}'
+                    'error': f'Redis连接失败: {e!s}'
                 }))
-            except Exception:
-                pass
 
             # Epic 3: 触发重连
             if self.reconnect_manager and self.reconnect_manager.should_retry():
@@ -407,13 +407,11 @@ class ProjectConsumer(AsyncWebsocketConsumer):
             logger.error(f"Redis消息监听失败: {e}")
 
             # Epic 3: 发送错误消息到前端
-            try:
+            with contextlib.suppress(Exception):
                 await self.send(text_data=json.dumps({
                     'type': 'error',
-                    'error': f'Redis连接失败: {str(e)}'
+                    'error': f'Redis连接失败: {e!s}'
                 }))
-            except Exception:
-                pass
 
             # Epic 3: 触发重连
             if self.reconnect_manager and self.reconnect_manager.should_retry():

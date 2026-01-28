@@ -3,11 +3,11 @@
 支持可配置延迟、失败场景模拟、日志记录
 """
 
-import time
 import logging
-from typing import Dict, Any, Generator, Optional, List
-from .base import Text2ImageClient, AIResponse
+import time
+from typing import Any, Dict, Generator, List, Optional
 
+from .base import AIResponse, Text2ImageClient
 
 logger = logging.getLogger(__name__)
 

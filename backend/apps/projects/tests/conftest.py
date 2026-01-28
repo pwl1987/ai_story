@@ -2,9 +2,11 @@
 Pipeline适配器测试配置
 解决SQLite数据库锁和SynchronousOnlyOperation问题
 """
-import pytest
 import os
 import tempfile
+
+import pytest
+
 
 # 配置测试使用文件数据库而非内存数据库
 @pytest.fixture(scope='session')

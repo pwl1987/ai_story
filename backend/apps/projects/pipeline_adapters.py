@@ -8,19 +8,16 @@ import asyncio
 import json
 import logging
 import os
-from typing import Dict, Any
-from django.utils import timezone
-from asgiref.sync import sync_to_async
+from typing import Any, Dict
 
-from core.pipeline.base import (
-    StageProcessor,
-    PipelineContext,
-    StageResult
-)
-from apps.projects.models import Project, ProjectStage
+from asgiref.sync import sync_to_async
+from django.utils import timezone
+
+from apps.content.processors.image2video_stage import Image2VideoStageProcessor
 from apps.content.processors.llm_stage import LLMStageProcessor
 from apps.content.processors.text2image_stage import Text2ImageStageProcessor
-from apps.content.processors.image2video_stage import Image2VideoStageProcessor
+from apps.projects.models import Project, ProjectStage
+from core.pipeline.base import PipelineContext, StageProcessor, StageResult
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +60,7 @@ class RewriteStageAdapter(StageProcessor):
             logger.error(f"项目 {context.project_id} 不存在")
             return False
         except Exception as e:
-            logger.error(f"验证失败: {str(e)}", exc_info=True)
+            logger.error(f"验证失败: {e!s}", exc_info=True)
             return False
 
     async def process(self, context: PipelineContext) -> StageResult:
@@ -71,7 +68,7 @@ class RewriteStageAdapter(StageProcessor):
         project = await sync_to_async_wrapper(Project.objects.get)(id=context.project_id)
 
         # 获取或创建阶段
-        stage, created = await sync_to_async_wrapper(ProjectStage.objects.get_or_create)(
+        stage, _created = await sync_to_async_wrapper(ProjectStage.objects.get_or_create)(
             project=project,
             stage_type='rewrite',
             defaults={
@@ -129,7 +126,7 @@ class RewriteStageAdapter(StageProcessor):
 
     async def on_failure(self, context: PipelineContext, error: Exception):
         """失败处理"""
-        logger.error(f"文案改写失败: {str(error)}")
+        logger.error(f"文案改写失败: {error!s}")
         try:
             stage = await sync_to_async_wrapper(ProjectStage.objects.get)(
                 project_id=context.project_id,
@@ -175,7 +172,7 @@ class StoryboardStageAdapter(StageProcessor):
         rewrite_result = context.get_result('rewrite')
 
         # 获取或创建阶段
-        stage, created = await sync_to_async_wrapper(ProjectStage.objects.get_or_create)(
+        stage, _created = await sync_to_async_wrapper(ProjectStage.objects.get_or_create)(
             project=project,
             stage_type='storyboard',
             defaults={
@@ -224,7 +221,7 @@ class StoryboardStageAdapter(StageProcessor):
                 scene_number = i + 1
 
                 if isinstance(result, Exception):
-                    logger.error(f"场景 {scene_number} 详细描述生成失败: {str(result)}")
+                    logger.error(f"场景 {scene_number} 详细描述生成失败: {result!s}")
                     failed_count += 1
                     # 使用基础大纲作为fallback
                     scenes.append({
@@ -262,7 +259,7 @@ class StoryboardStageAdapter(StageProcessor):
             )
 
         except Exception as e:
-            logger.error(f"分镜生成失败: {str(e)}", exc_info=True)
+            logger.error(f"分镜生成失败: {e!s}", exc_info=True)
             stage.status = 'failed'
             stage.error_message = str(e)
             stage.retry_count += 1
@@ -281,8 +278,8 @@ class StoryboardStageAdapter(StageProcessor):
             场景大纲: {'scenes': [{'description': '...', 'narration': '...'}]}
         """
         try:
-            from core.ai_client.factory import create_ai_client
             from apps.models.models import ModelProvider
+            from core.ai_client.factory import create_ai_client
 
             # 获取LLM模型提供商
             def get_provider():
@@ -352,7 +349,7 @@ class StoryboardStageAdapter(StageProcessor):
             return result
 
         except Exception as e:
-            logger.error(f"场景大纲生成失败: {str(e)}", exc_info=True)
+            logger.error(f"场景大纲生成失败: {e!s}", exc_info=True)
             # 返回默认大纲（3个场景）
             return {
                 'scenes': [
@@ -375,8 +372,8 @@ class StoryboardStageAdapter(StageProcessor):
             {'success': True, 'scene': {...}}
         """
         try:
-            from core.ai_client.factory import create_ai_client
             from apps.models.models import ModelProvider
+            from core.ai_client.factory import create_ai_client
 
             # 获取LLM模型提供商
             def get_provider():
@@ -448,7 +445,7 @@ class StoryboardStageAdapter(StageProcessor):
             return result
 
         except Exception as e:
-            logger.error(f"场景 {scene_number} 详细描述生成失败: {str(e)}")
+            logger.error(f"场景 {scene_number} 详细描述生成失败: {e!s}")
             # 返回失败结果
             return {
                 'success': False,
@@ -464,7 +461,7 @@ class StoryboardStageAdapter(StageProcessor):
 
     async def on_failure(self, context: PipelineContext, error: Exception):
         """失败处理"""
-        logger.error(f"分镜生成失败: {str(error)}")
+        logger.error(f"分镜生成失败: {error!s}")
         try:
             stage = await sync_to_async_wrapper(ProjectStage.objects.get)(
                 project_id=context.project_id,
@@ -499,7 +496,7 @@ class ImageGenerationStageAdapter(StageProcessor):
 
             return True
         except Exception as e:
-            logger.error(f"验证失败: {str(e)}", exc_info=True)
+            logger.error(f"验证失败: {e!s}", exc_info=True)
             return False
 
     async def process(self, context: PipelineContext) -> StageResult:
@@ -507,7 +504,7 @@ class ImageGenerationStageAdapter(StageProcessor):
         project = await sync_to_async_wrapper(Project.objects.get)(id=context.project_id)
 
         # 获取或创建阶段
-        stage, created = await sync_to_async_wrapper(ProjectStage.objects.get_or_create)(
+        stage, _created = await sync_to_async_wrapper(ProjectStage.objects.get_or_create)(
             project=project,
             stage_type='image_generation',
             defaults={'status': 'pending'}
@@ -571,7 +568,7 @@ class ImageGenerationStageAdapter(StageProcessor):
                 scene_number = scenes[i]['scene_number']
 
                 if isinstance(result, Exception):
-                    logger.error(f"场景 {scene_number} 图片生成失败: {str(result)}")
+                    logger.error(f"场景 {scene_number} 图片生成失败: {result!s}")
                     failed_count += 1
                 elif result and result.get('success'):
                     images.append(result.get('image_url'))
@@ -598,7 +595,7 @@ class ImageGenerationStageAdapter(StageProcessor):
             )
 
         except Exception as e:
-            logger.error(f"文生图处理失败: {str(e)}", exc_info=True)
+            logger.error(f"文生图处理失败: {e!s}", exc_info=True)
             stage.status = 'failed'
             stage.error_message = str(e)
             stage.retry_count += 1
@@ -618,8 +615,8 @@ class ImageGenerationStageAdapter(StageProcessor):
             字典: {'success': True, 'image_url': 'http://...'} 或 {'success': False, 'error': '...'}
         """
         try:
-            from core.ai_client.factory import create_ai_client
             from apps.models.models import ModelProvider
+            from core.ai_client.factory import create_ai_client
 
             # 获取文生图模型提供商
             def get_provider():
@@ -668,12 +665,12 @@ class ImageGenerationStageAdapter(StageProcessor):
                 return {'success': False, 'error': error_msg}
 
         except Exception as e:
-            logger.error(f"场景 {scene_number} 图片生成异常: {str(e)}", exc_info=True)
+            logger.error(f"场景 {scene_number} 图片生成异常: {e!s}", exc_info=True)
             return {'success': False, 'error': str(e)}
 
     async def on_failure(self, context: PipelineContext, error: Exception):
         """失败处理"""
-        logger.error(f"文生图失败: {str(error)}")
+        logger.error(f"文生图失败: {error!s}")
         try:
             stage = await sync_to_async_wrapper(ProjectStage.objects.get)(
                 project_id=context.project_id,
@@ -708,7 +705,7 @@ class CameraMovementStageAdapter(StageProcessor):
 
             return True
         except Exception as e:
-            logger.error(f"验证失败: {str(e)}", exc_info=True)
+            logger.error(f"验证失败: {e!s}", exc_info=True)
             return False
 
     async def process(self, context: PipelineContext) -> StageResult:
@@ -716,7 +713,7 @@ class CameraMovementStageAdapter(StageProcessor):
         project = await sync_to_async_wrapper(Project.objects.get)(id=context.project_id)
 
         # 获取或创建阶段
-        stage, created = await sync_to_async_wrapper(ProjectStage.objects.get_or_create)(
+        stage, _created = await sync_to_async_wrapper(ProjectStage.objects.get_or_create)(
             project=project,
             stage_type='camera_movement',
             defaults={'status': 'pending'}
@@ -793,7 +790,7 @@ class CameraMovementStageAdapter(StageProcessor):
                 scene_number = scenes[i]['scene_number']
 
                 if isinstance(result, Exception):
-                    logger.error(f"场景 {scene_number} 运镜生成失败: {str(result)}")
+                    logger.error(f"场景 {scene_number} 运镜生成失败: {result!s}")
                     failed_count += 1
                 elif result and result.get('success'):
                     camera_movements.append(result)
@@ -834,7 +831,7 @@ class CameraMovementStageAdapter(StageProcessor):
             )
 
         except Exception as e:
-            logger.error(f"运镜生成处理失败: {str(e)}", exc_info=True)
+            logger.error(f"运镜生成处理失败: {e!s}", exc_info=True)
             stage.status = 'failed'
             stage.error_message = str(e)
             stage.retry_count += 1
@@ -854,8 +851,8 @@ class CameraMovementStageAdapter(StageProcessor):
             字典: {'success': True, 'movement_type': '...', 'movement_params': {...}} 或 {'success': False, 'error': '...'}
         """
         try:
-            from core.ai_client.factory import create_ai_client
             from apps.models.models import ModelProvider
+            from core.ai_client.factory import create_ai_client
 
             # 获取LLM模型提供商
             def get_provider():
@@ -955,12 +952,12 @@ class CameraMovementStageAdapter(StageProcessor):
                 return {'success': False, 'error': error_msg}
 
         except Exception as e:
-            logger.error(f"场景 {scene_number} 运镜生成异常: {str(e)}", exc_info=True)
+            logger.error(f"场景 {scene_number} 运镜生成异常: {e!s}", exc_info=True)
             return {'success': False, 'error': str(e)}
 
     async def on_failure(self, context: PipelineContext, error: Exception):
         """失败处理"""
-        logger.error(f"运镜生成失败: {str(error)}")
+        logger.error(f"运镜生成失败: {error!s}")
         try:
             stage = await sync_to_async_wrapper(ProjectStage.objects.get)(
                 project_id=context.project_id,
@@ -995,7 +992,7 @@ class VideoGenerationStageAdapter(StageProcessor):
 
             return True
         except Exception as e:
-            logger.error(f"验证失败: {str(e)}", exc_info=True)
+            logger.error(f"验证失败: {e!s}", exc_info=True)
             return False
 
     async def process(self, context: PipelineContext) -> StageResult:
@@ -1003,7 +1000,7 @@ class VideoGenerationStageAdapter(StageProcessor):
         project = await sync_to_async_wrapper(Project.objects.get)(id=context.project_id)
 
         # 获取或创建阶段
-        stage, created = await sync_to_async_wrapper(ProjectStage.objects.get_or_create)(
+        stage, _created = await sync_to_async_wrapper(ProjectStage.objects.get_or_create)(
             project=project,
             stage_type='video_generation',
             defaults={'status': 'pending'}
@@ -1040,7 +1037,7 @@ class VideoGenerationStageAdapter(StageProcessor):
 
     async def on_failure(self, context: PipelineContext, error: Exception):
         """失败处理"""
-        logger.error(f"图生视频失败: {str(error)}")
+        logger.error(f"图生视频失败: {error!s}")
         try:
             stage = await sync_to_async_wrapper(ProjectStage.objects.get)(
                 project_id=context.project_id,

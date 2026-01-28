@@ -4,12 +4,14 @@ Runway图生视频客户端实现
 使用任务提交+轮询模式
 """
 
-import requests
+import base64
 import json
 import time
-import base64
-from typing import Dict, Any, Optional
-from .base import Image2VideoClient, AIResponse
+from typing import Any, Dict, Optional
+
+import requests
+
+from .base import AIResponse, Image2VideoClient
 
 
 class RunwayClient(Image2VideoClient):
@@ -170,10 +172,10 @@ class RunwayClient(Image2VideoClient):
             return None
 
         except requests.RequestException as e:
-            print(f"网络请求错误: {str(e)}")
+            print(f"网络请求错误: {e!s}")
             return None
         except Exception as e:
-            print(f"未知错误: {str(e)}")
+            print(f"未知错误: {e!s}")
             return None
 
     def _poll_task(
@@ -262,12 +264,12 @@ class RunwayClient(Image2VideoClient):
         except requests.RequestException as e:
             return {
                 'success': False,
-                'error': f'网络请求错误: {str(e)}'
+                'error': f'网络请求错误: {e!s}'
             }
         except Exception as e:
             return {
                 'success': False,
-                'error': f'未知错误: {str(e)}'
+                'error': f'未知错误: {e!s}'
             }
 
     def validate_config(self) -> bool:

@@ -3,16 +3,17 @@
 测试增强的Celery信号处理器
 """
 
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from celery.exceptions import Retry, Ignore
+from celery.exceptions import Ignore, Retry
 
 from config.celery import (
-    task_prerun_handler,
-    task_postrun_handler,
-    task_retry_handler,
+    _filter_sensitive_kwargs,
     task_failure_handler,
-    _filter_sensitive_kwargs
+    task_postrun_handler,
+    task_prerun_handler,
+    task_retry_handler,
 )
 
 
@@ -195,7 +196,7 @@ class TestTaskRetryHandler:
         mock_task.request.retries = 2
         mock_task.max_retries = 3
 
-        exception = Exception("Temporary failure")
+        Exception("Temporary failure")
 
         task_retry_handler(
             sender=mock_task,

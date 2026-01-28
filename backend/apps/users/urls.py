@@ -2,13 +2,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from .views import (
-    LoginView,
-    RegisterView,
-    LogoutView,
-    UserProfileView,
-    ChangePasswordView
-)
+from .views import ChangePasswordView, LoginView, LogoutView, RegisterView, UserProfileView
 
 urlpatterns = [
     # 用户认证API

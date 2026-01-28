@@ -4,21 +4,21 @@
 遵循单一职责原则(SRP) + 开闭原则(OCP)
 """
 
+import base64
 import copy
 import logging
+from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional
 
 from django.conf import settings
-from core.ai_client.factory import create_ai_client
-from core.ai_client.image2video_client import VideoGenerator
-from core.pipeline.base import PipelineContext, StageProcessor, StageResult
 from django.utils import timezone
 from jinja2 import Template, TemplateError
-import base64
-from pathlib import Path
 
 from apps.models.models import ModelProvider
 from apps.projects.models import Project, ProjectStage
+from core.ai_client.factory import create_ai_client
+from core.ai_client.image2video_client import VideoGenerator
+from core.pipeline.base import PipelineContext, StageProcessor, StageResult
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ class Image2VideoStageProcessor(StageProcessor):
             logger.error(f"项目 {context.project_id} 不存在")
             return False
         except Exception as e:
-            logger.error(f"验证失败: {str(e)}", exc_info=True)
+            logger.error(f"验证失败: {e!s}", exc_info=True)
             return False
 
     def process(self, context: PipelineContext) -> StageResult:
@@ -144,7 +144,7 @@ class Image2VideoStageProcessor(StageProcessor):
         try:
             # 获取项目和阶段
             project = Project.objects.get(id=context.project_id)
-            stage, created = ProjectStage.objects.get_or_create(project=project, stage_type=self.stage_type)
+            stage, _created = ProjectStage.objects.get_or_create(project=project, stage_type=self.stage_type)
 
             # 更新阶段状态
             stage.status = "processing"
@@ -235,7 +235,7 @@ class Image2VideoStageProcessor(StageProcessor):
                         failed_count += 1
 
                 except Exception as e:
-                    logger.error(f"分镜 {index} 视频生成失败: {str(e)}")
+                    logger.error(f"分镜 {index} 视频生成失败: {e!s}")
                     failed_count += 1
 
             # 保存最终结果
@@ -261,7 +261,7 @@ class Image2VideoStageProcessor(StageProcessor):
             return StageResult(success=True, data=output_data)
 
         except Exception as e:
-            logger.error(f"{self.stage_type} 阶段处理失败: {str(e)}", exc_info=True)
+            logger.error(f"{self.stage_type} 阶段处理失败: {e!s}", exc_info=True)
             return StageResult(success=False, error=str(e), can_retry=True)
 
     def process_stream(
@@ -282,7 +282,7 @@ class Image2VideoStageProcessor(StageProcessor):
         try:
             # 获取项目和阶段
             project = Project.objects.get(id=project_id)
-            stage, created = ProjectStage.objects.get_or_create(project=project, stage_type=self.stage_type)
+            stage, _created = ProjectStage.objects.get_or_create(project=project, stage_type=self.stage_type)
 
             # 更新阶段状态
             stage.status = "processing"
@@ -383,10 +383,10 @@ class Image2VideoStageProcessor(StageProcessor):
 
                 except Exception as e:
                     failed_count += 1
-                    logger.error(f"分镜 {index} 生成失败: {str(e)}")
+                    logger.error(f"分镜 {index} 生成失败: {e!s}")
                     yield {
                         "type": "error",
-                        "error": f"分镜 {index} 生成失败: {str(e)}",
+                        "error": f"分镜 {index} 生成失败: {e!s}",
                         "scene_number": index,
                     }
 
@@ -403,7 +403,7 @@ class Image2VideoStageProcessor(StageProcessor):
             }
 
         except Exception as e:
-            logger.error(f"流式图生视频处理失败: {str(e)}", exc_info=True)
+            logger.error(f"流式图生视频处理失败: {e!s}", exc_info=True)
 
             # 更新阶段状态
             if stage:
@@ -430,7 +430,7 @@ class Image2VideoStageProcessor(StageProcessor):
                 stage.save()
 
         except Exception as e:
-            logger.error(f"更新失败状态失败: {str(e)}")
+            logger.error(f"更新失败状态失败: {e!s}")
 
     # ===== 私有辅助方法 =====
 
@@ -524,11 +524,11 @@ class Image2VideoStageProcessor(StageProcessor):
             return video_url
 
         except TimeoutError as e:
-            logger.error(f"分镜 {scene_number} 视频生成超时: {str(e)}")
+            logger.error(f"分镜 {scene_number} 视频生成超时: {e!s}")
             return None
 
         except Exception as e:
-            logger.error(f"分镜 {scene_number} 视频生成异常: {str(e)}", exc_info=True)
+            logger.error(f"分镜 {scene_number} 视频生成异常: {e!s}", exc_info=True)
             return None
 
     def image_to_base64(self, image_path):
@@ -594,7 +594,7 @@ class Image2VideoStageProcessor(StageProcessor):
 
         except Exception as e:
             logger.error(
-                f"分镜 {scene_number} 流式视频生成异常: {str(e)}", exc_info=True
+                f"分镜 {scene_number} 流式视频生成异常: {e!s}", exc_info=True
             )
 
             yield {"type": "error", "error": str(e), "scene_number": scene_number}
@@ -603,7 +603,7 @@ class Image2VideoStageProcessor(StageProcessor):
         """获取提示词模板"""
         # 从项目的prompt_template_set中获取
         template_set = getattr(project, 'prompt_template_set', None)
-        from apps.prompts.models import PromptTemplateSet, PromptTemplate
+        from apps.prompts.models import PromptTemplate, PromptTemplateSet
 
         if not template_set:
             # 尝试获取默认提示词集
@@ -657,5 +657,5 @@ class Image2VideoStageProcessor(StageProcessor):
             return rendered_prompt
 
         except TemplateError as e:
-            logger.error(f"提示词模板渲染失败: {str(e)}")
-            raise ValueError(f"提示词模板渲染失败: {str(e)}")
+            logger.error(f"提示词模板渲染失败: {e!s}")
+            raise ValueError(f"提示词模板渲染失败: {e!s}")

@@ -4,11 +4,13 @@
 遵循SOLID原则和TDD红绿重构循环
 """
 
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
 from asgiref.sync import sync_to_async
-from apps.prompts.services import PromptEvaluationService
+
 from apps.prompts.models import PromptTemplate
+from apps.prompts.services import PromptEvaluationService
 from apps.prompts.tests.factories import PromptTemplateFactory, PromptTemplateSetFactory
 
 
@@ -81,9 +83,8 @@ class TestPromptEvaluationService:
             service,
             '_get_ai_client',
             return_value=mock_client
-        ):
-            with pytest.raises(Exception, match="AI评估失败"):
-                await service.evaluate_prompt(template)
+        ), pytest.raises(Exception, match="AI评估失败"):
+            await service.evaluate_prompt(template)
 
     async def test_evaluate_prompt_missing_fields(self):
         """测试评估提示词 - 响应缺少字段"""
@@ -253,9 +254,8 @@ class TestPromptEvaluationService:
             service,
             '_get_ai_client',
             return_value=mock_client
-        ):
-            with pytest.raises(Exception, match="生成改进建议失败"):
-                await service.suggest_improvements(template)
+        ), pytest.raises(Exception, match="生成改进建议失败"):
+            await service.suggest_improvements(template)
 
     async def test_get_ai_client_caching(self):
         """测试AI客户端缓存机制"""
@@ -266,7 +266,7 @@ class TestPromptEvaluationService:
         mock_client = AsyncMock()
 
         # When
-        with patch.object(service, '_get_ai_client', AsyncMock(return_value=mock_client)) as mock_get_client:
+        with patch.object(service, '_get_ai_client', AsyncMock(return_value=mock_client)):
             # 第一次调用
             client1 = await service._get_ai_client()
             # 第二次调用
@@ -338,8 +338,8 @@ class TestPromptEvaluationService:
         # Given
         service = PromptEvaluationService()
 
-        template1 = await sync_to_async(PromptTemplateFactory)()
-        template2 = await sync_to_async(PromptTemplateFactory)()
+        await sync_to_async(PromptTemplateFactory)()
+        await sync_to_async(PromptTemplateFactory)()
 
         eval1 = {
             'score': 7.0,

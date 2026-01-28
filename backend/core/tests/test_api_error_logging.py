@@ -4,14 +4,14 @@
 """
 
 import json
-import pytest
-from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
+from unittest.mock import MagicMock, Mock, patch
 
-from django.test import RequestFactory
-from django.core.exceptions import ValidationError, PermissionDenied
+import pytest
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import DatabaseError
 from django.http import HttpResponse
+from django.test import RequestFactory
 
 from core.middleware.api_error_logging import APIErrorLoggingMiddleware
 
@@ -36,7 +36,7 @@ class TestAPIErrorLoggingMiddleware:
         get_response = Mock(return_value=HttpResponse())
         middleware = APIErrorLoggingMiddleware(get_response)
 
-        response = middleware(request)
+        middleware(request)
 
         assert hasattr(request, 'request_id')
         assert request.request_id is not None
@@ -52,7 +52,7 @@ class TestAPIErrorLoggingMiddleware:
         get_response = Mock(side_effect=exc)
 
         middleware = APIErrorLoggingMiddleware(get_response)
-        response = middleware(request)
+        middleware(request)
 
         # 验证日志被调用
         mock_logger.error.assert_called_once()
@@ -112,7 +112,7 @@ class TestAPIErrorLoggingMiddleware:
         get_response = Mock(side_effect=exc)
 
         middleware = APIErrorLoggingMiddleware(get_response)
-        response = middleware(request)
+        middleware(request)
 
         # 验证日志
         mock_logger.error.assert_called_once()

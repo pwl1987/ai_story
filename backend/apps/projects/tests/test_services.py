@@ -4,11 +4,13 @@
 遵循SOLID原则和TDD红绿重构循环
 """
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 from django.utils import timezone
-from apps.projects.services import ProjectWorkflowService
+
 from apps.projects.models import Project, ProjectStage
+from apps.projects.services import ProjectWorkflowService
 from apps.projects.tests.factories import ProjectFactory, ProjectStageFactory
 
 
@@ -64,7 +66,7 @@ class TestProjectWorkflowService:
         """测试开始阶段 - 成功场景"""
         # Given
         project = ProjectFactory(status='draft')
-        stage = ProjectStageFactory(
+        ProjectStageFactory(
             project=project,
             stage_type='rewrite',
             status='pending'
@@ -99,7 +101,7 @@ class TestProjectWorkflowService:
         """测试开始阶段 - 阶段正在处理中"""
         # Given
         project = ProjectFactory()
-        stage = ProjectStageFactory(
+        ProjectStageFactory(
             project=project,
             stage_type='rewrite',
             status='processing'
@@ -133,7 +135,7 @@ class TestProjectWorkflowService:
         """测试完成阶段 - 成功场景"""
         # Given
         project = ProjectFactory(status='processing')
-        stage = ProjectStageFactory(
+        ProjectStageFactory(
             project=project,
             stage_type='rewrite',
             status='processing'
@@ -158,12 +160,12 @@ class TestProjectWorkflowService:
         """测试完成阶段 - 自动开始下一阶段"""
         # Given
         project = ProjectFactory(status='processing')
-        stage1 = ProjectStageFactory(
+        ProjectStageFactory(
             project=project,
             stage_type='rewrite',
             status='processing'
         )
-        stage2 = ProjectStageFactory(
+        ProjectStageFactory(
             project=project,
             stage_type='storyboard',
             status='pending'
@@ -431,7 +433,7 @@ class TestProjectWorkflowService:
         """测试前置阶段检查 - 第一个阶段无需检查"""
         # Given
         project = ProjectFactory()
-        stage = ProjectStageFactory(
+        ProjectStageFactory(
             project=project,
             stage_type='rewrite',
             status='pending'

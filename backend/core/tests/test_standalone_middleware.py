@@ -3,16 +3,16 @@
 测试独立版本API响应时间监控中间件
 """
 
-import pytest
-from unittest.mock import Mock, patch
 import time
+from unittest.mock import Mock, patch
 
-from django.test import RequestFactory
+import pytest
 from django.http import HttpResponse
+from django.test import RequestFactory
 
 from core.middleware.api_response_time import (
+    SLOW_REQUEST_THRESHOLD_MS,
     APIResponseTimeMiddlewareStandalone,
-    SLOW_REQUEST_THRESHOLD_MS
 )
 
 
@@ -58,7 +58,7 @@ class TestStandaloneMiddleware:
         get_response = Mock(return_value=mock_response)
 
         middleware = APIResponseTimeMiddlewareStandalone(get_response)
-        response = middleware(request)
+        middleware(request)
 
         # 验证日志被调用
         mock_logger.log.assert_called_once()
@@ -82,7 +82,7 @@ class TestStandaloneMiddleware:
         # 模拟慢请求（>500ms）
         current = time.time()
         with patch('time.time', side_effect=[current, current + 0.6, current + 0.6]):
-            response = middleware(request)
+            middleware(request)
 
         # 验证日志级别为WARNING
         call_args = mock_logger.log.call_args
@@ -107,7 +107,7 @@ class TestStandaloneMiddleware:
         # 模拟正常请求（<500ms）
         current = time.time()
         with patch('time.time', side_effect=[current, current + 0.1, current + 0.1]):
-            response = middleware(request)
+            middleware(request)
 
         # 验证日志级别为INFO
         call_args = mock_logger.log.call_args
@@ -129,7 +129,7 @@ class TestStandaloneMiddleware:
         get_response = Mock(return_value=mock_response)
 
         middleware = APIResponseTimeMiddlewareStandalone(get_response)
-        response = middleware(request)
+        middleware(request)
 
         # 验证日志上下文
         call_args = mock_logger.log.call_args
@@ -179,7 +179,7 @@ class TestStandaloneMiddleware:
         # 测试正好500ms的请求
         current = time.time()
         with patch('time.time', side_effect=[current, current + 0.5, current + 0.5]):
-            response = middleware(request)
+            middleware(request)
 
         # 验证慢请求标记
         call_args = mock_logger.log.call_args

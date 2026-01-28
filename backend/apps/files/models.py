@@ -5,11 +5,12 @@ Story 6.1: 文件上传API
 遵循单一职责原则(SRP): 每个模型只负责一种文件类型
 """
 
-import uuid
 import os
-from django.db import models
+import uuid
+
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.db import models
 
 User = get_user_model()
 

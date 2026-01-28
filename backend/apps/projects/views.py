@@ -136,7 +136,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         use_streaming = request.data.get("use_streaming", False)
 
         # 获取阶段
-        stage = get_object_or_404(ProjectStage, project=project, stage_type=stage_name)
+        get_object_or_404(ProjectStage, project=project, stage_type=stage_name)
 
         # 更新项目状态为处理中
         if project.status != "processing":
@@ -257,7 +257,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
                         project_id=str(project.id), input_data=input_data
                     ):
                         event_data = json.dumps(chunk, ensure_ascii=False)
-                        data_queue.put(f"data: {event_data}\n\n".encode("utf-8"))
+                        data_queue.put(f"data: {event_data}\n\n".encode())
                 else:
                     # 文生图和图生视频
                     storyboard_ids = input_data.get("storyboard_ids", None)
@@ -265,13 +265,13 @@ class ProjectViewSet(viewsets.ModelViewSet):
                         project_id=str(project.id), storyboard_ids=storyboard_ids
                     ):
                         event_data = json.dumps(chunk, ensure_ascii=False)
-                        data_queue.put(f"data: {event_data}\n\n".encode("utf-8"))
+                        data_queue.put(f"data: {event_data}\n\n".encode())
 
             except Exception as e:
                 error_data = json.dumps(
                     {"type": "error", "error": str(e)}, ensure_ascii=False
                 )
-                data_queue.put(f"data: {error_data}\n\n".encode("utf-8"))
+                data_queue.put(f"data: {error_data}\n\n".encode())
             finally:
                 # 标记结束
                 data_queue.put(None)
@@ -310,14 +310,14 @@ class ProjectViewSet(viewsets.ModelViewSet):
                     error_data = json.dumps(
                         {"type": "error", "error": "请求超时"}, ensure_ascii=False
                     )
-                    yield f"data: {error_data}\n\n".encode("utf-8")
+                    yield f"data: {error_data}\n\n".encode()
                     break
                 except Exception as e:
                     error_data = json.dumps(
-                        {"type": "error", "error": f"流式传输错误: {str(e)}"},
+                        {"type": "error", "error": f"流式传输错误: {e!s}"},
                         ensure_ascii=False,
                     )
-                    yield f"data: {error_data}\n\n".encode("utf-8")
+                    yield f"data: {error_data}\n\n".encode()
                     break
 
         # 返回SSE响应
@@ -533,7 +533,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         GET /api/v1/projects/{id}/model-config/
         """
         project = self.get_object()
-        config, created = ProjectModelConfig.objects.get_or_create(project=project)
+        config, _created = ProjectModelConfig.objects.get_or_create(project=project)
         serializer = ProjectModelConfigSerializer(config)
         return Response(serializer.data)
 
@@ -544,7 +544,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         PATCH /api/v1/projects/{id}/update-model-config/
         """
         project = self.get_object()
-        config, created = ProjectModelConfig.objects.get_or_create(project=project)
+        config, _created = ProjectModelConfig.objects.get_or_create(project=project)
         serializer = ProjectModelConfigSerializer(
             config, data=request.data, partial=True
         )
@@ -567,9 +567,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
         include_model_config = serializer.validated_data["include_model_config"]
 
         # 实现模板保存逻辑
-        from apps.prompts.models import PromptTemplateSet, PromptTemplate
-        from apps.models.models import ModelProvider
         import copy
+
+        from apps.models.models import ModelProvider
+        from apps.prompts.models import PromptTemplate, PromptTemplateSet
 
         # 1. 复制提示词集配置
         original_template_set = project.prompt_template_set
@@ -640,7 +641,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         # 实现视频导出逻辑
         import uuid
+
         from apps.content.models import GeneratedVideo, Storyboard
+
         from .models import ProjectProgressHistory
 
         # 1. 获取所有生成的视频片段

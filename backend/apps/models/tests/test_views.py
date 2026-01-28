@@ -445,7 +445,7 @@ class TestModelUsageLogViewSet:
         """测试按项目过滤日志"""
         import uuid
         test_project_id = str(uuid.uuid4())
-        log = ModelUsageLogFactory(
+        ModelUsageLogFactory(
             model_provider=self.provider,
             status='success',
             project_id=test_project_id

@@ -4,7 +4,8 @@ Epic 6: 文件管理与预览
 """
 
 from django.contrib import admin
-from .models import UploadedFile, FileQuota
+
+from .models import FileQuota, UploadedFile
 
 
 @admin.register(UploadedFile)

@@ -3,9 +3,10 @@
 Epic 2优化：测试百分位数计算功能
 """
 
-import pytest
 from datetime import datetime
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
+
+import pytest
 
 from core.services.percentile_stats import PercentileStats
 

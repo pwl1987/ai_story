@@ -3,12 +3,12 @@
 支持失败场景、可配置响应速度、日志记录
 """
 
-import time
 import json
 import logging
-from typing import Dict, Any, Generator, Optional, List
-from .base import LLMClient, AIResponse
+import time
+from typing import Any, Dict, Generator, List, Optional
 
+from .base import AIResponse, LLMClient
 
 logger = logging.getLogger(__name__)
 

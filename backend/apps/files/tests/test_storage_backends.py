@@ -12,13 +12,15 @@ Epic 6.2: 文件存储服务实现
 import os
 import tempfile
 from pathlib import Path
-from django.test import TestCase
+from unittest.mock import MagicMock, Mock, patch
+
 from django.core.files.uploadedfile import SimpleUploadedFile
-from unittest.mock import Mock, patch, MagicMock
+from django.test import TestCase
+
 from apps.files.storage_backends import (
     LocalStorageBackend,
-    S3StorageBackend,
     OSSStorageBackend,
+    S3StorageBackend,
     StorageBackendFactory,
     get_storage_backend,
 )

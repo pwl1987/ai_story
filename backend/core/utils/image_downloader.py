@@ -3,12 +3,13 @@
 职责: 从远程URL下载图片到本地存储
 """
 
+import logging
 import os
 import uuid
-import logging
 from pathlib import Path
 from typing import Optional, Tuple
 from urllib.parse import urlparse
+
 import requests
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -110,12 +111,12 @@ class ImageDownloader:
             return False, "", {"error": error_msg}
 
         except requests.exceptions.RequestException as e:
-            error_msg = f"下载失败: {str(e)}"
+            error_msg = f"下载失败: {e!s}"
             logger.error(f"{error_msg}, URL: {image_url}")
             return False, "", {"error": error_msg}
 
         except Exception as e:
-            error_msg = f"未知错误: {str(e)}"
+            error_msg = f"未知错误: {e!s}"
             logger.error(f"图片下载异常: {error_msg}, URL: {image_url}", exc_info=True)
             return False, "", {"error": error_msg}
 
@@ -191,7 +192,7 @@ class ImageDownloader:
                 return True
             return False
         except Exception as e:
-            logger.error(f"删除本地文件失败: {local_path}, 错误: {str(e)}")
+            logger.error(f"删除本地文件失败: {local_path}, 错误: {e!s}")
             return False
 
 

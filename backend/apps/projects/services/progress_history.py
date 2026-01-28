@@ -6,13 +6,13 @@ Epic 3: 实时通信稳定性 - 历史进度记录功能
 """
 
 import logging
-from typing import List, Dict, Optional
 from datetime import datetime, timedelta
+from typing import Dict, List, Optional
 
 from django.db import models
 from django.utils import timezone
 
-from apps.projects.models import ProjectProgressHistory, Project
+from apps.projects.models import Project, ProjectProgressHistory
 
 logger = logging.getLogger(__name__)
 

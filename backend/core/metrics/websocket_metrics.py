@@ -5,12 +5,12 @@ Epic 3: 实时通信稳定性 - 性能优化
 遵循单一职责原则(SRP)
 """
 
-import time
 import logging
-from typing import Dict, Optional
+import time
 from datetime import datetime, timedelta
+from typing import Dict, Optional
 
-from prometheus_client import Counter, Histogram, Gauge
+from prometheus_client import Counter, Gauge, Histogram
 
 logger = logging.getLogger(__name__)
 
@@ -238,14 +238,14 @@ class WebSocketMetrics:
         # 收集连接时间样本
         connection_samples = []
         for sample in WebSocketMetrics.connection_time_histogram.collect():
-            for name, labels, samples in sample.samples:
+            for _name, labels, samples in sample.samples:
                 if project_id is None or labels.get('project_id') == project_id:
                     connection_samples.extend(samples)
 
         # 收集消息延迟样本
         message_samples = []
         for sample in WebSocketMetrics.message_latency_histogram.collect():
-            for name, labels, samples in sample.samples:
+            for _name, labels, samples in sample.samples:
                 if project_id is None or labels.get('project_id') == project_id:
                     message_samples.extend(samples)
 

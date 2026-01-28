@@ -4,9 +4,11 @@
 遵循单一职责原则(SRP)和依赖倒置原则(DIP)
 """
 
-from typing import Dict, Any, Optional
-from django.utils import timezone
+from typing import Any, Dict, Optional
+
 from django.db import transaction
+from django.utils import timezone
+
 from .models import Project, ProjectStage
 
 

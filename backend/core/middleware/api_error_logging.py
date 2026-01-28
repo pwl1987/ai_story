@@ -20,10 +20,10 @@ import traceback
 import uuid
 from typing import Any, Dict, Optional
 
-from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.core.exceptions import ValidationError, PermissionDenied
-from django.db import DatabaseError
 from django.conf import settings
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import DatabaseError
+from django.http import HttpRequest, HttpResponse, JsonResponse
 
 logger = logging.getLogger('apps.api')
 
@@ -205,14 +205,14 @@ class APIErrorLoggingMiddleware:
         if isinstance(exc, DatabaseError):
             # 开发环境显示详细信息
             if settings.DEBUG:
-                return f'数据库错误: {str(exc)}'
+                return f'数据库错误: {exc!s}'
             # 生产环境隐藏细节
             return '服务暂时不可用，请稍后重试'
 
         # 其他错误
         if status_code == 500:
             if settings.DEBUG:
-                return f'服务器错误: {str(exc)}'
+                return f'服务器错误: {exc!s}'
             return '服务器内部错误，请联系管理员'
 
         return str(exc)

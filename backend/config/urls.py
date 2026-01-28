@@ -3,16 +3,16 @@
 遵循REST API最佳实践
 """
 
-from django.contrib import admin
-from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from core.prometheus_metrics import metrics_view  # Epic 2优化: Prometheus指标导出
+from django.contrib import admin
+from django.urls import include, path
+from drf_spectacular.openapi import OpenApiParameter
 
 # Epic 7.1: OpenAPI文档自动生成
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
-from drf_spectacular.openapi import OpenApiParameter
 
+from core.prometheus_metrics import metrics_view  # Epic 2优化: Prometheus指标导出
 
 # API文档配置
 api_patterns = [

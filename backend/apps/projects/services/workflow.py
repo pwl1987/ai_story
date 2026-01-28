@@ -3,7 +3,8 @@
 职责: 任务取消、恢复、编排等
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from apps.projects.models import ProjectStage
 
 
@@ -18,6 +19,7 @@ def cancel_project_tasks(project_id: str) -> int:
         取消的任务数量
     """
     from celery.result import AsyncResult
+
     from config.celery import app
 
     # 获取所有正在处理的阶段

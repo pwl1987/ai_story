@@ -23,8 +23,8 @@ import traceback
 from typing import Any, Dict
 
 from celery import Celery
+from celery.exceptions import Ignore, Retry
 from celery.signals import task_failure, task_postrun, task_prerun, task_retry
-from celery.exceptions import Retry, Ignore
 from django.conf import settings
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.base')

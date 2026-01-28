@@ -8,24 +8,25 @@ Story 5.4重构: 使用ProjectPipeline统一编排工作流
 
 import asyncio
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
+
 from django.utils import timezone
 
-from core.redis import RedisStreamPublisher
-from core.services.jianying_draft_service import JianyingDraftGenerator
-from core.pipeline.orchestrator import ProjectPipeline
+from apps.content.processors.image2video_stage import Image2VideoStageProcessor
 from apps.content.processors.llm_stage import LLMStageProcessor
 from apps.content.processors.text2image_stage import Text2ImageStageProcessor
-from apps.content.processors.image2video_stage import Image2VideoStageProcessor
 from apps.projects.models import Project, ProjectStage
 from apps.projects.pipeline_adapters import (
+    CameraMovementStageAdapter,
+    ImageGenerationStageAdapter,
     RewriteStageAdapter,
     StoryboardStageAdapter,
-    ImageGenerationStageAdapter,
-    CameraMovementStageAdapter,
-    VideoGenerationStageAdapter
+    VideoGenerationStageAdapter,
 )
 from config.celery import app
+from core.pipeline.orchestrator import ProjectPipeline
+from core.redis import RedisStreamPublisher
+from core.services.jianying_draft_service import JianyingDraftGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -151,7 +152,7 @@ def execute_llm_stage(
         return {'success': False, 'error': error_msg}
 
     except Exception as e:
-        error_msg = f'任务执行失败: {str(e)}'
+        error_msg = f'任务执行失败: {e!s}'
         logger.exception(error_msg)
 
         # 更新阶段状态
@@ -285,7 +286,7 @@ def execute_text2image_stage(
         }
 
     except Exception as e:
-        error_msg = f'文生图任务失败: {str(e)}'
+        error_msg = f'文生图任务失败: {e!s}'
         logger.exception(error_msg)
 
         # 更新阶段状态
@@ -412,7 +413,7 @@ def execute_image2video_stage(
         }
 
     except Exception as e:
-        error_msg = f'图生视频任务失败: {str(e)}'
+        error_msg = f'图生视频任务失败: {e!s}'
         logger.exception(error_msg)
 
         # 更新阶段状态
@@ -545,7 +546,7 @@ def generate_jianying_draft(
         return {'success': False, 'error': error_msg}
 
     except Exception as e:
-        error_msg = f'生成剪映草稿失败: {str(e)}'
+        error_msg = f'生成剪映草稿失败: {e!s}'
         logger.exception(error_msg)
 
         # 发布错误消息
@@ -648,7 +649,7 @@ def execute_full_pipeline(
 
         # 检查执行结果
         total_stages = len(pipeline.stages)
-        completed_stages = len([k for k in context.results.keys() if context.results[k]])
+        completed_stages = len([k for k in context.results if context.results[k]])
 
         logger.info(
             f"Pipeline执行完成, 项目: {project_id}, "
@@ -700,7 +701,7 @@ def execute_full_pipeline(
         return {'success': False, 'error': error_msg}
 
     except Exception as e:
-        error_msg = f'工作流执行失败: {str(e)}'
+        error_msg = f'工作流执行失败: {e!s}'
         logger.exception(error_msg)
 
         # 更新项目状态
@@ -792,6 +793,6 @@ def execute_single_stage(
         }
 
     except Exception as e:
-        error_msg = f'执行阶段失败: {str(e)}'
+        error_msg = f'执行阶段失败: {e!s}'
         logger.exception(error_msg)
         return {'success': False, 'error': error_msg}

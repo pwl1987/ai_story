@@ -5,8 +5,9 @@ Mock 图生视频客户端实现（异步版本）
 """
 
 import asyncio
-from typing import Dict, Any
-from .base import Image2VideoClient, AIResponse
+from typing import Any, Dict
+
+from .base import AIResponse, Image2VideoClient
 
 
 class MockImage2VideoClient(Image2VideoClient):

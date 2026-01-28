@@ -4,10 +4,12 @@
 遵循单一职责原则(SRP)和依赖倒置原则(DIP)
 """
 
-from typing import Dict, Any, Optional, List
-from django.db import transaction
-from django.db.models import Q, Avg, Sum
+from typing import Any, Dict, List, Optional
+
 from asgiref.sync import sync_to_async
+from django.db import transaction
+from django.db.models import Avg, Q, Sum
+
 from .models import ModelProvider, ModelUsageLog
 
 
@@ -199,8 +201,9 @@ class ModelProviderService:
         )['total'] or 0
 
         # 最近7天使用情况
-        from django.utils import timezone
         from datetime import timedelta
+
+        from django.utils import timezone
         seven_days_ago = timezone.now() - timedelta(days=7)
         recent_count = provider.usage_logs.filter(
             created_at__gte=seven_days_ago

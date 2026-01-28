@@ -3,11 +3,11 @@
 测试APIResponseTimeMiddleware的响应时间记录和慢请求标记功能
 """
 
-import pytest
 from unittest.mock import Mock, patch
 
-from django.test import RequestFactory
+import pytest
 from django.http import HttpResponse
+from django.test import RequestFactory
 
 from core.middleware.api_response_time import APIResponseTimeMiddleware
 
@@ -53,7 +53,7 @@ class TestAPIResponseTimeMiddleware:
         get_response = Mock(return_value=mock_response)
 
         middleware = APIResponseTimeMiddleware(get_response)
-        response = middleware(request)
+        middleware(request)
 
         # 验证日志被调用
         mock_logger.log.assert_called_once()
@@ -73,7 +73,7 @@ class TestAPIResponseTimeMiddleware:
         get_response = Mock(return_value=mock_response)
 
         middleware = APIResponseTimeMiddleware(get_response)
-        response = middleware(request)
+        middleware(request)
 
         # 验证日志上下文
         call_args = mock_logger.log.call_args
@@ -102,7 +102,7 @@ class TestAPIResponseTimeMiddleware:
         current = time.time()
         # 提供足够的mock值，避免StopIteration
         with patch('time.time', side_effect=[current, current + 0.6, current + 0.6, current + 0.6]):
-            response = middleware(request)
+            middleware(request)
 
         # 验证日志级别为WARNING
         call_args = mock_logger.log.call_args
@@ -129,7 +129,7 @@ class TestAPIResponseTimeMiddleware:
         current = time.time()
         # 提供足够的mock值，避免StopIteration
         with patch('time.time', side_effect=[current, current + 0.1, current + 0.1, current + 0.1]):
-            response = middleware(request)
+            middleware(request)
 
         # 验证日志级别为INFO
         call_args = mock_logger.log.call_args
@@ -151,7 +151,7 @@ class TestAPIResponseTimeMiddleware:
         get_response = Mock(return_value=mock_response)
 
         middleware = APIResponseTimeMiddleware(get_response)
-        response = middleware(request)
+        middleware(request)
 
         # 验证日志包含request_id
         call_args = mock_logger.log.call_args
@@ -175,7 +175,7 @@ class TestAPIResponseTimeMiddleware:
         get_response = Mock(return_value=mock_response)
 
         middleware = APIResponseTimeMiddleware(get_response)
-        response = middleware(request)
+        middleware(request)
 
         # 验证日志包含user_id
         call_args = mock_logger.log.call_args
@@ -246,7 +246,7 @@ class TestAPIResponseTimeMiddleware:
         current = time.time()
         # 提供足够的mock值，避免StopIteration
         with patch('time.time', side_effect=[current, current + 0.5, current + 0.5, current + 0.5]):
-            response = middleware(request)
+            middleware(request)
 
         # 验证慢请求标记
         call_args = mock_logger.log.call_args
@@ -265,7 +265,7 @@ class TestAPIResponseTimeMiddleware:
         get_response = Mock(return_value=mock_response)
 
         middleware = APIResponseTimeMiddleware(get_response)
-        response = middleware(request)
+        middleware(request)
 
         # 验证had_error标志
         call_args = mock_logger.log.call_args

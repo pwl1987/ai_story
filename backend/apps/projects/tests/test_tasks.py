@@ -4,17 +4,18 @@
 遵循单一职责原则(SRP)
 """
 
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
 from celery.exceptions import Retry
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from unittest.mock import Mock, patch, MagicMock
 
 from apps.projects.models import Project, ProjectStage
 from apps.projects.tasks import (
+    execute_image2video_stage,
     execute_llm_stage,
     execute_text2image_stage,
-    execute_image2video_stage,
     generate_jianying_draft,
 )
 from apps.projects.tests.factories import (
@@ -39,7 +40,7 @@ class TestExecuteLLMStage:
     def test_execute_llm_stage_success(self):
         """测试成功执行LLM阶段"""
         # 创建阶段
-        stage = ProjectStageFactory(
+        ProjectStageFactory(
             project=self.project,
             stage_type='rewrite',
             status='pending'
@@ -92,7 +93,7 @@ class TestExecuteText2ImageStage:
     def test_execute_text2image_stage_success(self):
         """测试成功执行文生图阶段"""
         # 创建阶段
-        stage = ProjectStageFactory(
+        ProjectStageFactory(
             project=self.project,
             stage_type='image_generation',
             status='pending'
@@ -119,7 +120,7 @@ class TestExecuteImage2VideoStage:
     def test_execute_image2video_stage_success(self):
         """测试成功执行图生视频阶段"""
         # 创建阶段
-        stage = ProjectStageFactory(
+        ProjectStageFactory(
             project=self.project,
             stage_type='video_generation',
             status='pending'
@@ -146,7 +147,7 @@ class TestGenerateJianyingDraft:
     def test_generate_jianying_draft_success(self):
         """测试成功生成剪映草稿"""
         # 创建完成的视频生成阶段
-        video_stage = ProjectStageFactory(
+        ProjectStageFactory(
             project=self.project,
             stage_type='video_generation',
             status='completed',

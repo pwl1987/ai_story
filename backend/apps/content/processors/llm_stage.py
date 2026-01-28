@@ -7,14 +7,15 @@
 import copy
 import logging
 from typing import Any, Dict, Generator, Optional
-from core.pipeline.base import PipelineContext, StageProcessor
+
 from django.utils import timezone
 from jinja2 import Template, TemplateError
 
 from apps.models.models import ModelProvider
 from apps.projects.models import Project, ProjectStage
-from apps.prompts.models import PromptTemplate
 from apps.projects.utils import parse_storyboard_json
+from apps.prompts.models import PromptTemplate
+from core.pipeline.base import PipelineContext, StageProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +79,7 @@ class LLMStageProcessor(StageProcessor):
             logger.error(f"项目 {context.project_id} 不存在")
             return False
         except Exception as e:
-            logger.error(f"验证失败: {str(e)}", exc_info=True)
+            logger.error(f"验证失败: {e!s}", exc_info=True)
             return False
 
     def process_stream(
@@ -97,7 +98,7 @@ class LLMStageProcessor(StageProcessor):
         try:
             # 获取项目和阶段
             project = Project.objects.get(id=project_id)
-            stage, created = ProjectStage.objects.get_or_create(
+            stage, _created = ProjectStage.objects.get_or_create(
                 project=project,
                 stage_type=self.stage_type
             )
@@ -146,7 +147,7 @@ class LLMStageProcessor(StageProcessor):
             else:
                 tasks = [{"user_prompt": input_data.get("raw_text", input_data)}]
 
-            for index, task in enumerate(tasks, 1):
+            for _index, task in enumerate(tasks, 1):
                 # 流式生成
                 full_text = ""
                 for chunk in ai_client.generate_stream(
@@ -201,7 +202,7 @@ class LLMStageProcessor(StageProcessor):
                 }
             }
         except Exception as e:
-            logger.error(f"流式{self.stage_type}处理失败: {str(e)}", exc_info=True)
+            logger.error(f"流式{self.stage_type}处理失败: {e!s}", exc_info=True)
 
             # 更新阶段状态
             if stage:
@@ -232,7 +233,7 @@ class LLMStageProcessor(StageProcessor):
                 stage.save()
 
         except Exception as e:
-            logger.error(f"更新失败状态失败: {str(e)}")
+            logger.error(f"更新失败状态失败: {e!s}")
 
     # ===== 私有辅助方法 =====
 
@@ -360,8 +361,8 @@ class LLMStageProcessor(StageProcessor):
             return rendered_prompt
 
         except TemplateError as e:
-            logger.error(f"提示词模板渲染失败: {str(e)}")
-            raise ValueError(f"提示词模板渲染失败: {str(e)}")
+            logger.error(f"提示词模板渲染失败: {e!s}")
+            raise ValueError(f"提示词模板渲染失败: {e!s}")
 
     def _get_ai_client(self, project: Project):
         """获取AI客户端（使用动态执行器）"""

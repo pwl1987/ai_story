@@ -244,7 +244,7 @@ class TestProjectModelConfigModel:
     def test_config_one_to_one_relationship(self):
         """测试项目与配置的一对一关系"""
         project = ProjectFactory()
-        config1 = ProjectModelConfigFactory(project=project)
+        ProjectModelConfigFactory(project=project)
 
         # 尝试为同一项目创建第二个配置应该失败
         with pytest.raises(IntegrityError):

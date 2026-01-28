@@ -9,23 +9,24 @@ Story 2.6 - Celery任务执行时间监控
 - 失败任务记录
 - 队列维度统计
 """
-import pytest
 import time
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 from celery.exceptions import Retry
 
 from config.celery import (
-    app,
-    task_prerun_handler,
-    task_postrun_handler,
-    task_failure_handler,
-    task_retry_handler,
     PROMETHEUS_ENABLED,
-    celery_task_duration_seconds,
-    celery_task_total,
-    celery_task_failure_total,
+    _filter_sensitive_kwargs,
     _get_slow_task_threshold,
-    _filter_sensitive_kwargs
+    app,
+    celery_task_duration_seconds,
+    celery_task_failure_total,
+    celery_task_total,
+    task_failure_handler,
+    task_postrun_handler,
+    task_prerun_handler,
+    task_retry_handler,
 )
 
 
@@ -38,10 +39,10 @@ class TestCeleryMetricsIntegration:
         # 验证prometheus_client已安装
         try:
             import prometheus_client
-            assert PROMETHEUS_ENABLED == True
+            assert PROMETHEUS_ENABLED
         except ImportError:
             # 如果未安装，验证禁用标志
-            assert PROMETHEUS_ENABLED == False
+            assert not PROMETHEUS_ENABLED
 
     @pytest.mark.skipif(not PROMETHEUS_ENABLED, reason="Prometheus not enabled")
     def test_celery_metrics_exist(self):

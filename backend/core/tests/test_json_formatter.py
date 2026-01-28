@@ -5,13 +5,14 @@
 
 import json
 import logging
-import pytest
 from datetime import datetime
+
+import pytest
 
 from core.logging.json_formatter import (
     JSONFormatter,
-    SensitiveDataFilter,
     RequestContextFilter,
+    SensitiveDataFilter,
 )
 
 

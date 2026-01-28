@@ -6,29 +6,30 @@ Story 6.3: 文件预览功能
 Story 6.4: 文件管理和删除
 """
 
-import os
 import hashlib
+import os
 from pathlib import Path
+
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile as DjangoUploadedFile
 from django.http import FileResponse, Http404
 from django.utils import timezone
-from rest_framework import viewsets, status
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
+from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.exceptions import ValidationError
 
-from .models import UploadedFile, FileQuota
+from .models import FileQuota, UploadedFile
+from .preview_service import FilePreviewService
 from .serializers import (
-    UploadedFileSerializer,
-    UploadedFileListSerializer,
     FileQuotaSerializer,
     FileUploadSerializer,
+    UploadedFileListSerializer,
+    UploadedFileSerializer,
 )
-from .preview_service import FilePreviewService
 
 
 class FileUploadViewSet(viewsets.ModelViewSet):
@@ -92,13 +93,12 @@ class FileUploadViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
 
         # 更新用户配额
-        quota, created = FileQuota.objects.get_or_create(user=instance.user)
+        quota, _created = FileQuota.objects.get_or_create(user=instance.user)
         quota.update_usage(instance.file_size, increment=False)
 
         # 删除物理文件
-        if instance.file:
-            if os.path.exists(instance.file.path):
-                os.remove(instance.file.path)
+        if instance.file and os.path.exists(instance.file.path):
+            os.remove(instance.file.path)
 
         # 删除数据库记录
         instance.delete()
@@ -134,7 +134,7 @@ class FileUploadViewSet(viewsets.ModelViewSet):
         project_id = serializer.validated_data.get('project')
 
         # 检查用户配额
-        quota, created = FileQuota.objects.get_or_create(user=request.user)
+        quota, _created = FileQuota.objects.get_or_create(user=request.user)
         allowed, message = quota.check_quota(uploaded_file.size)
         if not allowed:
             return Response({
@@ -214,7 +214,7 @@ class FileUploadViewSet(viewsets.ModelViewSet):
 
         except Exception as e:
             return Response({
-                'error': f'下载失败: {str(e)}'
+                'error': f'下载失败: {e!s}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['get'], url_path='quota')
@@ -235,7 +235,7 @@ class FileUploadViewSet(viewsets.ModelViewSet):
             "remaining_count": 990
         }
         """
-        quota, created = FileQuota.objects.get_or_create(user=request.user)
+        quota, _created = FileQuota.objects.get_or_create(user=request.user)
         serializer = FileQuotaSerializer(quota)
         return Response(serializer.data)
 
@@ -256,7 +256,7 @@ class FileUploadViewSet(viewsets.ModelViewSet):
             }
         }
         """
-        from django.db.models import Count, Sum, Q
+        from django.db.models import Count, Q, Sum
 
         queryset = UploadedFile.objects.filter(user=request.user)
 
@@ -312,7 +312,7 @@ class FileUploadViewSet(viewsets.ModelViewSet):
 
         except Exception as e:
             return Response({
-                'error': f'生成预览失败: {str(e)}'
+                'error': f'生成预览失败: {e!s}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['post'], url_path='batch-delete')
@@ -344,13 +344,12 @@ class FileUploadViewSet(viewsets.ModelViewSet):
 
         for file_obj in queryset:
             # 更新用户配额
-            quota, created = FileQuota.objects.get_or_create(user=request.user)
+            quota, _created = FileQuota.objects.get_or_create(user=request.user)
             quota.update_usage(file_obj.file_size, increment=False)
 
             # 删除物理文件
-            if file_obj.file:
-                if os.path.exists(file_obj.file.path):
-                    os.remove(file_obj.file.path)
+            if file_obj.file and os.path.exists(file_obj.file.path):
+                os.remove(file_obj.file.path)
 
             total_size_freed += file_obj.file_size
             deleted_count += 1
@@ -414,7 +413,7 @@ class FilePreviewView(APIView):
             raise Http404('文件不存在')
         except Exception as e:
             return Response({
-                'error': f'预览失败: {str(e)}'
+                'error': f'预览失败: {e!s}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

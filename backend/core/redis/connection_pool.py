@@ -6,9 +6,11 @@ Epic 3: 实时通信稳定性 - 性能优化
 """
 
 import logging
-import redis.asyncio as aioredis
 from typing import Optional
+
 from django.conf import settings
+
+import redis.asyncio as aioredis
 
 logger = logging.getLogger(__name__)
 
@@ -157,6 +159,7 @@ class RedisPublisherWithContext:
         """
         import json
         import time
+
         from core.metrics.websocket_metrics import WebSocketMetrics
 
         start_time = time.time()

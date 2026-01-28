@@ -5,8 +5,9 @@
 """
 
 import importlib
-from typing import Type, Optional
-from .base import BaseAIClient, LLMClient, Text2ImageClient, Image2VideoClient
+from typing import Optional, Type
+
+from .base import BaseAIClient, Image2VideoClient, LLMClient, Text2ImageClient
 
 
 def get_executor_class(class_path: str) -> Optional[Type[BaseAIClient]]:
@@ -39,7 +40,7 @@ def get_executor_class(class_path: str) -> Optional[Type[BaseAIClient]]:
         return executor_class
 
     except (ImportError, AttributeError) as e:
-        raise ImportError(f"无法导入执行器类 '{class_path}': {str(e)}")
+        raise ImportError(f"无法导入执行器类 '{class_path}': {e!s}")
 
 
 def validate_executor(executor_class: Type, expected_base_class: Type[BaseAIClient]) -> bool:

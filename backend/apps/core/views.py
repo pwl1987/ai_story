@@ -2,15 +2,16 @@
 系统健康检查和监控视图
 """
 
-from django.http import JsonResponse, HttpRequest, HttpResponse
-from django.views.decorators.http import require_GET
-from django.db import connection
-from django.core.cache import cache
-from django.conf import settings
-from django_redis import get_redis_connection
-import time
 import json
+import time
+
 from celery import current_app
+from django.conf import settings
+from django.core.cache import cache
+from django.db import connection
+from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.views.decorators.http import require_GET
+from django_redis import get_redis_connection
 
 
 @require_GET

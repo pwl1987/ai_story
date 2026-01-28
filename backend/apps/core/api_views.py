@@ -3,13 +3,14 @@ Core应用API视图
 提供系统级别的API端点
 """
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
+import logging
+
 from django.utils import timezone
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from core.services.percentile_stats import PercentileStats
-import logging
 
 logger = logging.getLogger('apps.core')
 
@@ -47,7 +48,7 @@ class PercentileStatsView(APIView):
                 )
 
         logger.info(
-            f"查询百分位数统计",
+            "查询百分位数统计",
             extra={'extra_fields': {
                 'stats_type': stats_type,
                 'time_window_minutes': time_window_minutes
@@ -82,7 +83,7 @@ class PercentileStatsView(APIView):
                 exc_info=True
             )
             return Response(
-                {'error': f'Internal server error: {str(e)}'},
+                {'error': f'Internal server error: {e!s}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -107,7 +108,7 @@ class LatestPercentileStatsView(APIView):
         stats_type = request.query_params.get('type', 'api')
 
         logger.info(
-            f"查询最新缓存的百分位数统计",
+            "查询最新缓存的百分位数统计",
             extra={'extra_fields': {'stats_type': stats_type}}
         )
 
@@ -128,6 +129,6 @@ class LatestPercentileStatsView(APIView):
                 exc_info=True
             )
             return Response(
-                {'error': f'Internal server error: {str(e)}'},
+                {'error': f'Internal server error: {e!s}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

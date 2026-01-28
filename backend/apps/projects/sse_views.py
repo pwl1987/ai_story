@@ -7,9 +7,10 @@ SSE流式视图
 import json
 import logging
 from typing import Generator
+
 from django.http import StreamingHttpResponse
-from django.views import View
 from django.utils.decorators import method_decorator
+from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
 from core.redis.subscriber import RedisStreamSubscriber
@@ -103,11 +104,11 @@ class ProjectStageSSEView(View):
                     break
 
         except Exception as e:
-            logger.error(f"SSE流异常: {str(e)}")
+            logger.error(f"SSE流异常: {e!s}")
             # 发送错误消息
             yield self._format_sse_message({
                 'type': 'error',
-                'error': f'SSE流异常: {str(e)}',
+                'error': f'SSE流异常: {e!s}',
                 'project_id': project_id
             })
 
@@ -148,13 +149,13 @@ class ProjectStageSSEView(View):
             return sse_message.encode('utf-8')
 
         except Exception as e:
-            logger.error(f"SSE消息格式化失败: {str(e)}")
+            logger.error(f"SSE消息格式化失败: {e!s}")
             # 返回错误消息
             error_data = json.dumps({
                 'type': 'error',
-                'error': f'消息格式化失败: {str(e)}'
+                'error': f'消息格式化失败: {e!s}'
             }, ensure_ascii=False)
-            return f"data: {error_data}\n\n".encode('utf-8')
+            return f"data: {error_data}\n\n".encode()
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -229,10 +230,10 @@ class ProjectAllStagesSSEView(View):
                 yield sse_message
 
         except Exception as e:
-            logger.error(f"SSE流异常: {str(e)}")
+            logger.error(f"SSE流异常: {e!s}")
             yield self._format_sse_message({
                 'type': 'error',
-                'error': f'SSE流异常: {str(e)}',
+                'error': f'SSE流异常: {e!s}',
                 'project_id': project_id
             })
 
@@ -263,10 +264,10 @@ class ProjectAllStagesSSEView(View):
             sse_message = f"data: {json_data}\n\n"
             return sse_message.encode('utf-8')
         except Exception as e:
-            logger.error(f"SSE消息格式化失败: {str(e)}")
+            logger.error(f"SSE消息格式化失败: {e!s}")
             error_data = json.dumps({
                 'type': 'error',
-                'error': f'消息格式化失败: {str(e)}'
+                'error': f'消息格式化失败: {e!s}'
             }, ensure_ascii=False)
-            return f"data: {error_data}\n\n".encode('utf-8')
+            return f"data: {error_data}\n\n".encode()
 

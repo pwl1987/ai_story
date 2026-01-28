@@ -4,14 +4,14 @@
 遵循单一职责原则(SRP)
 """
 
-import os
 import logging
+import os
 from pathlib import Path
-from typing import List, Dict, Any, Optional
-from django.conf import settings
+from typing import Any, Dict, List, Optional
 
 import pyJianYingDraft as draft
-from pyJianYingDraft import IntroType, trange, tim
+from django.conf import settings
+from pyJianYingDraft import IntroType, tim, trange
 
 logger = logging.getLogger(__name__)
 
@@ -152,8 +152,8 @@ class JianyingDraftGenerator:
             return draft_path
 
         except Exception as e:
-            logger.error(f"生成剪映草稿失败: {str(e)}", exc_info=True)
-            raise Exception(f"生成剪映草稿失败: {str(e)}")
+            logger.error(f"生成剪映草稿失败: {e!s}", exc_info=True)
+            raise Exception(f"生成剪映草稿失败: {e!s}")
 
     def _add_background_music(
         self,
@@ -184,7 +184,7 @@ class JianyingDraftGenerator:
             logger.debug(f"已添加背景音乐: {music_file}")
 
         except Exception as e:
-            logger.warning(f"添加背景音乐失败: {str(e)}")
+            logger.warning(f"添加背景音乐失败: {e!s}")
             # 背景音乐失败不影响主流程，只记录警告
 
     def _add_video_segments(
@@ -203,7 +203,6 @@ class JianyingDraftGenerator:
         subtitle_size = options.get('subtitle_size', 15)
         subtitle_position_y = options.get('subtitle_position_y', -0.73)
 
-        previous_segment = None
         current_start_time = tim("0s")
 
         for i, (video_file, subtitle_text) in enumerate(zip(video_files, subtitles)):
@@ -240,11 +239,10 @@ class JianyingDraftGenerator:
                     )
 
                 # 更新变量，为下一个视频做准备
-                previous_segment = video_segment
                 current_start_time = timerange.end
 
             except Exception as e:
-                logger.error(f"添加视频片段 {i+1} 失败: {str(e)}")
+                logger.error(f"添加视频片段 {i+1} 失败: {e!s}")
                 raise
 
     def _add_subtitle(
@@ -281,7 +279,7 @@ class JianyingDraftGenerator:
             logger.debug(f"已添加字幕: {text[:20]}...")
 
         except Exception as e:
-            logger.warning(f"添加字幕失败: {str(e)}")
+            logger.warning(f"添加字幕失败: {e!s}")
             # 字幕失败不影响主流程
 
     def generate_from_project_data(

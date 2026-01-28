@@ -5,10 +5,11 @@ Epic 3: 实时通信稳定性 - 历史进度记录功能
 """
 
 import logging
-from rest_framework import viewsets, status
+
+from django.shortcuts import get_object_or_404
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
 
 from apps.projects.models import Project
 from apps.projects.services import ProgressHistoryQuery
@@ -110,9 +111,9 @@ class ProjectProgressHistoryViewSet(viewsets.ViewSet):
             })
 
         except Exception as e:
-            logger.error(f"查询历史失败: {str(e)}")
+            logger.error(f"查询历史失败: {e!s}")
             return Response(
-                {'error': f'查询失败: {str(e)}'},
+                {'error': f'查询失败: {e!s}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -175,9 +176,9 @@ class ProjectProgressHistoryViewSet(viewsets.ViewSet):
                 })
 
         except Exception as e:
-            logger.error(f"查询最新进度失败: {str(e)}")
+            logger.error(f"查询最新进度失败: {e!s}")
             return Response(
-                {'error': f'查询失败: {str(e)}'},
+                {'error': f'查询失败: {e!s}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -229,9 +230,9 @@ class ProjectProgressHistoryViewSet(viewsets.ViewSet):
             })
 
         except Exception as e:
-            logger.error(f"查询统计信息失败: {str(e)}")
+            logger.error(f"查询统计信息失败: {e!s}")
             return Response(
-                {'error': f'查询失败: {str(e)}'},
+                {'error': f'查询失败: {e!s}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -288,8 +289,8 @@ class ProjectProgressHistoryViewSet(viewsets.ViewSet):
             })
 
         except Exception as e:
-            logger.error(f"清理旧记录失败: {str(e)}")
+            logger.error(f"清理旧记录失败: {e!s}")
             return Response(
-                {'error': f'清理失败: {str(e)}'},
+                {'error': f'清理失败: {e!s}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

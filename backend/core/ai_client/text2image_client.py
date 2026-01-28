@@ -3,11 +3,14 @@
 支持通用的文生图API接口
 """
 
-import requests
 import json
 import time
-from typing import Dict, Any
-from .base import Text2ImageClient as BaseText2ImageClient, AIResponse
+from typing import Any, Dict
+
+import requests
+
+from .base import AIResponse
+from .base import Text2ImageClient as BaseText2ImageClient
 
 
 class Text2ImageClient(BaseText2ImageClient):
@@ -113,12 +116,12 @@ class Text2ImageClient(BaseText2ImageClient):
         except requests.exceptions.RequestException as e:
             return AIResponse(
                 success=False,
-                error=f'网络请求错误: {str(e)}'
+                error=f'网络请求错误: {e!s}'
             )
         except Exception as e:
             return AIResponse(
                 success=False,
-                error=f'未知错误: {str(e)}'
+                error=f'未知错误: {e!s}'
             )
 
     def validate_config(self) -> bool:

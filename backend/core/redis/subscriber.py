@@ -6,9 +6,11 @@ Redis流式接收器
 
 import json
 import logging
-from typing import AsyncGenerator, Dict, Any, Optional
-import redis
+from typing import Any, AsyncGenerator, Dict, Optional
+
 from django.conf import settings
+
+import redis
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +67,7 @@ class RedisStreamSubscriber:
                 health_check_interval=30
             )
         except Exception as e:
-            logger.error(f"Redis连接失败: {str(e)}")
+            logger.error(f"Redis连接失败: {e!s}")
             raise
 
     def subscribe(self):
@@ -88,7 +90,7 @@ class RedisStreamSubscriber:
                 logger.info(f"订阅频道: {self.channel}")
 
         except Exception as e:
-            logger.error(f"订阅频道失败: {str(e)}")
+            logger.error(f"订阅频道失败: {e!s}")
             raise
 
     def unsubscribe(self):
@@ -103,7 +105,7 @@ class RedisStreamSubscriber:
                     self.pubsub.unsubscribe(self.channel)
                 logger.info(f"取消订阅频道: {self.channel}")
         except Exception as e:
-            logger.error(f"取消订阅失败: {str(e)}")
+            logger.error(f"取消订阅失败: {e!s}")
 
     def listen(self, timeout: Optional[int] = None) -> AsyncGenerator[Dict[str, Any], None]:
         """
@@ -152,24 +154,24 @@ class RedisStreamSubscriber:
                             break
 
                     except json.JSONDecodeError as e:
-                        logger.error(f"JSON解析失败: {str(e)}, 原始数据: {message['data']}")
+                        logger.error(f"JSON解析失败: {e!s}, 原始数据: {message['data']}")
                         continue
                     except Exception as e:
-                        logger.error(f"消息处理异常: {str(e)}")
+                        logger.error(f"消息处理异常: {e!s}")
                         continue
 
         except redis.RedisError as e:
-            logger.error(f"Redis监听失败: {str(e)}")
+            logger.error(f"Redis监听失败: {e!s}")
             yield {
                 'type': 'error',
-                'error': f'Redis连接错误: {str(e)}',
+                'error': f'Redis连接错误: {e!s}',
                 'project_id': self.project_id
             }
         except Exception as e:
-            logger.error(f"监听异常: {str(e)}")
+            logger.error(f"监听异常: {e!s}")
             yield {
                 'type': 'error',
-                'error': f'监听异常: {str(e)}',
+                'error': f'监听异常: {e!s}',
                 'project_id': self.project_id
             }
         finally:
@@ -205,13 +207,13 @@ class RedisStreamSubscriber:
                     data['channel'] = message.get('channel', self.channel)
                     return data
                 except json.JSONDecodeError as e:
-                    logger.error(f"JSON解析失败: {str(e)}")
+                    logger.error(f"JSON解析失败: {e!s}")
                     return None
 
             return None
 
         except Exception as e:
-            logger.error(f"获取消息失败: {str(e)}")
+            logger.error(f"获取消息失败: {e!s}")
             return None
 
     def close(self):
@@ -231,7 +233,7 @@ class RedisStreamSubscriber:
                 logger.info(f"关闭Redis连接: {self.channel}")
 
         except Exception as e:
-            logger.error(f"关闭连接失败: {str(e)}")
+            logger.error(f"关闭连接失败: {e!s}")
 
     def __enter__(self):
         """上下文管理器入口"""

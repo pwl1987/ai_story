@@ -1,11 +1,12 @@
 """内容生成Admin配置"""
 from django.contrib import admin
+
 from .models import (
-    ContentRewrite,
-    Storyboard,
-    GeneratedImage,
     CameraMovement,
+    ContentRewrite,
+    GeneratedImage,
     GeneratedVideo,
+    Storyboard,
 )
 
 

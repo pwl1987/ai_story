@@ -6,9 +6,10 @@ TODO功能单元测试
 import pytest
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
+
+from apps.content.models import CameraMovement, GeneratedVideo, Storyboard
 from apps.projects.tests.factories import ProjectFactory, UserFactory
-from apps.prompts.models import PromptTemplateSet, PromptTemplate
-from apps.content.models import GeneratedVideo, Storyboard, CameraMovement
+from apps.prompts.models import PromptTemplate, PromptTemplateSet
 
 User = get_user_model()
 

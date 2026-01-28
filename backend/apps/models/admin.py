@@ -2,6 +2,7 @@
 from django import forms
 from django.contrib import admin
 from django.core.exceptions import ValidationError
+
 from .models import ModelProvider, ModelUsageLog
 
 
@@ -20,7 +21,7 @@ class ModelProviderAdminForm(forms.ModelForm):
             executor_choices = self.instance.get_executor_choices()
             if executor_choices:
                 self.fields['executor_class'].widget = forms.Select(
-                    choices=[('', '--- 请选择执行器 ---')] + executor_choices
+                    choices=[('', '--- 请选择执行器 ---'), *executor_choices]
                 )
 
     def clean_executor_class(self):

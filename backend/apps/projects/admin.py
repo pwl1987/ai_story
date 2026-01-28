@@ -1,6 +1,7 @@
 """项目管理Admin配置"""
 from django.contrib import admin
-from .models import Project, ProjectStage, ProjectModelConfig
+
+from .models import Project, ProjectModelConfig, ProjectStage
 
 
 @admin.register(Project)

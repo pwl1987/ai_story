@@ -1,15 +1,15 @@
 """用户认证视图"""
-from rest_framework import status, generics, permissions
+from django.contrib.auth.models import User
+from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth.models import User
 
 from .serializers import (
-    UserSerializer,
+    ChangePasswordSerializer,
     LoginSerializer,
     RegisterSerializer,
-    ChangePasswordSerializer
+    UserSerializer,
 )
 
 

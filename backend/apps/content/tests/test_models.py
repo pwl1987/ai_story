@@ -9,19 +9,19 @@ from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
 
 from apps.content.models import (
-    ContentRewrite,
-    Storyboard,
-    GeneratedImage,
     CameraMovement,
-    GeneratedVideo
+    ContentRewrite,
+    GeneratedImage,
+    GeneratedVideo,
+    Storyboard,
 )
 from apps.content.tests.factories import (
-    ContentRewriteFactory,
-    StoryboardFactory,
-    GeneratedImageFactory,
     CameraMovementFactory,
+    ContentRewriteFactory,
+    GeneratedImageFactory,
     GeneratedVideoFactory,
-    ProjectFactory
+    ProjectFactory,
+    StoryboardFactory,
 )
 
 
@@ -57,7 +57,7 @@ class TestContentRewriteModel:
     def test_rewrite_one_to_one_relationship(self):
         """测试项目与文案改写的一对一关系"""
         project = ProjectFactory()
-        rewrite1 = ContentRewriteFactory(project=project)
+        ContentRewriteFactory(project=project)
 
         # 尝试为同一项目创建第二个文案改写应该失败
         with pytest.raises(IntegrityError):
@@ -238,7 +238,6 @@ class TestGeneratedImageModel:
     def test_image_foreign_key_cascade_delete(self):
         """测试分镜删除级联到图片"""
         image = GeneratedImageFactory()
-        storyboard_id = image.storyboard.id
         image_id = image.id
 
         image.storyboard.delete()
@@ -305,7 +304,7 @@ class TestCameraMovementModel:
     def test_movement_one_to_one_relationship(self):
         """测试分镜与运镜的一对一关系"""
         storyboard = StoryboardFactory()
-        movement1 = CameraMovementFactory(storyboard=storyboard)
+        CameraMovementFactory(storyboard=storyboard)
 
         # 尝试为同一分镜创建第二个运镜应该失败
         with pytest.raises(IntegrityError):
@@ -330,7 +329,7 @@ class TestGeneratedVideoModel:
         """测试创建最小生成视频"""
         # 先创建image和camera_movement（必需的外键）
         storyboard = StoryboardFactory()
-        from apps.content.tests.factories import GeneratedImageFactory, CameraMovementFactory
+        from apps.content.tests.factories import CameraMovementFactory, GeneratedImageFactory
         image = GeneratedImageFactory(storyboard=storyboard)
         movement = CameraMovementFactory(storyboard=storyboard)
 

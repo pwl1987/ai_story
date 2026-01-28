@@ -1,6 +1,7 @@
 """提示词管理Admin配置"""
 from django.contrib import admin
-from .models import PromptTemplateSet, PromptTemplate, GlobalVariable
+
+from .models import GlobalVariable, PromptTemplate, PromptTemplateSet
 
 
 @admin.register(PromptTemplateSet)

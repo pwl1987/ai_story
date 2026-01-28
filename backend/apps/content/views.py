@@ -5,12 +5,13 @@
 
 import os
 from pathlib import Path
+
 from django.conf import settings
 from django.http import FileResponse, Http404
-from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 
 class StorageImageListView(APIView):
@@ -65,7 +66,7 @@ class StorageImageListView(APIView):
         except Exception as e:
             return Response({
                 'success': False,
-                'message': f'获取图片列表失败: {str(e)}',
+                'message': f'获取图片列表失败: {e!s}',
                 'data': []
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -106,7 +107,7 @@ class StorageImageDetailView(APIView):
         except Http404:
             raise
         except Exception as e:
-            raise Http404(f'访问图片失败: {str(e)}')
+            raise Http404(f'访问图片失败: {e!s}')
 
     def _get_content_type(self, extension):
         """
@@ -159,7 +160,7 @@ class StorageVideoDetailView(APIView):
         except Http404:
             raise
         except Exception as e:
-            raise Http404(f'访问视频失败: {str(e)}')
+            raise Http404(f'访问视频失败: {e!s}')
 
     def _get_content_type(self, extension):
         """

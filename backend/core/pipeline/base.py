@@ -4,8 +4,8 @@ Pipeline工作流基础抽象
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
 from dataclasses import dataclass, field
+from typing import Any, Dict, Optional
 
 
 @dataclass

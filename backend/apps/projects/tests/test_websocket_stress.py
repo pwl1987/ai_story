@@ -4,18 +4,20 @@ Epic 3: 实时通信稳定性 - 综合测试和文档
 职责: 测试WebSocket在高并发场景下的性能表现
 """
 
-import pytest
 import asyncio
-import time
 import json
-from unittest.mock import AsyncMock, patch, MagicMock
+import os
 
 # 避免循环导入
 import sys
-import os
+import time
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
-from core.websocket import WebSocketReconnectManager, ReconnectState
+from core.websocket import ReconnectState, WebSocketReconnectManager
 
 
 @pytest.mark.stress
@@ -56,7 +58,7 @@ class TestWebSocketConcurrency:
         successful_connections = sum(1 for r in results if r is True)
         failed_connections = sum(1 for r in results if r is not True)
 
-        print(f"\n并发连接测试结果:")
+        print("\n并发连接测试结果:")
         print(f"  总连接数: {connection_count}")
         print(f"  成功连接: {successful_connections}")
         print(f"  失败连接: {failed_connections}")
@@ -115,7 +117,7 @@ class TestWebSocketConcurrency:
         successful = sum(1 for r in results if r is True)
         failed = sum(1 for r in results if r is not True)
 
-        print(f"\n并发重连测试结果:")
+        print("\n并发重连测试结果:")
         print(f"  总连接数: {reconnection_count}")
         print(f"  成功连接: {successful}")
         print(f"  失败连接: {failed}")
@@ -165,7 +167,7 @@ class TestWebSocketConcurrency:
 
         elapsed = time.time() - start_time
 
-        print(f"\n快速连接/断开测试结果:")
+        print("\n快速连接/断开测试结果:")
         print(f"  总循环次数: {cycle_count}")
         print(f"  成功循环: {successful_cycles}")
         print(f"  总耗时: {elapsed:.2f}秒")
@@ -211,7 +213,7 @@ class TestRedisPubSubStress:
 
         elapsed = time.time() - start_time
 
-        print(f"\n高频消息发布测试结果:")
+        print("\n高频消息发布测试结果:")
         print(f"  总消息数: {message_count}")
         print(f"  成功发布: {published_count}")
         print(f"  总耗时: {elapsed:.2f}秒")
@@ -238,7 +240,7 @@ class TestRedisPubSubStress:
         # Mock发布回调
         async def mock_publish_messages(publisher_id):
             published = 0
-            for i in range(messages_per_publisher):
+            for _i in range(messages_per_publisher):
                 await asyncio.sleep(0.001)  # 模拟延迟
                 published += 1
             return published
@@ -255,7 +257,7 @@ class TestRedisPubSubStress:
 
         total_published = sum(results)
 
-        print(f"\n并发发布者测试结果:")
+        print("\n并发发布者测试结果:")
         print(f"  发布者数: {publisher_count}")
         print(f"  每发布者消息数: {messages_per_publisher}")
         print(f"  总消息数: {total_messages}")
@@ -316,7 +318,7 @@ class TestReconnectManagerUnderLoad:
         successful = sum(1 for r in results if r is True)
         failed = sum(1 for r in results if r is not True)
 
-        print(f"\n超时处理测试结果:")
+        print("\n超时处理测试结果:")
         print(f"  总连接数: {connection_count}")
         print(f"  超时次数: {timeout_count}")
         print(f"  成功连接: {successful}")
@@ -359,7 +361,7 @@ class TestReconnectManagerUnderLoad:
 
         object_growth = final_objects - initial_objects
 
-        print(f"\n内存泄漏检测结果:")
+        print("\n内存泄漏检测结果:")
         print(f"  初始对象数: {initial_objects}")
         print(f"  最终对象数: {final_objects}")
         print(f"  对象增长: {object_growth}")
@@ -392,9 +394,7 @@ class TestEndToEndScenarios:
             await asyncio.sleep(0.01)
 
             # 第1次连接成功，第2次失败，第3次成功
-            if connection_attempt == 2:
-                return False
-            return True
+            return connection_attempt != 2
 
         async def mock_disconnect():
             await asyncio.sleep(0.001)
@@ -413,7 +413,7 @@ class TestEndToEndScenarios:
         message_log.append('connected')
 
         # 2. 模拟接收消息
-        for i in range(5):
+        for _i in range(5):
             manager.on_ping(time.time())
             await asyncio.sleep(0.01)
         message_log.append('received_5_messages')
@@ -432,7 +432,7 @@ class TestEndToEndScenarios:
         success = await manager.start()
         message_log.append(f'reconnected_{success}')
 
-        print(f"\n端到端工作流日志:")
+        print("\n端到端工作流日志:")
         for log in message_log:
             print(f"  - {log}")
 
@@ -471,7 +471,7 @@ class TestEndToEndScenarios:
 
         successful = sum(1 for r in results if r is True)
 
-        print(f"\n多项目并发测试结果:")
+        print("\n多项目并发测试结果:")
         print(f"  项目数: {project_count}")
         print(f"  成功连接: {successful}")
         print(f"  总耗时: {elapsed:.2f}秒")

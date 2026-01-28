@@ -6,9 +6,10 @@ Epic 3: 实时通信稳定性 - 自动重连机制
 """
 
 import asyncio
+import contextlib
 import logging
-from typing import Optional, Callable
 from enum import Enum
+from typing import Callable, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -277,10 +278,8 @@ class WebSocketReconnectManager:
         # 取消重连任务
         if self.reconnect_task and not self.reconnect_task.done():
             self.reconnect_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self.reconnect_task
-            except asyncio.CancelledError:
-                pass
 
         # 调用断开回调
         if self.disconnect_callback:

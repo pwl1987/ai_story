@@ -4,10 +4,10 @@
 """
 
 import factory
-from faker import Faker
 from django.contrib.auth.models import User
+from faker import Faker
 
-from apps.prompts.models import PromptTemplateSet, PromptTemplate, GlobalVariable
+from apps.prompts.models import GlobalVariable, PromptTemplate, PromptTemplateSet
 
 fake = Faker(['zh_CN'])
 

@@ -14,14 +14,14 @@ Epic 2优化：自动计算和存储API响应时间与Celery任务执行时间�
 - 依赖倒置：依赖Redis抽象
 """
 
-import logging
 import json
+import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
 from statistics import median
+from typing import Any, Dict, List, Optional
 
-from django.core.cache import cache
 from django.conf import settings
+from django.core.cache import cache
 
 logger = logging.getLogger('apps.core')
 
@@ -61,7 +61,7 @@ class PercentileStats:
             time_window_minutes = cls.TIME_WINDOW_MINUTES
 
         logger.info(
-            f"计算API响应时间百分位数",
+            "计算API响应时间百分位数",
             extra={'extra_fields': {
                 'time_window_minutes': time_window_minutes,
                 'percentiles': cls.PERCENTILES
@@ -101,7 +101,7 @@ class PercentileStats:
             cls._cache_stats(cls.API_STATS_KEY, stats)
 
             logger.info(
-                f"API响应时间百分位数计算完成",
+                "API响应时间百分位数计算完成",
                 extra={'extra_fields': {
                     'sample_count': len(response_times),
                     'p95': percentiles.get('p95'),
@@ -140,7 +140,7 @@ class PercentileStats:
             time_window_minutes = cls.TIME_WINDOW_MINUTES
 
         logger.info(
-            f"计算Celery任务执行时间百分位数",
+            "计算Celery任务执行时间百分位数",
             extra={'extra_fields': {
                 'time_window_minutes': time_window_minutes,
                 'percentiles': cls.PERCENTILES
@@ -179,7 +179,7 @@ class PercentileStats:
             cls._cache_stats(cls.CELERY_STATS_KEY, stats)
 
             logger.info(
-                f"Celery任务执行时间百分位数计算完成",
+                "Celery任务执行时间百分位数计算完成",
                 extra={'extra_fields': {
                     'sample_count': len(execution_times),
                     'p95': percentiles.get('p95'),

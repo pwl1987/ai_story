@@ -4,8 +4,9 @@
 遵循单一职责原则(SRP)
 """
 
-import factory
 import uuid
+
+import factory
 from django.contrib.auth import get_user_model
 from faker import Faker
 

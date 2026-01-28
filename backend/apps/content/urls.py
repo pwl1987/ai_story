@@ -1,6 +1,7 @@
 """内容生成URL路由"""
 from django.urls import path
-from .views import StorageImageListView, StorageImageDetailView, StorageVideoDetailView
+
+from .views import StorageImageDetailView, StorageImageListView, StorageVideoDetailView
 
 urlpatterns = [
     # Storage图片API

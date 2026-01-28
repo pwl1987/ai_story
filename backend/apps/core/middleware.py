@@ -5,11 +5,11 @@ Epic 2.5 - API响应时间监控
 自动收集和导出API请求指标
 """
 
-from prometheus_client import Counter, Histogram, REGISTRY
-from prometheus_client.exposition import generate_latest
-from django.utils.deprecation import MiddlewareMixin
 import time
 
+from django.utils.deprecation import MiddlewareMixin
+from prometheus_client import REGISTRY, Counter, Histogram
+from prometheus_client.exposition import generate_latest
 
 # HTTP请求总数
 http_requests_total = Counter(

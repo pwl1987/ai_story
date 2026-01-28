@@ -9,8 +9,10 @@ import json
 import logging
 import time
 from typing import Any, Dict, Optional
-import redis
+
 from django.conf import settings
+
+import redis
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +63,7 @@ class RedisStreamPublisher:
                 health_check_interval=30
             )
         except Exception as e:
-            logger.error(f"Redis连接失败: {str(e)}")
+            logger.error(f"Redis连接失败: {e!s}")
             raise
 
     def publish(self, message: Dict[str, Any]) -> bool:
@@ -83,7 +85,7 @@ class RedisStreamPublisher:
             message_json = json.dumps(message, ensure_ascii=False)
 
             # 发布到频道
-            subscribers = self.redis_client.publish(self.channel, message_json)
+            self.redis_client.publish(self.channel, message_json)
 
             # Epic 3: 记录关键消息到历史数据库
             self._record_to_history(message)
@@ -93,10 +95,10 @@ class RedisStreamPublisher:
             return True
 
         except redis.RedisError as e:
-            logger.error(f"Redis发布失败: {str(e)}")
+            logger.error(f"Redis发布失败: {e!s}")
             return False
         except Exception as e:
-            logger.error(f"消息发布异常: {str(e)}")
+            logger.error(f"消息发布异常: {e!s}")
             return False
 
     def _record_to_history(self, message: Dict[str, Any]) -> bool:
@@ -164,7 +166,7 @@ class RedisStreamPublisher:
 
         except Exception as e:
             # 历史记录失败不应影响Redis发布
-            logger.warning(f"记录历史失败: {str(e)}")
+            logger.warning(f"记录历史失败: {e!s}")
             return False
 
     def publish_token(self, content: str, full_text: str = "") -> bool:
@@ -304,7 +306,7 @@ class RedisStreamPublisher:
                 self.redis_client.close()
                 logger.info(f"关闭Redis连接: {self.channel}")
         except Exception as e:
-            logger.error(f"关闭Redis连接失败: {str(e)}")
+            logger.error(f"关闭Redis连接失败: {e!s}")
 
     def __enter__(self):
         """上下文管理器入口"""

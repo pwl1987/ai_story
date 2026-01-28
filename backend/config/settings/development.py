@@ -3,6 +3,7 @@
 """
 
 from .base import *
+
 CELERY_ALWAYS_EAGER = True
 CELERY_TASK_ALWAYS_EAGER = True
 
@@ -65,4 +66,4 @@ LOGGING = {
         },
     },
 }
-JIANYING_DRAFT_FOLDER = "D:\JianyingPro Drafts"
+JIANYING_DRAFT_FOLDER = r"D:\JianyingPro Drafts"

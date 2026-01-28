@@ -5,8 +5,9 @@ Mock LLM 客户端实现（异步版本）
 """
 
 import asyncio
-from typing import Dict, Any, Generator
-from .base import LLMClient, AIResponse
+from typing import Any, Dict, Generator
+
+from .base import AIResponse, LLMClient
 
 
 class MockLLMClient(LLMClient):
@@ -243,9 +244,7 @@ class MockLLMClient(LLMClient):
         if ('场景' in prompt_lower and ('详细' in prompt_lower or 'detail' in prompt_lower)) or 'image_prompt' in prompt_lower:
             return self.MOCK_RESPONSES['scene_detail']
         # 场景大纲检测：包含"场景"和"大纲"（可以不连续）
-        elif '场景' in prompt_lower and '大纲' in prompt_lower:
-            return self.MOCK_RESPONSES['scene_outline']
-        elif 'scene outline' in prompt_lower:
+        elif ('场景' in prompt_lower and '大纲' in prompt_lower) or 'scene outline' in prompt_lower:
             return self.MOCK_RESPONSES['scene_outline']
         elif any(keyword in prompt_lower for keyword in ['分镜', 'storyboard']):
             return self.MOCK_RESPONSES['storyboard']
