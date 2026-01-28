@@ -7,6 +7,7 @@ Pipeline阶段适配器
 import logging
 from typing import Dict, Any
 from django.utils import timezone
+from asgiref.sync import async_to_sync, sync_to_async
 
 from core.pipeline.base import (
     StageProcessor,
@@ -35,7 +36,7 @@ class RewriteStageAdapter(StageProcessor):
     async def validate(self, context: PipelineContext) -> bool:
         """验证阶段是否可以执行"""
         try:
-            project = Project.objects.get(id=context.project_id)
+            project = await sync_to_async(Project.objects.get)(id=context.project_id)
 
             # 检查是否有原始主题
             if not project.original_topic:
@@ -52,10 +53,10 @@ class RewriteStageAdapter(StageProcessor):
 
     async def process(self, context: PipelineContext) -> StageResult:
         """执行文案改写"""
-        project = Project.objects.get(id=context.project_id)
+        project = await sync_to_async(Project.objects.get)(id=context.project_id)
 
         # 获取或创建阶段
-        stage, created = ProjectStage.objects.get_or_create(
+        stage, created = await sync_to_async(ProjectStage.objects.get_or_create)(
             project=project,
             stage_type='rewrite',
             defaults={
@@ -67,55 +68,61 @@ class RewriteStageAdapter(StageProcessor):
         # 更新状态
         stage.status = 'processing'
         stage.started_at = timezone.now()
-        stage.save()
+        await sync_to_async(stage.save)()
 
         try:
-            # 使用LLM处理器进行流式处理
-            full_text = ""
-            for chunk in self.processor.process_stream(
-                project_id=project.id,
-                input_data={'raw_text': project.original_topic}
-            ):
-                chunk_type = chunk.get('type')
+            # 使用sync_to_async包装同步处理器的调用
+            def run_sync_processor():
+                """在同步上下文中运行LLM处理器"""
+                full_text = ""
+                for chunk in self.processor.process_stream(
+                    project_id=project.id,
+                    input_data={'raw_text': project.original_topic}
+                ):
+                    chunk_type = chunk.get('type')
 
-                if chunk_type == 'token':
-                    full_text = chunk.get('full_text', full_text)
+                    if chunk_type == 'token':
+                        full_text = chunk.get('full_text', full_text)
 
-                elif chunk_type == 'done':
-                    # 保存结果
-                    stage.output_data = {'raw_text': full_text}
-                    stage.status = 'completed'
-                    stage.completed_at = timezone.now()
-                    stage.save()
+                    elif chunk_type == 'done':
+                        # 保存结果
+                        stage.output_data = {'raw_text': full_text}
+                        stage.status = 'completed'
+                        stage.completed_at = timezone.now()
+                        stage.save()
 
-                    return StageResult(
-                        success=True,
-                        data={'rewritten_text': full_text}
-                    )
+                        return StageResult(
+                            success=True,
+                            data={'rewritten_text': full_text}
+                        )
 
-                elif chunk_type == 'error':
-                    raise Exception(chunk.get('error', '未知错误'))
+                    elif chunk_type == 'error':
+                        raise Exception(chunk.get('error', '未知错误'))
 
-            return StageResult(success=False, error='处理未完成')
+                return StageResult(success=False, error='处理未完成')
+
+            # 在同步上下文中执行处理器
+            result = await sync_to_async(run_sync_processor, thread_sensitive=True)()
+            return result
 
         except Exception as e:
             stage.status = 'failed'
             stage.error_message = str(e)
             stage.retry_count += 1
-            stage.save()
+            await sync_to_async(stage.save)()
             return StageResult(success=False, error=str(e))
 
     async def on_failure(self, context: PipelineContext, error: Exception):
         """失败处理"""
         logger.error(f"文案改写失败: {str(error)}")
         try:
-            stage = ProjectStage.objects.get(
+            stage = await sync_to_async(ProjectStage.objects.get)(
                 project_id=context.project_id,
                 stage_type='rewrite'
             )
             stage.status = 'failed'
             stage.error_message = str(error)
-            stage.save()
+            await sync_to_async(stage.save)()
         except Exception:
             pass
 
@@ -134,7 +141,7 @@ class StoryboardStageAdapter(StageProcessor):
     async def validate(self, context: PipelineContext) -> bool:
         """验证阶段是否可以执行"""
         try:
-            project = Project.objects.get(id=context.project_id)
+            project = await sync_to_async(Project.objects.get)(id=context.project_id)
 
             # 检查是否有文案改写结果
             rewrite_result = context.get_result('rewrite')
@@ -149,11 +156,11 @@ class StoryboardStageAdapter(StageProcessor):
 
     async def process(self, context: PipelineContext) -> StageResult:
         """执行分镜生成"""
-        project = Project.objects.get(id=context.project_id)
+        project = await sync_to_async(Project.objects.get)(id=context.project_id)
         rewrite_result = context.get_result('rewrite')
 
         # 获取或创建阶段
-        stage, created = ProjectStage.objects.get_or_create(
+        stage, created = await sync_to_async(ProjectStage.objects.get_or_create)(
             project=project,
             stage_type='storyboard',
             defaults={
@@ -165,55 +172,61 @@ class StoryboardStageAdapter(StageProcessor):
         # 更新状态
         stage.status = 'processing'
         stage.started_at = timezone.now()
-        stage.save()
+        await sync_to_async(stage.save)()
 
         try:
-            # 使用LLM处理器进行流式处理
-            full_text = ""
-            for chunk in self.processor.process_stream(
-                project_id=project.id,
-                input_data={'raw_text': rewrite_result.get('rewritten_text', '')}
-            ):
-                chunk_type = chunk.get('type')
+            # 使用sync_to_async包装同步处理器的调用
+            def run_sync_processor():
+                """在同步上下文中运行LLM处理器"""
+                full_text = ""
+                for chunk in self.processor.process_stream(
+                    project_id=project.id,
+                    input_data={'raw_text': rewrite_result.get('rewritten_text', '')}
+                ):
+                    chunk_type = chunk.get('type')
 
-                if chunk_type == 'token':
-                    full_text = chunk.get('full_text', full_text)
+                    if chunk_type == 'token':
+                        full_text = chunk.get('full_text', full_text)
 
-                elif chunk_type == 'done':
-                    # 保存结果
-                    stage.output_data = {'raw_text': full_text}
-                    stage.status = 'completed'
-                    stage.completed_at = timezone.now()
-                    stage.save()
+                    elif chunk_type == 'done':
+                        # 保存结果
+                        stage.output_data = {'raw_text': full_text}
+                        stage.status = 'completed'
+                        stage.completed_at = timezone.now()
+                        stage.save()
 
-                    return StageResult(
-                        success=True,
-                        data={'storyboard_text': full_text}
-                    )
+                        return StageResult(
+                            success=True,
+                            data={'storyboard_text': full_text}
+                        )
 
-                elif chunk_type == 'error':
-                    raise Exception(chunk.get('error', '未知错误'))
+                    elif chunk_type == 'error':
+                        raise Exception(chunk.get('error', '未知错误'))
 
-            return StageResult(success=False, error='处理未完成')
+                return StageResult(success=False, error='处理未完成')
+
+            # 在同步上下文中执行处理器
+            result = await sync_to_async(run_sync_processor, thread_sensitive=True)()
+            return result
 
         except Exception as e:
             stage.status = 'failed'
             stage.error_message = str(e)
             stage.retry_count += 1
-            stage.save()
+            await sync_to_async(stage.save)()
             return StageResult(success=False, error=str(e))
 
     async def on_failure(self, context: PipelineContext, error: Exception):
         """失败处理"""
         logger.error(f"分镜生成失败: {str(error)}")
         try:
-            stage = ProjectStage.objects.get(
+            stage = await sync_to_async(ProjectStage.objects.get)(
                 project_id=context.project_id,
                 stage_type='storyboard'
             )
             stage.status = 'failed'
             stage.error_message = str(error)
-            stage.save()
+            await sync_to_async(stage.save)()
         except Exception:
             pass
 
@@ -245,10 +258,10 @@ class ImageGenerationStageAdapter(StageProcessor):
 
     async def process(self, context: PipelineContext) -> StageResult:
         """执行文生图"""
-        project = Project.objects.get(id=context.project_id)
+        project = await sync_to_async(Project.objects.get)(id=context.project_id)
 
         # 获取或创建阶段
-        stage, created = ProjectStage.objects.get_or_create(
+        stage, created = await sync_to_async(ProjectStage.objects.get_or_create)(
             project=project,
             stage_type='image_generation',
             defaults={'status': 'pending'}
@@ -257,17 +270,17 @@ class ImageGenerationStageAdapter(StageProcessor):
         # 更新状态
         stage.status = 'processing'
         stage.started_at = timezone.now()
-        stage.save()
+        await sync_to_async(stage.save)()
 
         try:
-            # 调用文生图处理器
-            result = await self.processor.process_async(project_id=project.id)
+            # 调用文生图处理器（使用sync_to_async包装同步方法）
+            result = await sync_to_async(self.processor.process)(project_id=project.id)
 
             if result.get('success'):
                 stage.output_data = {'images': result.get('images', [])}
                 stage.status = 'completed'
                 stage.completed_at = timezone.now()
-                stage.save()
+                await sync_to_async(stage.save)()
 
                 return StageResult(
                     success=True,
@@ -280,20 +293,20 @@ class ImageGenerationStageAdapter(StageProcessor):
             stage.status = 'failed'
             stage.error_message = str(e)
             stage.retry_count += 1
-            stage.save()
+            await sync_to_async(stage.save)()
             return StageResult(success=False, error=str(e))
 
     async def on_failure(self, context: PipelineContext, error: Exception):
         """失败处理"""
         logger.error(f"文生图失败: {str(error)}")
         try:
-            stage = ProjectStage.objects.get(
+            stage = await sync_to_async(ProjectStage.objects.get)(
                 project_id=context.project_id,
                 stage_type='image_generation'
             )
             stage.status = 'failed'
             stage.error_message = str(error)
-            stage.save()
+            await sync_to_async(stage.save)()
         except Exception:
             pass
 
@@ -325,10 +338,10 @@ class CameraMovementStageAdapter(StageProcessor):
 
     async def process(self, context: PipelineContext) -> StageResult:
         """执行运镜生成"""
-        project = Project.objects.get(id=context.project_id)
+        project = await sync_to_async(Project.objects.get)(id=context.project_id)
 
         # 获取或创建阶段
-        stage, created = ProjectStage.objects.get_or_create(
+        stage, created = await sync_to_async(ProjectStage.objects.get_or_create)(
             project=project,
             stage_type='camera_movement',
             defaults={'status': 'pending'}
@@ -337,57 +350,63 @@ class CameraMovementStageAdapter(StageProcessor):
         # 更新状态
         stage.status = 'processing'
         stage.started_at = timezone.now()
-        stage.save()
+        await sync_to_async(stage.save)()
 
         try:
-            # 使用LLM处理器进行流式处理
-            full_text = ""
-            storyboard_result = context.get_result('storyboard')
+            # 使用sync_to_async包装同步处理器的调用
+            def run_sync_processor():
+                """在同步上下文中运行LLM处理器"""
+                full_text = ""
+                storyboard_result = context.get_result('storyboard')
 
-            for chunk in self.processor.process_stream(
-                project_id=project.id,
-                input_data={'raw_text': storyboard_result.get('storyboard_text', '')}
-            ):
-                chunk_type = chunk.get('type')
+                for chunk in self.processor.process_stream(
+                    project_id=project.id,
+                    input_data={'raw_text': storyboard_result.get('storyboard_text', '')}
+                ):
+                    chunk_type = chunk.get('type')
 
-                if chunk_type == 'token':
-                    full_text = chunk.get('full_text', full_text)
+                    if chunk_type == 'token':
+                        full_text = chunk.get('full_text', full_text)
 
-                elif chunk_type == 'done':
-                    # 保存结果
-                    stage.output_data = {'raw_text': full_text}
-                    stage.status = 'completed'
-                    stage.completed_at = timezone.now()
-                    stage.save()
+                    elif chunk_type == 'done':
+                        # 保存结果
+                        stage.output_data = {'raw_text': full_text}
+                        stage.status = 'completed'
+                        stage.completed_at = timezone.now()
+                        stage.save()
 
-                    return StageResult(
-                        success=True,
-                        data={'camera_movement_text': full_text}
-                    )
+                        return StageResult(
+                            success=True,
+                            data={'camera_movement_text': full_text}
+                        )
 
-                elif chunk_type == 'error':
-                    raise Exception(chunk.get('error', '未知错误'))
+                    elif chunk_type == 'error':
+                        raise Exception(chunk.get('error', '未知错误'))
 
-            return StageResult(success=False, error='处理未完成')
+                return StageResult(success=False, error='处理未完成')
+
+            # 在同步上下文中执行处理器
+            result = await sync_to_async(run_sync_processor, thread_sensitive=True)()
+            return result
 
         except Exception as e:
             stage.status = 'failed'
             stage.error_message = str(e)
             stage.retry_count += 1
-            stage.save()
+            await sync_to_async(stage.save)()
             return StageResult(success=False, error=str(e))
 
     async def on_failure(self, context: PipelineContext, error: Exception):
         """失败处理"""
         logger.error(f"运镜生成失败: {str(error)}")
         try:
-            stage = ProjectStage.objects.get(
+            stage = await sync_to_async(ProjectStage.objects.get)(
                 project_id=context.project_id,
                 stage_type='camera_movement'
             )
             stage.status = 'failed'
             stage.error_message = str(error)
-            stage.save()
+            await sync_to_async(stage.save)()
         except Exception:
             pass
 
@@ -419,10 +438,10 @@ class VideoGenerationStageAdapter(StageProcessor):
 
     async def process(self, context: PipelineContext) -> StageResult:
         """执行图生视频"""
-        project = Project.objects.get(id=context.project_id)
+        project = await sync_to_async(Project.objects.get)(id=context.project_id)
 
         # 获取或创建阶段
-        stage, created = ProjectStage.objects.get_or_create(
+        stage, created = await sync_to_async(ProjectStage.objects.get_or_create)(
             project=project,
             stage_type='video_generation',
             defaults={'status': 'pending'}
@@ -431,17 +450,17 @@ class VideoGenerationStageAdapter(StageProcessor):
         # 更新状态
         stage.status = 'processing'
         stage.started_at = timezone.now()
-        stage.save()
+        await sync_to_async(stage.save)()
 
         try:
-            # 调用图生视频处理器
-            result = await self.processor.process_async(project_id=project.id)
+            # 调用图生视频处理器（已经是StageProcessor，直接传递context）
+            result = await self.processor.process(context)
 
             if result.get('success'):
                 stage.output_data = {'videos': result.get('videos', [])}
                 stage.status = 'completed'
                 stage.completed_at = timezone.now()
-                stage.save()
+                await sync_to_async(stage.save)()
 
                 return StageResult(
                     success=True,
@@ -454,19 +473,19 @@ class VideoGenerationStageAdapter(StageProcessor):
             stage.status = 'failed'
             stage.error_message = str(e)
             stage.retry_count += 1
-            stage.save()
+            await sync_to_async(stage.save)()
             return StageResult(success=False, error=str(e))
 
     async def on_failure(self, context: PipelineContext, error: Exception):
         """失败处理"""
         logger.error(f"图生视频失败: {str(error)}")
         try:
-            stage = ProjectStage.objects.get(
+            stage = await sync_to_async(ProjectStage.objects.get)(
                 project_id=context.project_id,
                 stage_type='video_generation'
             )
             stage.status = 'failed'
             stage.error_message = str(error)
-            stage.save()
+            await sync_to_async(stage.save)()
         except Exception:
             pass

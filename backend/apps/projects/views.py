@@ -730,6 +730,73 @@ class ProjectViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @action(detail=True, methods=["post"])
+    def execute_full_pipeline(self, request, pk=None):
+        """
+        执行完整的项目工作流
+        POST /api/v1/projects/{id}/execute_full_pipeline/
+
+        功能:
+        1. 触发execute_full_pipeline Celery任务
+        2. 依次执行5个阶段：rewrite → storyboard → image_generation → camera_movement → video_generation
+        3. 通过Redis Pub/Sub推送实时进度
+
+        权限: IsAuthenticated
+        参数: 无（使用项目配置的模型和提示词）
+
+        Returns:
+        {
+            "task_id": "xxx",  # Celery任务ID
+            "channel": "ai_story:project:xxx:pipeline",  # Redis频道
+            "message": "完整工作流已启动",
+            "project_id": "xxx"
+        }
+
+        错误:
+        - 400: 项目正在处理中或已完成
+        - 404: 项目不存在
+        """
+        from apps.projects.tasks import execute_full_pipeline
+
+        project = self.get_object()
+
+        # 状态检查
+        if project.status == "processing":
+            return Response(
+                {"error": "项目正在处理中"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if project.status == "completed":
+            return Response(
+                {"error": "项目已完成"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # 重置项目状态为draft（如果是failed或paused状态）
+        if project.status in ["failed", "paused"]:
+            project.status = "draft"
+            project.save()
+
+        # 启动Celery任务
+        task = execute_full_pipeline.delay(
+            project_id=str(project.id),
+            user_id=request.user.id
+        )
+
+        # 构建Redis频道名称
+        channel = f"ai_story:project:{project.id}:pipeline"
+
+        return Response(
+            {
+                "task_id": task.id,
+                "channel": channel,
+                "message": "完整工作流已启动",
+                "project_id": str(project.id)
+            },
+            status=status.HTTP_202_ACCEPTED,
+        )
+
 
 class ProjectStageViewSet(viewsets.ReadOnlyModelViewSet):
     """

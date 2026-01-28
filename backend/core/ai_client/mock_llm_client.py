@@ -15,6 +15,26 @@ class MockLLMClient(LLMClient):
     返回预定义的模拟响应，用于测试工作流
     """
 
+    def __init__(self, api_url: str = "", api_key: str = "", model_name: str = "mock-model",
+                 stage_type: str = "", timeout: int = 30, max_tokens: int = 2000,
+                 temperature: float = 0.7, top_p: float = 0.9, **kwargs):
+        """
+        初始化Mock客户端
+
+        Args:
+            api_url: API URL（Mock中忽略）
+            api_key: API密钥（Mock中忽略）
+            model_name: 模型名称
+            stage_type: 阶段类型（用于确定返回哪种响应）
+            timeout: 超时时间（Mock中忽略）
+            max_tokens: 最大token数（Mock中忽略）
+            temperature: 温度参数（Mock中忽略）
+            top_p: top_p参数（Mock中忽略）
+            **kwargs: 其他参数
+        """
+        super().__init__(api_url, api_key, model_name)
+        self.stage_type = stage_type
+
     # 模拟响应模板
     MOCK_RESPONSES = {
         "rewrite": """经过改写的故事内容：
@@ -25,32 +45,28 @@ class MockLLMClient(LLMClient):
 
 改写后的内容更加生动，情感更加饱满，适合进行下一步的分镜创作。""",
 
-        "storyboard": """[
-  {
-    "scene_number": 1,
-    "scene_description": "清晨的小镇，阳光洒在石板路上",
-    "narration_text": "在一个宁静的小镇上，新的一天开始了",
-    "image_prompt": "A peaceful small town at dawn, sunlight on cobblestone streets, warm golden light, cinematic composition, high quality",
-    "duration_seconds": 3,
-    "camera_movement": "static"
-  },
-  {
-    "scene_number": 2,
-    "scene_description": "年轻画家背着画板走向河边",
-    "narration_text": "年轻的画家像往常一样，带着他的画具出门了",
-    "image_prompt": "A young artist walking towards a river, carrying an easel and painting supplies, morning light, artistic atmosphere, detailed",
-    "duration_seconds": 4,
-    "camera_movement": "follow"
-  },
-  {
-    "scene_number": 3,
-    "scene_description": "河边美景，画家开始作画",
-    "narration_text": "他在河边架起画架，开始捕捉大自然的美丽",
-    "image_prompt": "Artist painting by a beautiful river, easel setup, natural scenery, peaceful atmosphere, professional photography",
-    "duration_seconds": 5,
-    "camera_movement": "slow_zoom_in"
-  }
-]""",
+        "storyboard": """{
+  "scenes": [
+    {
+      "scene_number": 1,
+      "narration": "在一个宁静的小镇上，新的一天开始了",
+      "visual_prompt": "A peaceful small town at dawn, sunlight on cobblestone streets, warm golden light, cinematic composition, high quality",
+      "shot_type": "wide_shot"
+    },
+    {
+      "scene_number": 2,
+      "narration": "年轻的画家像往常一样，带着他的画具出门了",
+      "visual_prompt": "A young artist walking towards a river, carrying an easel and painting supplies, morning light, artistic atmosphere, detailed",
+      "shot_type": "medium_shot"
+    },
+    {
+      "scene_number": 3,
+      "narration": "他在河边架起画架，开始捕捉大自然的美丽",
+      "visual_prompt": "Artist painting by a beautiful river, easel setup, natural scenery, peaceful atmosphere, professional photography",
+      "shot_type": "close_up"
+    }
+  ]
+}""",
 
         "camera_movement": """{
   "movement_type": "slow_zoom_in",
@@ -140,8 +156,8 @@ class MockLLMClient(LLMClient):
         """
         start_time = time.time()
 
-        # 获取模拟响应
-        response_text = self._get_mock_response(prompt)
+        # 获取模拟响应（优先检查system_prompt，因为真正的提示词在那里）
+        response_text = self._get_mock_response(system_prompt or prompt)
 
         # 模拟流式输出，每次返回几个字符
         chunk_size = 10
@@ -176,7 +192,7 @@ class MockLLMClient(LLMClient):
 
     def _get_mock_response(self, prompt: str) -> str:
         """
-        根据提示词内容返回相应的模拟响应
+        根据stage_type或提示词内容返回相应的模拟响应
 
         Args:
             prompt: 输入提示词
@@ -184,6 +200,18 @@ class MockLLMClient(LLMClient):
         Returns:
             str: 模拟响应文本
         """
+        # 优先使用stage_type（如果已设置）
+        if self.stage_type:
+            stage_type_map = {
+                'rewrite': 'rewrite',
+                'storyboard': 'storyboard',
+                'camera_movement': 'camera_movement',
+            }
+            response_key = stage_type_map.get(self.stage_type)
+            if response_key and response_key in self.MOCK_RESPONSES:
+                return self.MOCK_RESPONSES[response_key]
+
+        # 回退到关键词检测
         prompt_lower = prompt.lower()
 
         # 根据关键词判断响应类型

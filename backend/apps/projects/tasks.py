@@ -628,8 +628,22 @@ def execute_full_pipeline(
         ])
 
         # 执行工作流
-        logger.info(f"Pipeline开始执行, 项目: {project_id}")
-        context = asyncio.run(pipeline.execute(project_id))
+        # 使用asyncio.run在线程池中运行异步Pipeline，避免ORM上下文问题
+        import asyncio
+        import concurrent.futures
+
+        def run_pipeline_sync():
+            """在单独的线程中运行async Pipeline"""
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                return loop.run_until_complete(pipeline.execute(project_id))
+            finally:
+                loop.close()
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(run_pipeline_sync)
+            context = future.result()
 
         # 检查执行结果
         total_stages = len(pipeline.stages)

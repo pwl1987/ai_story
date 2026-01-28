@@ -407,7 +407,19 @@ class LLMStageProcessor(StageProcessor):
             provider = self._get_default_provider()
 
         # 使用工厂函数动态创建客户端
-        return create_ai_client(provider)
+        client = create_ai_client(provider)
+
+        # 如果是Mock客户端，传递stage_type参数
+        if 'mock_llm_client' in provider.executor_class.lower():
+            from core.ai_client.mock_llm_client import MockLLMClient
+            return MockLLMClient(
+                api_url=provider.api_url or "",
+                api_key=provider.api_key or "",
+                model_name=provider.model_name or "mock-model",
+                stage_type=self.stage_type
+            )
+
+        return client
 
     def _get_default_provider(self) -> ModelProvider:
         """获取默认的LLM提供商"""
