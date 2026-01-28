@@ -13,6 +13,7 @@ Pipeline适配器单元测试
 """
 import pytest
 from unittest.mock import Mock, MagicMock, patch, AsyncMock
+from asgiref.sync import sync_to_async
 from apps.projects.tests.factories import ProjectFactory, ProjectStageFactory
 from apps.projects.pipeline_adapters import (
     RewriteStageAdapter,
@@ -42,7 +43,7 @@ class TestRewriteStageAdapter:
         )
 
     @pytest.fixture
-    def context(self, project):
+    async def context(self, project):
         return PipelineContext(project_id=str(project.id))
 
     @pytest.mark.asyncio
@@ -55,7 +56,7 @@ class TestRewriteStageAdapter:
     async def test_validate_failure_no_topic(self, adapter, project):
         """测试验证失败：无原始主题"""
         project.original_topic = ""
-        project.save()
+        await sync_to_async(project.save)()
 
         context = PipelineContext(project_id=str(project.id))
         result = await adapter.validate(context)
@@ -110,7 +111,7 @@ class TestRewriteStageAdapter:
         error = Exception("测试错误")
         await adapter.on_failure(context, error)
 
-        stage = ProjectStage.objects.get(project=project, stage_type='rewrite')
+        stage = await sync_to_async(ProjectStage.objects.get)(project=project, stage_type='rewrite')
         assert stage.status == 'failed'
         assert '测试错误' in stage.error_message
 
@@ -124,10 +125,10 @@ class TestStoryboardStageAdapter:
         return StoryboardStageAdapter()
 
     @pytest.fixture
-    def project(self):
-        project = ProjectFactory(original_topic="测试主题")
+    async def project(self):
+        project = await sync_to_async(ProjectFactory)(original_topic="测试主题")
         # 创建rewrite阶段并完成
-        rewrite_stage = ProjectStageFactory(
+        rewrite_stage = await sync_to_async(ProjectStageFactory)(
             project=project,
             stage_type='rewrite',
             status='completed',
@@ -136,7 +137,7 @@ class TestStoryboardStageAdapter:
         return project
 
     @pytest.fixture
-    def context(self, project):
+    async def context(self, project):
         return PipelineContext(project_id=str(project.id))
 
     @pytest.mark.asyncio
@@ -149,7 +150,8 @@ class TestStoryboardStageAdapter:
     async def test_validate_failure_no_rewrite_output(self, adapter, project):
         """测试验证失败：无rewrite输出"""
         # 删除rewrite阶段
-        ProjectStage.objects.filter(project=project, stage_type='rewrite').delete()
+        await sync_to_async(ProjectStage.objects.filter(
+        ).delete)()
 
         context = PipelineContext(project_id=str(project.id))
         result = await adapter.validate(context)
@@ -183,10 +185,10 @@ class TestImageGenerationStageAdapter:
         return ImageGenerationStageAdapter()
 
     @pytest.fixture
-    def project(self):
-        project = ProjectFactory(original_topic="测试主题")
+    async def project(self):
+        project = await sync_to_async(ProjectFactory)(original_topic="测试主题")
         # 创建storyboard阶段并完成
-        storyboard_stage = ProjectStageFactory(
+        storyboard_stage = await sync_to_async(ProjectStageFactory)(
             project=project,
             stage_type='storyboard',
             status='completed',
@@ -195,7 +197,7 @@ class TestImageGenerationStageAdapter:
         return project
 
     @pytest.fixture
-    def context(self, project):
+    async def context(self, project):
         return PipelineContext(project_id=str(project.id))
 
     @pytest.mark.asyncio
@@ -207,7 +209,8 @@ class TestImageGenerationStageAdapter:
     @pytest.mark.asyncio
     async def test_validate_failure_no_storyboard(self, adapter, project):
         """测试验证失败：无storyboard输出"""
-        ProjectStage.objects.filter(project=project, stage_type='storyboard').delete()
+        await sync_to_async(ProjectStage.objects.filter(
+        ).delete)()
 
         context = PipelineContext(project_id=str(project.id))
         result = await adapter.validate(context)
@@ -241,10 +244,10 @@ class TestCameraMovementStageAdapter:
         return CameraMovementStageAdapter()
 
     @pytest.fixture
-    def project(self):
-        project = ProjectFactory(original_topic="测试主题")
+    async def project(self):
+        project = await sync_to_async(ProjectFactory)(original_topic="测试主题")
         # 创建image_generation阶段并完成
-        image_stage = ProjectStageFactory(
+        image_stage = await sync_to_async(ProjectStageFactory)(
             project=project,
             stage_type='image_generation',
             status='completed',
@@ -253,7 +256,7 @@ class TestCameraMovementStageAdapter:
         return project
 
     @pytest.fixture
-    def context(self, project):
+    async def context(self, project):
         return PipelineContext(project_id=str(project.id))
 
     @pytest.mark.asyncio
@@ -265,7 +268,8 @@ class TestCameraMovementStageAdapter:
     @pytest.mark.asyncio
     async def test_validate_failure_no_images(self, adapter, project):
         """测试验证失败：无图片输出"""
-        ProjectStage.objects.filter(project=project, stage_type='image_generation').delete()
+        await sync_to_async(ProjectStage.objects.filter(
+        ).delete)()
 
         context = PipelineContext(project_id=str(project.id))
         result = await adapter.validate(context)
@@ -298,16 +302,16 @@ class TestVideoGenerationStageAdapter:
         return VideoGenerationStageAdapter()
 
     @pytest.fixture
-    def project(self):
-        project = ProjectFactory(original_topic="测试主题")
+    async def project(self):
+        project = await sync_to_async(ProjectFactory)(original_topic="测试主题")
         # 创建前置阶段
-        camera_stage = ProjectStageFactory(
+        camera_stage = await sync_to_async(ProjectStageFactory)(
             project=project,
             stage_type='camera_movement',
             status='completed',
             output_data={'camera_movements': [{'scene_index': 0, 'movement_type': 'zoom_in'}]}
         )
-        image_stage = ProjectStageFactory(
+        image_stage = await sync_to_async(ProjectStageFactory)(
             project=project,
             stage_type='image_generation',
             status='completed',
@@ -316,7 +320,7 @@ class TestVideoGenerationStageAdapter:
         return project
 
     @pytest.fixture
-    def context(self, project):
+    async def context(self, project):
         return PipelineContext(project_id=str(project.id))
 
     @pytest.mark.asyncio
@@ -328,7 +332,8 @@ class TestVideoGenerationStageAdapter:
     @pytest.mark.asyncio
     async def test_validate_failure_no_camera_movement(self, adapter, project):
         """测试验证失败：无运镜输出"""
-        ProjectStage.objects.filter(project=project, stage_type='camera_movement').delete()
+        await sync_to_async(ProjectStage.objects.filter(
+        ).delete)()
 
         context = PipelineContext(project_id=str(project.id))
         result = await adapter.validate(context)
@@ -337,7 +342,8 @@ class TestVideoGenerationStageAdapter:
     @pytest.mark.asyncio
     async def test_validate_failure_no_images(self, adapter, project):
         """测试验证失败：无图片"""
-        ProjectStage.objects.filter(project=project, stage_type='image_generation').delete()
+        await sync_to_async(ProjectStage.objects.filter(
+        ).delete)()
 
         context = PipelineContext(project_id=str(project.id))
         result = await adapter.validate(context)
@@ -370,7 +376,7 @@ class TestAdapterIntegration:
     async def test_adapter_chain_execution(self):
         """测试适配器链式执行"""
         # 创建项目
-        project = ProjectFactory(original_topic="宁静的小镇，年轻的画家")
+        project = await sync_to_async(ProjectFactory)(original_topic="宁静的小镇，年轻的画家")
 
         # 创建所有阶段
         for stage_type in ['rewrite', 'storyboard', 'image_generation', 'camera_movement', 'video_generation']:
@@ -385,7 +391,7 @@ class TestAdapterIntegration:
     @pytest.mark.asyncio
     async def test_adapter_error_handling(self):
         """测试适配器错误处理"""
-        project = ProjectFactory(original_topic="测试主题")
+        project = await sync_to_async(ProjectFactory)(original_topic="测试主题")
         ProjectStageFactory(project=project, stage_type='rewrite', status='pending')
 
         context = PipelineContext(project_id=str(project.id))
@@ -395,6 +401,6 @@ class TestAdapterIntegration:
         error = Exception("测试错误")
         await adapter.on_failure(context, error)
 
-        stage = ProjectStage.objects.get(project=project, stage_type='rewrite')
+        stage = await sync_to_async(ProjectStage.objects.get)(project=project, stage_type='rewrite')
         assert stage.status == 'failed'
         assert '测试错误' in stage.error_message
