@@ -429,8 +429,13 @@ class ImageGenerationStageAdapter(StageProcessor):
             if not provider:
                 return {'success': False, 'error': '未配置文生图模型'}
 
-            # 构建提示词
-            prompt = scene.get('image_prompt', scene.get('scene_description', ''))
+            # 构建提示词（兼容多种字段名）
+            prompt = (
+                scene.get('image_prompt', '') or
+                scene.get('visual_prompt', '') or
+                scene.get('scene_description', '') or
+                scene.get('narration', '')
+            )
 
             if not prompt:
                 return {'success': False, 'error': '缺少提示词'}
@@ -661,8 +666,13 @@ class CameraMovementStageAdapter(StageProcessor):
             if not provider:
                 return {'success': False, 'error': '未配置LLM模型'}
 
-            # 构建场景描述
-            scene_description = scene.get('scene_description', scene.get('description', ''))
+            # 构建场景描述（兼容多种字段名）
+            scene_description = (
+                scene.get('scene_description', '') or
+                scene.get('description', '') or
+                scene.get('narration', '') or  # Mock格式
+                scene.get('visual_prompt', '')  # 备用
+            )
 
             if not scene_description:
                 return {'success': False, 'error': '缺少场景描述'}
