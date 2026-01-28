@@ -2,19 +2,29 @@
 项目相关的Celery异步任务
 职责: 执行耗时的AI生成任务，通过Redis Pub/Sub推送实时进度
 遵循单一职责原则(SRP)
+
+Story 5.4重构: 使用ProjectPipeline统一编排工作流
 """
 
-from email import message
+import asyncio
 import logging
 from typing import Dict, Any
 from django.utils import timezone
 
 from core.redis import RedisStreamPublisher
 from core.services.jianying_draft_service import JianyingDraftGenerator
+from core.pipeline.orchestrator import ProjectPipeline
 from apps.content.processors.llm_stage import LLMStageProcessor
 from apps.content.processors.text2image_stage import Text2ImageStageProcessor
 from apps.content.processors.image2video_stage import Image2VideoStageProcessor
 from apps.projects.models import Project, ProjectStage
+from apps.projects.pipeline_adapters import (
+    RewriteStageAdapter,
+    StoryboardStageAdapter,
+    ImageGenerationStageAdapter,
+    CameraMovementStageAdapter,
+    VideoGenerationStageAdapter
+)
 from config.celery import app
 
 logger = logging.getLogger(__name__)
@@ -549,3 +559,224 @@ def generate_jianying_draft(
 
     finally:
         pass
+
+
+@app.task(
+    bind=True,
+    max_retries=1,
+    default_retry_delay=120,
+    acks_late=True,
+    reject_on_worker_lost=True,
+    soft_time_limit=1800,  # 30分钟软超时（完整工作流）
+    time_limit=2100  # 35分钟硬超时
+)
+def execute_full_pipeline(
+    self,
+    project_id: str,
+    user_id: int = None
+) -> Dict[str, Any]:
+    """
+    执行完整的项目工作流
+    Story 5.4新增: 使用ProjectPipeline统一编排5个阶段
+
+    工作流:
+    1. 文案改写 (rewrite)
+    2. 分镜生成 (storyboard)
+    3. 文生图 (image_generation)
+    4. 运镜生成 (camera_movement)
+    5. 图生视频 (video_generation)
+
+    Args:
+        self: Celery任务实例
+        project_id: 项目ID
+        user_id: 用户ID
+
+    Returns:
+        Dict包含: success, project_id, results, error
+    """
+    task_id = self.request.id
+
+    logger.info(f"开始执行完整工作流, 项目: {project_id}, 任务ID: {task_id}")
+
+    # 初始化Redis发布器
+    publisher = RedisStreamPublisher(project_id, 'pipeline')
+
+    try:
+        # 获取项目
+        project = Project.objects.get(id=project_id)
+        if user_id:
+            project = Project.objects.get(id=project_id, user_id=user_id)
+
+        # 更新项目状态
+        project.status = 'processing'
+        project.save()
+
+        # 发布开始消息
+        publisher.publish_stage_update(
+            status='processing',
+            progress=0,
+            message='开始执行AI视频生成工作流'
+        )
+
+        # 创建Pipeline（Story 5.4: 统一编排）
+        pipeline = ProjectPipeline([
+            RewriteStageAdapter(),
+            StoryboardStageAdapter(),
+            ImageGenerationStageAdapter(),
+            CameraMovementStageAdapter(),
+            VideoGenerationStageAdapter(),
+        ])
+
+        # 执行工作流
+        logger.info(f"Pipeline开始执行, 项目: {project_id}")
+        context = asyncio.run(pipeline.execute(project_id))
+
+        # 检查执行结果
+        total_stages = len(pipeline.stages)
+        completed_stages = len([k for k in context.results.keys() if context.results[k]])
+
+        logger.info(
+            f"Pipeline执行完成, 项目: {project_id}, "
+            f"完成阶段: {completed_stages}/{total_stages}"
+        )
+
+        # 更新项目状态
+        if completed_stages == total_stages:
+            project.status = 'completed'
+            project.completed_at = timezone.now()
+            project.save()
+
+            # 发布完成消息
+            publisher.publish_stage_update(
+                status='completed',
+                progress=100,
+                message='AI视频生成工作流完成！'
+            )
+
+            return {
+                'success': True,
+                'project_id': project_id,
+                'task_id': task_id,
+                'results': context.results,
+                'completed_stages': completed_stages,
+                'total_stages': total_stages
+            }
+        else:
+            # 部分阶段失败
+            project.status = 'failed'
+            project.save()
+
+            publisher.publish_error('部分阶段执行失败')
+
+            return {
+                'success': False,
+                'project_id': project_id,
+                'task_id': task_id,
+                'error': '部分阶段执行失败',
+                'results': context.results,
+                'completed_stages': completed_stages,
+                'total_stages': total_stages
+            }
+
+    except Project.DoesNotExist:
+        error_msg = f'项目不存在: {project_id}'
+        logger.error(error_msg)
+        publisher.publish_error(error_msg)
+        return {'success': False, 'error': error_msg}
+
+    except Exception as e:
+        error_msg = f'工作流执行失败: {str(e)}'
+        logger.exception(error_msg)
+
+        # 更新项目状态
+        try:
+            project = Project.objects.get(id=project_id)
+            project.status = 'failed'
+            project.save()
+        except Exception:
+            pass
+
+        # 发布错误消息
+        publisher.publish_error(error_msg)
+
+        # 重试
+        if self.request.retries < self.max_retries:
+            logger.info(f"工作流将在120秒后重试 (第{self.request.retries + 1}次)")
+            raise self.retry(exc=e, countdown=120)
+
+        return {'success': False, 'error': error_msg}
+
+    finally:
+        publisher.close()
+
+
+@app.task(
+    bind=True,
+    max_retries=0,
+    default_retry_delay=60,
+    acks_late=True,
+    reject_on_worker_lost=True,
+    soft_time_limit=600,
+    time_limit=900
+)
+def execute_single_stage(
+    self,
+    project_id: str,
+    stage_name: str,
+    input_data: Dict[str, Any] = None,
+    user_id: int = None
+) -> Dict[str, Any]:
+    """
+    执行单个阶段（向后兼容方法）
+    Story 5.4: 保留用于单独执行某个阶段
+
+    Args:
+        self: Celery任务实例
+        project_id: 项目ID
+        stage_name: 阶段名称
+        input_data: 输入数据（可选）
+        user_id: 用户ID
+
+    Returns:
+        Dict包含: success, result, error
+    """
+    task_id = self.request.id
+
+    logger.info(
+        f"执行单个阶段: {stage_name}, "
+        f"项目: {project_id}, 任务ID: {task_id}"
+    )
+
+    try:
+        # 创建Pipeline
+        adapters = {
+            'rewrite': RewriteStageAdapter(),
+            'storyboard': StoryboardStageAdapter(),
+            'image_generation': ImageGenerationStageAdapter(),
+            'camera_movement': CameraMovementStageAdapter(),
+            'video_generation': VideoGenerationStageAdapter(),
+        }
+
+        adapter = adapters.get(stage_name)
+        if not adapter:
+            return {
+                'success': False,
+                'error': f'不支持的阶段: {stage_name}'
+            }
+
+        # 创建Pipeline并执行单个阶段
+        pipeline = ProjectPipeline([adapter])
+        context = asyncio.run(pipeline.execute(project_id))
+
+        # 返回结果
+        result = context.get_result(stage_name)
+        return {
+            'success': bool(result),
+            'result': result,
+            'task_id': task_id
+        }
+
+    except Exception as e:
+        error_msg = f'执行阶段失败: {str(e)}'
+        logger.exception(error_msg)
+        return {'success': False, 'error': error_msg}

@@ -7,7 +7,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from core.metrics import metrics_view  # Epic 2优化: Prometheus指标导出
+from core.prometheus_metrics import metrics_view  # Epic 2优化: Prometheus指标导出
 
 urlpatterns = [
     path('admin/', admin.site.urls),

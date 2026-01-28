@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch, MagicMock
 from django.test import override_settings
 from django.http import HttpResponse
 
-from core.metrics import (
+from core.prometheus_metrics import (
     get_endpoint_from_request,
     track_api_request,
     track_celery_task,
