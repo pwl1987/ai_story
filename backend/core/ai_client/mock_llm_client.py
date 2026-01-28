@@ -46,6 +46,26 @@ class MockLLMClient(LLMClient):
 
 改写后的内容更加生动，情感更加饱满，适合进行下一步的分镜创作。""",
 
+        "scene_outline": """```json
+{
+  "scenes": [
+    {"description": "宁静的小镇早晨", "narration": "阳光洒在小镇上"},
+    {"description": "年轻画家开始作画", "narration": "他拿起画笔"},
+    {"description": "河边创作的美好", "narration": "捕捉大自然"}
+  ]
+}
+```""",
+
+        "scene_detail": """```json
+{
+  "scene_number": 1,
+  "image_prompt": "A peaceful scene with warm golden lighting, detailed and cinematic",
+  "visual_prompt": "Visual elements include natural scenery, artistic atmosphere",
+  "scene_description": "宁静美好的场景",
+  "narration": "旁白文本"
+}
+```""",
+
         "storyboard": """{
   "scenes": [
     {
@@ -146,7 +166,7 @@ class MockLLMClient(LLMClient):
         **kwargs
     ) -> Generator[Dict[str, Any], None, None]:
         """
-        流式生成模拟文本（使用异步实现）
+        流式生成模拟文本（简化版本，避免asyncio兼容性问题）
 
         Args:
             prompt: 输入提示词
@@ -158,64 +178,42 @@ class MockLLMClient(LLMClient):
         Yields:
             Dict包含: type (token/done/error), content, metadata
         """
-        # 注意：这个方法是同步的生成器，为了向后兼容保留
-        # 内部使用asyncio运行异步操作
-        import asyncio
+        import time
+        start_time = time.time()
 
-        async def _async_generate():
-            start_time = asyncio.get_event_loop().time()
+        # 获取模拟响应（优先检查system_prompt，因为真正的提示词在那里）
+        response_text = self._get_mock_response(system_prompt or prompt)
 
-            # 获取模拟响应（优先检查system_prompt，因为真正的提示词在那里）
-            response_text = self._get_mock_response(system_prompt or prompt)
+        # 模拟流式输出，每次返回几个字符
+        chunk_size = 10
+        full_text = ""
 
-            # 模拟流式输出，每次返回几个字符
-            chunk_size = 10
-            full_text = ""
+        for i in range(0, len(response_text), chunk_size):
+            chunk = response_text[i:i + chunk_size]
+            full_text += chunk
 
-            for i in range(0, len(response_text), chunk_size):
-                chunk = response_text[i:i + chunk_size]
-                full_text += chunk
-
-                # 模拟网络延迟（使用asyncio.sleep）
-                await asyncio.sleep(0.05)
-
-                yield {
-                    'type': 'token',
-                    'content': chunk,
-                    'full_text': full_text
-                }
-
-            # 发送完成信号
-            end_time = asyncio.get_event_loop().time()
-            latency_ms = int((end_time - start_time) * 1000)
+            # 模拟网络延迟
+            time.sleep(0.05)
 
             yield {
-                'type': 'done',
-                'full_text': full_text,
-                'metadata': {
-                    'latency_ms': latency_ms,
-                    'model': self.model_name,
-                    'finish_reason': 'stop',
-                    'is_mock': True
-                }
+                'type': 'token',
+                'content': chunk,
+                'full_text': full_text
             }
 
-        # 运行异步生成器并同步yield
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        # 发送完成信号
+        latency_ms = int((time.time() - start_time) * 1000)
 
-        try:
-            gen = _async_generate()
-            while True:
-                try:
-                    item = loop.run_until_complete(asyncio.as_shown(gen, loop))
-                    if item is None:
-                        break
-                    yield item
-                except StopAsyncIteration:
-                    break
-        finally:
-            loop.close()
+        yield {
+            'type': 'done',
+            'full_text': full_text,
+            'metadata': {
+                'latency_ms': latency_ms,
+                'model': self.model_name,
+                'finish_reason': 'stop',
+                'is_mock': True
+            }
+        }
 
     def _get_mock_response(self, prompt: str) -> str:
         """
@@ -241,11 +239,19 @@ class MockLLMClient(LLMClient):
         # 回退到关键词检测
         prompt_lower = prompt.lower()
 
-        # 根据关键词判断响应类型
-        if any(keyword in prompt_lower for keyword in ['改写', 'rewrite', '润色', '优化文案']):
-            return self.MOCK_RESPONSES['rewrite']
-        elif any(keyword in prompt_lower for keyword in ['分镜', 'storyboard', '场景', 'scene']):
+        # 根据关键词判断响应类型（优先级从高到低）
+        # 场景详细描述检测：包含"场景"和"详细描述"或"image_prompt"
+        if ('场景' in prompt_lower and ('详细' in prompt_lower or 'detail' in prompt_lower)) or 'image_prompt' in prompt_lower:
+            return self.MOCK_RESPONSES['scene_detail']
+        # 场景大纲检测：包含"场景"和"大纲"（可以不连续）
+        elif '场景' in prompt_lower and '大纲' in prompt_lower:
+            return self.MOCK_RESPONSES['scene_outline']
+        elif 'scene outline' in prompt_lower:
+            return self.MOCK_RESPONSES['scene_outline']
+        elif any(keyword in prompt_lower for keyword in ['分镜', 'storyboard']):
             return self.MOCK_RESPONSES['storyboard']
+        elif any(keyword in prompt_lower for keyword in ['改写', 'rewrite', '润色', '优化文案']):
+            return self.MOCK_RESPONSES['rewrite']
         elif any(keyword in prompt_lower for keyword in ['运镜', 'camera', '镜头', 'movement']):
             return self.MOCK_RESPONSES['camera_movement']
         else:

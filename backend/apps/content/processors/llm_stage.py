@@ -303,44 +303,29 @@ class LLMStageProcessor(StageProcessor):
 
     def _get_global_variables(self, project: Project) -> Dict[str, Any]:
         """
-        获取全局变量
+        获取全局变量（异步版本）
         包括用户级和系统级变量
         """
         from apps.prompts.models import GlobalVariable
 
-        # 获取项目创建者的全局变量
-        user = project.user
-        variables = GlobalVariable.get_variables_for_user(
-            user=user,
+        # 调用GlobalVariable的异步API
+        return GlobalVariable.get_variables_for_user(
+            user=project.user,
             include_system=True
         )
-
-        return variables
 
     def _get_global_variables_sync(self, project: Project) -> Dict[str, Any]:
         """
         同步获取全局变量（用于非异步上下文）
-        直接使用同步ORM查询，避免asyncio问题
+        使用GlobalVariable模型的同步API
         """
         from apps.prompts.models import GlobalVariable
 
-        # 同步查询全局变量（用户级 + 系统级）
-        user_vars = GlobalVariable.objects.filter(
+        # 调用GlobalVariable的同步API
+        return GlobalVariable.get_variables_for_user_sync(
             user=project.user,
-            is_active=True
-        ).values('variable_name', 'variable_value')
-
-        system_vars = GlobalVariable.objects.filter(
-            user__isnull=True,  # 系统级变量
-            is_active=True
-        ).values('variable_name', 'variable_value')
-
-        # 合并变量（系统级变量会被用户级变量覆盖）
-        variables = {}
-        for var in list(user_vars) + list(system_vars):
-            variables[var['variable_name']] = var['variable_value']
-
-        return variables
+            include_system=True
+        )
 
     def _build_prompt(self, project: Project, input_data: Dict[str, Any]) -> str:
         """

@@ -84,8 +84,34 @@ class Image2VideoStageProcessor(StageProcessor):
 
             # 检查是否有图片数据(从output_data验证)
             if image_stage.output_data:
-                scenes = image_stage.output_data.get("human_text", {}).get("scenes", [])
-                has_images = any(scene.get("urls") for scene in scenes)
+                # 兼容多种数据格式
+                scenes = []
+                images = image_stage.output_data.get("images", [])
+
+                # 如果有 images 字段，构造基本 scenes 数据
+                if images:
+                    # 从 storyboard 阶段获取场景信息
+                    storyboard_stage = ProjectStage.objects.filter(
+                        project=project, stage_type="storyboard", status="completed"
+                    ).first()
+
+                    if storyboard_stage and storyboard_stage.output_data:
+                        storyboard_data = storyboard_stage.output_data
+                        if isinstance(storyboard_data, dict):
+                            # 提取 scenes 列表
+                            if 'storyboard' in storyboard_data:
+                                storyboard_list = storyboard_data['storyboard']
+                                if isinstance(storyboard_list, str):
+                                    import json
+                                    scenes = json.loads(storyboard_list)
+                                elif isinstance(storyboard_list, list):
+                                    scenes = storyboard_list
+
+                    has_images = len(images) > 0
+                else:
+                    # 旧格式检查
+                    scenes = image_stage.output_data.get("human_text", {}).get("scenes", [])
+                    has_images = any(scene.get("urls") for scene in scenes)
 
                 if not has_images:
                     logger.error(f"项目 {context.project_id} 没有图片数据")
@@ -126,8 +152,45 @@ class Image2VideoStageProcessor(StageProcessor):
             stage.started_at = timezone.now()
             stage.save()
 
-            # 获取分镜数据(从ProjectStage.output_data读取)
-            storyboards = stage.output_data.get("human_text", {}).get("scenes", [])
+            # 获取分镜数据(从storyboard和image_generation阶段读取)
+            storyboard_stage = ProjectStage.objects.filter(
+                project=project, stage_type="storyboard", status="completed"
+            ).first()
+
+            image_stage = ProjectStage.objects.filter(
+                project=project, stage_type="image_generation", status="completed"
+            ).first()
+
+            if not storyboard_stage or not image_stage:
+                return StageResult(
+                    success=False, error="缺少前置阶段数据", can_retry=False
+                )
+
+            # 提取场景列表
+            storyboard_data = storyboard_stage.output_data or {}
+            storyboards = []
+
+            # 适配新的数据格式: output_data = {'scenes': [...], 'total': ..., 'success_count': ...}
+            if 'scenes' in storyboard_data:
+                storyboards = storyboard_data['scenes']
+            # 兼容旧格式: output_data = {'storyboard': [...]}
+            elif 'storyboard' in storyboard_data:
+                storyboard_list = storyboard_data['storyboard']
+                if isinstance(storyboard_list, str):
+                    import json
+                    storyboards = json.loads(storyboard_list)
+                elif isinstance(storyboard_list, list):
+                    storyboards = storyboard_list
+
+            # 提取图片列表
+            images = image_stage.output_data.get("images", [])
+
+            # 将图片URL合并到场景数据中
+            for i, scene in enumerate(storyboards):
+                if i < len(images):
+                    scene['urls'] = [images[i]]
+                else:
+                    scene['urls'] = []
 
             if not storyboards:
                 return StageResult(

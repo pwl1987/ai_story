@@ -5,6 +5,7 @@ Pipeline阶段适配器
 """
 
 import asyncio
+import json
 import logging
 import os
 from typing import Dict, Any, List
@@ -316,9 +317,11 @@ class StoryboardStageAdapter(StageProcessor):
 请生成场景大纲："""
 
             # 调用LLM生成大纲
-            def call_llm():
+            async def call_llm():
                 client = create_ai_client(provider)
-                response = client.generate(prompt=outline_prompt, max_tokens=500)
+                response = await client.generate(prompt=outline_prompt, max_tokens=500)
+
+                logger.info(f"LLM响应: success={response.success}, text_length={len(response.text) if response.text else 0}")
 
                 if response.success:
                     # 解析JSON
@@ -336,12 +339,16 @@ class StoryboardStageAdapter(StageProcessor):
                     else:
                         json_str = response_text
 
-                    return json.loads(json_str)
+                    logger.info(f"提取的JSON字符串: {json_str[:100]}...")
+                    result = json.loads(json_str)
+                    logger.info(f"解析结果: {result}")
+                    return result
                 else:
                     raise Exception(response.error)
 
-            # 在同步上下文中执行
-            result = await sync_to_async_wrapper(call_llm, thread_sensitive=True)()
+            # 在异步上下文中执行
+            result = await call_llm()
+            logger.info(f"call_llm返回: {result}")
             return result
 
         except Exception as e:
@@ -408,9 +415,9 @@ class StoryboardStageAdapter(StageProcessor):
 请生成详细描述："""
 
             # 调用LLM生成详细描述
-            def call_llm():
+            async def call_llm():
                 client = create_ai_client(provider)
-                response = client.generate(prompt=detail_prompt, max_tokens=300)
+                response = await client.generate(prompt=detail_prompt, max_tokens=300)
 
                 if response.success:
                     # 解析JSON
@@ -436,8 +443,8 @@ class StoryboardStageAdapter(StageProcessor):
                 else:
                     return {'success': False, 'error': response.error}
 
-            # 在同步上下文中执行
-            result = await sync_to_async_wrapper(call_llm, thread_sensitive=True)()
+            # 在异步上下文中执行
+            result = await call_llm()
             return result
 
         except Exception as e:
@@ -644,9 +651,8 @@ class ImageGenerationStageAdapter(StageProcessor):
 
             client = await sync_to_async_wrapper(create_client)()
 
-            # 调用generate（同步方法，不需要await）
-            # Text2ImageClient的generate是同步方法，返回AIResponse对象
-            response = client.generate(
+            # 调用generate（异步方法，需要await）
+            response = await client.generate(
                 prompt=prompt,
                 width=1024,
                 height=1024
