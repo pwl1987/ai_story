@@ -28,6 +28,7 @@ from .serializers import (
     FileQuotaSerializer,
     FileUploadSerializer,
 )
+from .preview_service import FilePreviewService
 
 
 class FileUploadViewSet(viewsets.ModelViewSet):
@@ -274,6 +275,93 @@ class FileUploadViewSet(viewsets.ModelViewSet):
             'total_files': total_files,
             'total_size': total_size,
             'by_type': by_type
+        })
+
+    @action(detail=True, methods=['get'], url_path='preview')
+    def preview(self, request, pk=None):
+        """
+        获取文件预览
+        GET /api/v1/files/{id}/preview/
+
+        生成或返回缓存预览图
+        """
+        try:
+            uploaded_file = self.get_object()
+
+            # 获取预览服务
+            preview_service = FilePreviewService()
+
+            # 生成预览
+            preview_path = preview_service.get_preview(
+                uploaded_file.file_type,
+                uploaded_file.file.name
+            )
+
+            if preview_path is None:
+                return Response({
+                    'error': '该文件类型不支持预览'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # 返回预览图URL
+            preview_url = f"{settings.STORAGE_URL}{preview_path}"
+
+            return Response({
+                'preview_url': preview_url,
+                'file_type': uploaded_file.file_type
+            })
+
+        except Exception as e:
+            return Response({
+                'error': f'生成预览失败: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'], url_path='batch-delete')
+    def batch_delete(self, request):
+        """
+        批量删除文件
+        POST /api/v1/files/batch_delete/
+
+        请求体:
+        {
+            "file_ids": ["uuid1", "uuid2", "uuid3"]
+        }
+        """
+        file_ids = request.data.get('file_ids', [])
+
+        if not file_ids:
+            return Response({
+                'error': '请提供要删除的文件ID列表'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 只能删除自己的文件
+        queryset = UploadedFile.objects.filter(
+            id__in=file_ids,
+            user=request.user
+        )
+
+        deleted_count = 0
+        total_size_freed = 0
+
+        for file_obj in queryset:
+            # 更新用户配额
+            quota, created = FileQuota.objects.get_or_create(user=request.user)
+            quota.update_usage(file_obj.file_size, increment=False)
+
+            # 删除物理文件
+            if file_obj.file:
+                if os.path.exists(file_obj.file.path):
+                    os.remove(file_obj.file.path)
+
+            total_size_freed += file_obj.file_size
+            deleted_count += 1
+
+        # 批量删除数据库记录
+        queryset.delete()
+
+        return Response({
+            'message': f'成功删除 {deleted_count} 个文件',
+            'deleted_count': deleted_count,
+            'total_size_freed': total_size_freed
         })
 
     def _calculate_file_hash(self, file):
