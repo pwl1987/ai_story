@@ -1,0 +1,234 @@
+{
+  "dashboard": {
+    "title": "AI Story Generation - Performance Dashboard",
+    "tags": ["django", "celery", "performance"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "System Overview",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"django\"}",
+            "legendFormat": "Django Server",
+            "color": "green"
+          },
+          {
+            "expr": "up{job=\"celery\"} or up{job=\"celery-exporter\"}",
+            "legendFormat": "Celery Worker",
+            "color": "blue"
+          },
+          {
+            "expr": "redis_up",
+            "legendFormat": "Redis",
+            "color": "red"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "min": 0,
+            "max": 1,
+            "decimals": 0
+          },
+          "overrides": {
+            "short": {
+              "color": "#56c1a9"
+            }
+          }
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto"
+        },
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 8,
+          "h": 4
+        }
+      },
+      {
+        "id": 2,
+        "title": "API Response Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, http_request_duration_seconds_bucket{endpoint_type=\"api\"})*1000",
+            "legendFormat": "95th Percentile (ms)",
+            "refId": "api_latency"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Response Time (ms)",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 4,
+          "w": 12,
+          "h": 8
+        }
+      },
+      {
+        "id": 3,
+        "title": "API Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(api_request_count_total[1m])",
+            "legendFormat": "Requests/sec",
+            "refId": "api_rate"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Requests/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 12,
+          "w": 12,
+          "h": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "Celery Task Duration",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, celery_task_duration_seconds_bucket{task_name=~\".+\"})*1000",
+            "legendFormat": "95th Percentile (ms)",
+            "refId": "celery_duration"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Task Duration (ms)",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "x": 12,
+          "y": 4,
+          "w": 12,
+          "h": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "Celery Task Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(celery_task_count_total[1m])",
+            "legendFormat": "Tasks/sec",
+            "refId": "celery_rate"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Tasks/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "x": 12,
+          "y": 12,
+          "w": 12,
+          "h": 8
+        }
+      },
+      {
+        "id": 6,
+        "title": "Celery Task Errors",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(celery_task_count_total{status=\"failed\"}[1m])",
+            "legendFormat": "Errors/sec",
+            "refId": "celery_errors"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Errors/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 20,
+          "w": 12,
+          "h": 8
+        }
+      },
+      {
+        "id": 7,
+        "title": "Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes{job=\"django\"}/1024/1024/1024",
+            "legendFormat": "Django Memory (MB)",
+            "refId": "django_memory"
+          },
+          {
+            "expr": "process_resident_memory_bytes{job=\"celery\"}/1024/1024/1024",
+            "legendFormat": "Celery Memory (MB)",
+            "refId": "celery_memory"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Memory (MB)",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "x": 12,
+          "y": 20,
+          "w": 12,
+          "h": 8
+        }
+      },
+      {
+        "id": 8,
+        "title": "CPU Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(process_cpu_seconds_total{job=\"django\"}[1m])",
+            "legendFormat": "Django CPU %",
+            "refId": "django_cpu"
+          },
+          {
+            "expr": "rate(process_cpu_seconds_total{job=\"celery\"}[1m])",
+            "legendFormat": "Celery CPU %",
+            "refId": "celery_cpu"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "CPU %",
+            "min": 0,
+            "max": 100
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 28,
+          "w": 24,
+          "h": 8
+        }
+      }
+    ]
+  }
+}
