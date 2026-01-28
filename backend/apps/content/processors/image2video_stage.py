@@ -137,7 +137,9 @@ class Image2VideoStageProcessor(StageProcessor):
             # 获取AI客户端
             provider = self._get_image2video_provider(project)
             video_generator = VideoGenerator(
-                api_token=provider.api_key, use_backup=False
+                api_url=provider.api_url or "",
+                api_token=provider.api_key or "",
+                model=provider.model_name or ""
             )
 
             # 批量生成视频

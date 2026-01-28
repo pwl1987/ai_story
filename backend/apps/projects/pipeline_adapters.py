@@ -273,10 +273,36 @@ class ImageGenerationStageAdapter(StageProcessor):
         await sync_to_async(stage.save)()
 
         try:
-            # 调用文生图处理器（使用sync_to_async包装同步方法）
-            result = await sync_to_async(self.processor.process)(project_id=project.id)
+            # 调用文生图处理器（使用sync_to_async包装process_stream generator）
+            def run_image_generation():
+                """在同步上下文中运行文生图生成"""
+                images = []
+                for chunk in self.processor.process_stream(project_id=project.id):
+                    chunk_type = chunk.get('type')
 
-            if result.get('success'):
+                    if chunk_type == 'image_generated':
+                        images.append(chunk.get('image_url'))
+
+                    elif chunk_type == 'done':
+                        return {
+                            'success': True,
+                            'images': images
+                        }
+
+                    elif chunk_type == 'error':
+                        return {
+                            'success': False,
+                            'error': chunk.get('error', '文生图失败')
+                        }
+
+                return {
+                    'success': False,
+                    'error': '文生图处理未完成'
+                }
+
+            result = await sync_to_async(run_image_generation, thread_sensitive=True)()
+
+            if result['success']:
                 stage.output_data = {'images': result.get('images', [])}
                 stage.status = 'completed'
                 stage.completed_at = timezone.now()
@@ -453,21 +479,21 @@ class VideoGenerationStageAdapter(StageProcessor):
         await sync_to_async(stage.save)()
 
         try:
-            # 调用图生视频处理器（已经是StageProcessor，直接传递context）
-            result = await self.processor.process(context)
+            # 调用图生视频处理器（使用sync_to_async包装同步方法）
+            result = await sync_to_async(self.processor.process)(context)
 
-            if result.get('success'):
-                stage.output_data = {'videos': result.get('videos', [])}
+            if result.success:
+                stage.output_data = {'videos': result.data.get('videos', [])}
                 stage.status = 'completed'
                 stage.completed_at = timezone.now()
                 await sync_to_async(stage.save)()
 
                 return StageResult(
                     success=True,
-                    data={'videos': result.get('videos', [])}
+                    data={'videos': result.data.get('videos', [])}
                 )
             else:
-                raise Exception(result.get('error', '图生视频失败'))
+                raise Exception(result.error or '图生视频失败')
 
         except Exception as e:
             stage.status = 'failed'
