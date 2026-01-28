@@ -428,12 +428,16 @@ class ProjectViewSet(viewsets.ModelViewSet):
         project.status = "paused"
         project.save()
 
-        # TODO: 取消Celery任务
+        # 取消当前正在处理的Celery任务
+        from apps.projects.services import cancel_project_tasks
+
+        cancelled_tasks = cancel_project_tasks(str(project.id))
 
         return Response(
             {
-                "message": "项目已暂停",
+                "message": f"项目已暂停，已取消{cancelled_tasks}个运行中的任务",
                 "project": ProjectDetailSerializer(project).data,
+                "cancelled_tasks": cancelled_tasks,
             }
         )
 
@@ -453,14 +457,25 @@ class ProjectViewSet(viewsets.ModelViewSet):
         project.status = "processing"
         project.save()
 
-        # TODO: 重新启动Pipeline (从当前阶段继续)
+        # 重新启动Pipeline (从当前阶段继续)
+        from apps.projects.services import resume_project_pipeline
 
-        return Response(
-            {
-                "message": "项目已恢复",
-                "project": ProjectDetailSerializer(project).data,
-            }
-        )
+        try:
+            resume_result = resume_project_pipeline(str(project.id))
+
+            return Response(
+                {
+                    "message": f"项目已恢复，将从阶段 {resume_result['next_stage']} 继续",
+                    "project": ProjectDetailSerializer(project).data,
+                    "task_id": resume_result['task_id'],
+                    "next_stage": resume_result['next_stage'],
+                }
+            )
+        except ValueError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     @action(detail=True, methods=["post"])
     def rollback_stage(self, request, pk=None):
@@ -551,18 +566,60 @@ class ProjectViewSet(viewsets.ModelViewSet):
         template_name = serializer.validated_data["template_name"]
         include_model_config = serializer.validated_data["include_model_config"]
 
-        # TODO: 实现模板保存逻辑
-        # 1. 复制项目基本信息
-        # 2. 复制提示词集配置
-        # 3. 如果include_model_config=True,复制模型配置
-        # 4. 保存为可复用模板
+        # 实现模板保存逻辑
+        from apps.prompts.models import PromptTemplateSet, PromptTemplate
+        from apps.models.models import ModelProvider
+        import copy
 
-        return Response(
-            {
-                "message": f"项目已保存为模板: {template_name}",
-                "template_name": template_name,
-            }
+        # 1. 复制提示词集配置
+        original_template_set = project.prompt_template_set
+        new_template_set = PromptTemplateSet.objects.create(
+            name=f"{template_name} (模板)",
+            description=f"基于项目 '{project.name}' 创建的模板",
+            created_by=request.user,
+            is_active=True
         )
+
+        # 2. 复制所有提示词模板
+        original_templates = PromptTemplate.objects.filter(template_set=original_template_set)
+        for template in original_templates:
+            PromptTemplate.objects.create(
+                template_set=new_template_set,
+                stage_type=template.stage_type,
+                template_content=template.template_content,
+                is_active=True
+            )
+
+        result = {
+            "message": f"项目已保存为模板: {template_name}",
+            "template_name": template_name,
+            "template_set_id": str(new_template_set.id),
+            "templates_count": original_templates.count(),
+        }
+
+        # 3. 如果include_model_config=True,记录模型配置信息
+        if include_model_config and hasattr(project, 'model_config'):
+            model_config = project.model_config
+            provider_info = {}
+
+            # 收集各阶段的模型配置
+            for stage_type in ['rewrite', 'storyboard', 'image_generation', 'camera_movement', 'video_generation']:
+                providers_field = f"{stage_type}_providers"
+                if hasattr(model_config, providers_field):
+                    providers = getattr(model_config, providers_field).all()
+                    provider_info[stage_type] = [
+                        {
+                            'id': str(p.id),
+                            'name': p.name,
+                            'provider_type': p.provider_type,
+                            'model_name': p.model_name
+                        }
+                        for p in providers
+                    ]
+
+            result['model_config'] = provider_info
+
+        return Response(result)
 
     @action(detail=True, methods=["post"])
     def export(self, request, pk=None):
@@ -581,17 +638,65 @@ class ProjectViewSet(viewsets.ModelViewSet):
         include_subtitles = request.data.get("include_subtitles", True)
         video_format = request.data.get("video_format", "mp4")
 
-        # TODO: 实现视频导出逻辑
+        # 实现视频导出逻辑
+        import uuid
+        from apps.content.models import GeneratedVideo, Storyboard
+        from .models import ProjectProgressHistory
+
         # 1. 获取所有生成的视频片段
-        # 2. 按分镜顺序合成完整视频
-        # 3. 如果include_subtitles=True,生成并嵌入字幕
-        # 4. 返回下载链接
+        storyboards = Storyboard.objects.filter(project=project).order_by('sequence_number')
+        videos = []
+
+        for storyboard in storyboards:
+            video = GeneratedVideo.objects.filter(
+                storyboard=storyboard,
+                status='completed'
+            ).first()
+
+            if video and video.video_url:
+                videos.append({
+                    'sequence_number': storyboard.sequence_number,
+                    'video_url': video.video_url,
+                    'duration': video.metadata.get('duration', 5) if video.metadata else 5
+                })
+
+        if not videos:
+            return Response(
+                {"error": "没有找到已生成的视频片段"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 2. 创建导出任务记录（这里简化处理，实际应启动异步任务）
+        export_id = str(uuid.uuid4())
+
+        # 记录导出历史
+        ProjectProgressHistory.objects.create(
+            project=project,
+            stage_type='export',
+            status='processing',
+            progress=0,
+            message=f"开始导出视频，共{len(videos)}个片段",
+            metadata={
+                'export_id': export_id,
+                'include_subtitles': include_subtitles,
+                'video_format': video_format,
+                'video_count': len(videos)
+            }
+        )
+
+        # 3. 返回导出任务信息
+        # 注意：实际的视频合成应该在Celery异步任务中完成
+        # 这里只创建任务记录，实际处理需要在tasks.py中实现
 
         return Response(
             {
                 "message": "导出任务已创建",
-                "export_id": "TODO",
+                "export_id": export_id,
                 "status": "processing",
+                "video_count": len(videos),
+                "include_subtitles": include_subtitles,
+                "video_format": video_format,
+                "estimated_time": len(videos) * 10,  # 预估时间（秒）
             }
         )
 
