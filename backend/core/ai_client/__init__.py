@@ -4,6 +4,8 @@ from .base import BaseAIClient, LLMClient, Text2ImageClient, Image2VideoClient, 
 from .openai_client import OpenAIClient
 from .comfyui_client import ComfyUIClient
 from .claude_client import ClaudeClient
+from .stable_diffusion_client import StableDiffusionClient
+from .runway_client import RunwayClient
 
 __all__ = [
     'BaseAIClient',
@@ -14,4 +16,6 @@ __all__ = [
     'OpenAIClient',
     'ComfyUIClient',
     'ClaudeClient',
+    'StableDiffusionClient',
+    'RunwayClient',
 ]
