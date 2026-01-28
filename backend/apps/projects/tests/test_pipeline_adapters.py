@@ -90,9 +90,9 @@ class TestRewriteStageAdapter:
         assert 'rewritten_text' in result.data
         assert result.data['rewritten_text'] == '改写后的文本'
 
-    @patch('apps.projects.pipeline_adapters.LLMStageProcessor')
     @pytest.mark.asyncio
-    async def test_process_failure_error_chunk(self, mock_processor_class, adapter, context):
+    @patch('apps.projects.pipeline_adapters.LLMStageProcessor')
+    async def test_process_failure_error_chunk(self, mock_processor_class, context):
         """测试处理失败：错误chunk"""
         mock_processor = Mock()
         mock_processor.process_stream.return_value = [
@@ -108,9 +108,17 @@ class TestRewriteStageAdapter:
     @pytest.mark.asyncio
     async def test_on_failure(self, adapter, project, context):
         """测试失败处理"""
+        # 先创建stage
+        stage = await sync_to_async(ProjectStage.objects.get_or_create)(
+            project=project,
+            stage_type='rewrite',
+            defaults={'status': 'pending'}
+        )
+
         error = Exception("测试错误")
         await adapter.on_failure(context, error)
 
+        # 刷新并验证
         stage = await sync_to_async(ProjectStage.objects.get)(project=project, stage_type='rewrite')
         assert stage.status == 'failed'
         assert '测试错误' in stage.error_message
