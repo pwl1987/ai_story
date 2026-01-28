@@ -31,6 +31,7 @@ urlpatterns = api_patterns + [
     path('api/v1/models/', include('apps.models.urls')),
     path('api/v1/content/', include('apps.content.urls')),
     path('api/v1/users/', include('apps.users.urls')),
+    path('api/v1/files/', include('apps.files.urls')),  # Epic 6: 文件管理与预览
     path('api/mock/', include('apps.mock_api.urls')),
     path('api/v1/core/', include('apps.core.urls')),
 ]

@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'apps.users',
     'apps.mock_api',
     'apps.core',
+    'apps.files',  # Epic 6: 文件管理与预览
     'health',  # 健康检查端点 (Story 2.2)
 
     # API文档 (Epic 7.1: OpenAPI文档自动生成)
