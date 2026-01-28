@@ -117,21 +117,14 @@ class EnhancedMockText2ImageClient(Text2ImageClient):
         if self.simulate_delay > 0:
             await asyncio.sleep(self.simulate_delay)
 
-        # 使用自定义URL或生成默认URL
-        if self.custom_image_url:
-            image_url = self.custom_image_url
-        else:
-            image_url = f"http://localhost:8000/mock/image/{int(time.time())}.jpg"
+        # 使用_generate_image生成图片
+        image_data = self._generate_image(prompt, width, height, **kwargs)
 
         latency_ms = int((time.time() - start_time) * 1000)
 
         return AIResponse(
             success=True,
-            data={
-                'image_url': image_url,
-                'width': width,
-                'height': height
-            },
+            data=image_data,
             metadata={
                 'latency_ms': latency_ms,
                 'model': self.model_name,
@@ -154,6 +147,54 @@ class EnhancedMockText2ImageClient(Text2ImageClient):
     def set_simulate_error(self, error_type: Optional[str]):
         """设置模拟错误类型"""
         self.simulate_error = error_type
+
+    def _generate_image(
+        self,
+        prompt: str,
+        width: int = 1024,
+        height: int = 1024,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        生成图片（同步版本，内部使用）
+
+        返回图片数据字典
+        """
+        # 使用自定义URL或生成默认URL
+        if self.custom_image_url:
+            image_url = self.custom_image_url
+        else:
+            image_url = f"http://localhost:8000/mock/image/{int(time.time())}.jpg"
+
+        return {
+            'image_url': image_url,
+            'width': width,
+            'height': height
+        }
+
+    async def validate_config(self) -> bool:
+        """
+        验证配置（Enhanced版本）
+
+        验证项：
+        - 延迟参数合理性
+        - 错误类型有效性
+        """
+        # 验证延迟参数
+        if self.simulate_delay < 0:
+            logger.warning(f"simulate_delay不能为负数: {self.simulate_delay}")
+            return False
+
+        if self.simulate_delay > 60:
+            logger.warning(f"simulate_delay过大: {self.simulate_delay}秒")
+
+        # 验证错误类型
+        valid_errors = [None, "timeout", "rate_limit", "server_error"]
+        if self.simulate_error not in valid_errors:
+            logger.warning(f"无效的simulate_error: {self.simulate_error}")
+            return False
+
+        return True
 
 
 import asyncio
