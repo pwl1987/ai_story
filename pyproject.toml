@@ -37,4 +37,8 @@ dependencies = [
     "psutil>=7.2.1",
     "prometheus-client>=0.24.1",
     "drf-spectacular[ui]>=0.29.0",
+    # Epic 6.2: 文件存储服务
+    "django-storages>=1.14.2",
+    "boto3>=1.34.0",
+    "oss2>=2.18.0",
 ]

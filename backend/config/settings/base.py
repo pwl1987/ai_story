@@ -115,6 +115,37 @@ MEDIA_ROOT = BASE_DIR / 'media'
 STORAGE_URL = 'storage/'
 STORAGE_ROOT = BASE_DIR.parent  / 'storage'  # 项目根目录的storage文件夹
 
+# Epic 6.2: 文件存储服务配置
+# 存储后端类型: 'local', 's3', 'oss'
+DEFAULT_STORAGE_BACKEND = os.getenv('DEFAULT_STORAGE_BACKEND', 'local')
+
+# 存储后端配置
+STORAGE_BACKENDS = {
+    # 本地存储（开发环境）
+    'local': {
+        'root': STORAGE_ROOT,
+        'base_url': STORAGE_URL,
+    },
+    # AWS S3（生产环境）
+    's3': {
+        'bucket_name': os.getenv('AWS_S3_BUCKET_NAME'),
+        'access_key': os.getenv('AWS_ACCESS_KEY_ID'),
+        'secret_key': os.getenv('AWS_SECRET_ACCESS_KEY'),
+        'region': os.getenv('AWS_S3_REGION', 'us-east-1'),
+        'endpoint_url': os.getenv('AWS_S3_ENDPOINT_URL'),  # 可选，用于S3兼容服务
+        'custom_domain': os.getenv('AWS_S3_CUSTOM_DOMAIN'),  # 可选，用于CDN
+    },
+    # 阿里云OSS（生产环境）
+    'oss': {
+        'bucket_name': os.getenv('ALIYUN_OSS_BUCKET_NAME'),
+        'access_key': os.getenv('ALIYUN_ACCESS_KEY_ID'),
+        'secret_key': os.getenv('ALIYUN_ACCESS_KEY_SECRET'),
+        'endpoint': os.getenv('ALIYUN_OSS_ENDPOINT'),  # 如：oss-cn-hangzhou.aliyuncs.com
+        'custom_domain': os.getenv('ALIYUN_OSS_CUSTOM_DOMAIN'),  # 可选，用于CDN
+    },
+}
+
+
 # 默认主键字段
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
