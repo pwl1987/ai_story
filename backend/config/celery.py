@@ -34,6 +34,42 @@ app = Celery('ai_story')
 # 任务日志记录器
 logger = logging.getLogger('apps.celery')
 
+# Story 2.6: Prometheus metrics for Celery tasks
+PROMETHEUS_ENABLED = False
+celery_task_duration_seconds = None
+celery_task_total = None
+celery_task_failure_total = None
+
+try:
+    from prometheus_client import Counter, Histogram
+    PROMETHEUS_ENABLED = True
+
+    # Celery任务执行时间（直方图）
+    celery_task_duration_seconds = Histogram(
+        'celery_task_duration_seconds',
+        'Celery task execution duration',
+        ['task_name', 'queue'],
+        buckets=(0.1, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0, 600.0)
+    )
+
+    # Celery任务总数（计数器）
+    celery_task_total = Counter(
+        'celery_task_total',
+        'Total Celery tasks executed',
+        ['task_name', 'status', 'queue']
+    )
+
+    # Celery任务失败总数（计数器）
+    celery_task_failure_total = Counter(
+        'celery_task_failure_total',
+        'Total failed Celery tasks',
+        ['task_name', 'exception_type', 'queue']
+    )
+
+    logger.info("Prometheus metrics enabled for Celery tasks")
+except ImportError:
+    logger.warning("prometheus_client not installed, Celery metrics disabled")
+
 
 def _get_slow_task_threshold():
     """
@@ -153,6 +189,28 @@ def task_postrun_handler(sender=None, task_id=None, task=None, retval=None, **kw
     if runtime_s is not None:
         log_message += f" ({runtime_s:.2f}s)"
 
+    # Story 2.6: 记录Prometheus metrics
+    if PROMETHEUS_ENABLED and runtime_s is not None:
+        try:
+            # 获取队列名称
+            queue = getattr(task.request, 'delivery_info', {}).get('routing_key', 'default')
+
+            # 记录任务执行时间
+            celery_task_duration_seconds.labels(
+                task_name=sender.name,
+                queue=queue
+            ).observe(runtime_s)
+
+            # 记录任务总数
+            task_state = kwargs.get('state', 'UNKNOWN')
+            celery_task_total.labels(
+                task_name=sender.name,
+                status=task_state,
+                queue=queue
+            ).inc()
+        except Exception as e:
+            logger.warning(f"Failed to record Prometheus metrics: {e}")
+
     # 构建日志上下文
     context = {
         'task_id': task_id,
@@ -205,11 +263,28 @@ def task_failure_handler(sender=None, task_id=None, exception=None, einfo=None, 
     - 记录任务参数和上下文
     - 记录堆栈跟踪
     - 支持故障排查和分析
+
+    Story 2.6: 记录失败任务Prometheus metrics
     """
     # 获取任务信息
     task_name = sender.name if sender else 'unknown'
     exc_type = type(exception).__name__ if exception else 'Unknown'
     exc_message = str(exception) if exception else 'No exception message'
+
+    # Story 2.6: 记录失败任务Prometheus metrics
+    if PROMETHEUS_ENABLED and sender:
+        try:
+            # 获取队列名称
+            queue = getattr(sender.request, 'delivery_info', {}).get('routing_key', 'default') if hasattr(sender, 'request') else 'default'
+
+            # 记录失败任务
+            celery_task_failure_total.labels(
+                task_name=task_name,
+                exception_type=exc_type,
+                queue=queue
+            ).inc()
+        except Exception as e:
+            logger.warning(f"Failed to record failure metrics: {e}")
 
     # 获取任务请求信息
     args = []
