@@ -36,4 +36,5 @@ dependencies = [
     "websocket-client>=1.9.0",
     "psutil>=7.2.1",
     "prometheus-client>=0.24.1",
+    "drf-spectacular[ui]>=0.29.0",
 ]

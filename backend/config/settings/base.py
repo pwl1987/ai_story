@@ -42,6 +42,9 @@ INSTALLED_APPS = [
     'apps.mock_api',
     'apps.core',
     'health',  # 健康检查端点 (Story 2.2)
+
+    # API文档 (Epic 7.1: OpenAPI文档自动生成)
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -128,6 +131,8 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
+    # Epic 7.1: OpenAPI文档自动生成
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 # Redis配置 - 使用不同的数据库避免冲突
@@ -282,3 +287,66 @@ if LOG_DIR:
         'formatter': 'json',
         'filters': ['sensitive_data', 'request_context'],
     }
+
+
+# =============================================================================
+# Epic 7.1: OpenAPI文档自动生成配置
+# =============================================================================
+
+# drf-spectacular配置
+REST_FRAMEWORK['DEFAULT_SCHEMA_CLASS'] = 'drf_spectacular.openapi.AutoSchema'
+
+# API文档配置
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'AI Story Generation API',
+    'DESCRIPTION': '''
+AI Story生成系统 - 基于Django + Vue的AI驱动的故事脚本到视频的自动化生成平台。
+
+## 核心工作流
+文案改写 → 分镜生成 → 文生图 → 运镜生成 → 图生视频
+
+## 认证方式
+- JWT Token Authentication: 在请求头中添加 `Authorization: Bearer <token>`
+- Session Authentication: 基于Django的会话认证
+
+## 核心API端点
+- **项目管理**: `/api/v1/projects/` - 项目CRUD、启动工作流、进度查询
+- **内容管理**: `/api/v1/content/` - 分镜、图片、视频内容管理
+- **Prompt管理**: `/api/v1/prompts/` - 提示词模板管理
+- **模型管理**: `/api/v1/models/` - AI模型配置
+- **健康检查**: `/api/v1/health/` - 系统健康状态
+
+## 实时通信
+- WebSocket: `ws://localhost:8000/ws/projects/{project_id}/` - 实时进度推送
+
+## 版本
+当前版本: v1.0.0
+'''.strip(),
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'TAGS': [
+        {
+            'name': 'projects',
+            'description': '项目管理接口 - 创建、查询、更新、删除项目，启动工作流'
+        },
+        {
+            'name': 'content',
+            'description': '内容管理接口 - 分镜、图片、视频内容'
+        },
+        {
+            'name': 'prompts',
+            'description': 'Prompt模板管理 - 文案改写、分镜生成等提示词模板'
+        },
+        {
+            'name': 'models',
+            'description': 'AI模型管理 - LLM、Text2Image、Image2Video模型配置'
+        },
+        {
+            'name': 'health',
+            'description': '健康检查 - 系统组件状态监控'
+        },
+    ],
+    'OPERATION_ID_PREFIX': 'ai_story',
+    'SCHEMA_PATH_PREFIX_INSERT': 'api/v1',
+}

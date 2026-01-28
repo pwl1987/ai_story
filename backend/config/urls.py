@@ -9,7 +9,20 @@ from django.conf import settings
 from django.conf.urls.static import static
 from core.prometheus_metrics import metrics_view  # Epic 2优化: Prometheus指标导出
 
-urlpatterns = [
+# Epic 7.1: OpenAPI文档自动生成
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
+from drf_spectacular.openapi import OpenApiParameter
+
+
+# API文档配置
+api_patterns = [
+    # OpenAPI Schema
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+]
+
+urlpatterns = api_patterns + [
     path('admin/', admin.site.urls),
     path('metrics/', metrics_view),  # Prometheus指标端点 (Epic 2优化)
     path('api/v1/health/', include('health.urls')),  # 健康检查端点 (Story 2.2)
