@@ -568,7 +568,8 @@ def generate_jianying_draft(
     acks_late=True,
     reject_on_worker_lost=True,
     soft_time_limit=1800,  # 30分钟软超时（完整工作流）
-    time_limit=2100  # 35分钟硬超时
+    time_limit=2100,  # 35分钟硬超时
+    queue='llm'  # 指定队列，确保Worker能处理
 )
 def execute_full_pipeline(
     self,
