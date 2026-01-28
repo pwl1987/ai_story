@@ -2,10 +2,12 @@
 日志查询工具测试
 Story 2.7 - 日志查询和告警配置
 """
-import pytest
 import json
 import os
 import tempfile
+
+import pytest
+
 from scripts.query_logs import query_logs_from_file
 
 
@@ -110,7 +112,7 @@ class TestLogQueryTool:
             filters={'extra_fields.is_slow_request': True}
         )
         assert len(results) == 1
-        assert results[0]['extra_fields']['is_slow_request'] == True
+        assert results[0]['extra_fields']['is_slow_request']
 
     def test_query_by_event(self):
         """测试按事件类型过滤"""
@@ -154,7 +156,7 @@ class TestAlertingGuide:
     def test_alerting_guide_content(self):
         """测试告警配置文档内容"""
         doc_path = 'docs/monitoring/alerting-guide.md'
-        with open(doc_path, 'r', encoding='utf-8') as f:
+        with open(doc_path, encoding='utf-8') as f:
             content = f.read()
 
         # 验证包含关键章节

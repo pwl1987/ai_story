@@ -18,12 +18,12 @@
 import time
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict
 
+from django.core.cache import cache
 from django.db import connections
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views import View
-from django.core.cache import cache
 
 
 class HealthCheckView(View):
@@ -230,8 +230,8 @@ class HealthCheckView(View):
         }
 
         try:
-            from django.conf import settings
             import redis
+            from django.conf import settings
 
             # 从settings获取Redis连接信息
             redis_host = getattr(settings, 'REDIS_HOST', 'localhost')
@@ -302,7 +302,7 @@ class HealthCheckView(View):
                 total_threads = 0
                 active_tasks_count = 0
 
-                for worker_name, worker_stats in stats.items():
+                for _worker_name, worker_stats in stats.items():
                     # 获取线程池信息
                     pool = worker_stats.get('pool', {})
                     total_threads += pool.get('max-concurrency', 0)

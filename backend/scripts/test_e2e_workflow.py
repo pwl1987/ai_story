@@ -18,7 +18,6 @@
 import os
 import sys
 import time
-import json
 
 # 添加backend目录到Python路径
 backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -27,11 +26,13 @@ sys.path.insert(0, backend_dir)
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
 
 import django
+
 django.setup()
 
 import requests
-from apps.projects.models import Project
 from django.contrib.auth import get_user_model
+
+from apps.projects.models import Project
 
 User = get_user_model()
 
@@ -55,7 +56,7 @@ def get_auth_token(base_url="http://localhost:8000/api/v1"):
         data = response.json()
         token = data.get('token') or data.get('access')
         user_id = data.get('user_id')
-        print(f"✓ 登录成功")
+        print("✓ 登录成功")
         return token, user_id
     else:
         print(f"✗ 登录失败: {response.status_code}")
@@ -79,8 +80,8 @@ def get_test_project():
         print(f"  阶段数: {project.stages.count()}")
         return project
     except Project.DoesNotExist:
-        print(f"✗ 测试项目不存在")
-        print(f"  请先运行: uv run python scripts/create_test_project.py")
+        print("✗ 测试项目不存在")
+        print("  请先运行: uv run python scripts/create_test_project.py")
         return None
 
 
@@ -96,7 +97,7 @@ def start_workflow(project_id, token, base_url="http://localhost:8000/api/v1"):
     Returns:
         dict: 包含task_id和channel的响应
     """
-    print(f"\n3. 启动工作流...")
+    print("\n3. 启动工作流...")
 
     headers = {"Authorization": f"Bearer {token}"}
     url = f"{base_url}/projects/{project_id}/execute_full_pipeline/"
@@ -105,7 +106,7 @@ def start_workflow(project_id, token, base_url="http://localhost:8000/api/v1"):
 
     if response.status_code == 202:
         data = response.json()
-        print(f"✓ 工作流已启动")
+        print("✓ 工作流已启动")
         print(f"  任务ID: {data['task_id']}")
         print(f"  频道: {data['channel']}")
         print(f"  项目ID: {data['project_id']}")
@@ -129,7 +130,7 @@ def monitor_progress(project_id, token, base_url="http://localhost:8000/api/v1",
     Returns:
         bool: 工作流是否成功完成
     """
-    print(f"\n4. 监控工作流进度...")
+    print("\n4. 监控工作流进度...")
 
     headers = {"Authorization": f"Bearer {token}"}
     start_time = time.time()
@@ -158,13 +159,13 @@ def monitor_progress(project_id, token, base_url="http://localhost:8000/api/v1",
 
         # 检查是否完成
         if status == 'completed':
-            print(f"\n\n✓ 工作流完成！")
-            print(f"\n  阶段详情:")
+            print("\n\n✓ 工作流完成！")
+            print("\n  阶段详情:")
             for stage in stages:
                 print(f"    - {stage['stage_type']}: {stage['status']}")
             return True
         elif status == 'failed':
-            print(f"\n\n✗ 工作流失败")
+            print("\n\n✗ 工作流失败")
             # 显示失败的阶段
             for stage in stages:
                 if stage['status'] == 'failed':
@@ -189,7 +190,7 @@ def main():
 
     try:
         # 1. 获取认证token
-        token, user_id = get_auth_token(base_url)
+        token, _user_id = get_auth_token(base_url)
         if not token:
             print("\n✗ 无法获取认证token")
             return 1

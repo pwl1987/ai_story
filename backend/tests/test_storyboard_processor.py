@@ -9,8 +9,10 @@ apps.content.processors.llm_stage (storyboard) 单元测试
 - 错误处理
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch, call
+
 from apps.content.processors.llm_stage import LLMStageProcessor
 from apps.projects.models import Project, ProjectStage
 from apps.projects.utils import parse_storyboard_json
@@ -55,7 +57,7 @@ class TestStoryboardProcessorGetInputData:
         )
 
         # 创建并完成rewrite阶段
-        rewrite_stage = ProjectStage.objects.create(
+        ProjectStage.objects.create(
             project=project,
             stage_type='rewrite',
             status='completed',
@@ -66,7 +68,7 @@ class TestStoryboardProcessorGetInputData:
         )
 
         # 创建storyboard阶段
-        storyboard_stage = ProjectStage.objects.create(
+        ProjectStage.objects.create(
             project=project,
             stage_type='storyboard',
             status='pending'
@@ -264,7 +266,7 @@ class TestStoryboardProcessorSaveResult:
         )
 
         # 创建rewrite阶段
-        rewrite_stage = ProjectStage.objects.create(
+        ProjectStage.objects.create(
             project=project,
             stage_type='rewrite',
             status='completed'
@@ -344,8 +346,9 @@ class TestStoryboardProcessorProcessStream:
     def project_with_templates_and_rewrite(self, db):
         """创建带有模板和已完成rewrite的项目"""
         from django.contrib.auth import get_user_model
-        from apps.prompts.models import PromptTemplateSet, PromptTemplate
+
         from apps.models.models import ModelProvider
+        from apps.prompts.models import PromptTemplate, PromptTemplateSet
 
         User = get_user_model()
 
@@ -390,7 +393,7 @@ class TestStoryboardProcessorProcessStream:
         )
 
         # 完成rewrite阶段
-        rewrite_stage = ProjectStage.objects.create(
+        ProjectStage.objects.create(
             project=project,
             stage_type='rewrite',
             status='completed',
@@ -401,7 +404,7 @@ class TestStoryboardProcessorProcessStream:
         )
 
         # 创建storyboard阶段
-        storyboard_stage = ProjectStage.objects.create(
+        ProjectStage.objects.create(
             project=project,
             stage_type='storyboard',
             status='pending'

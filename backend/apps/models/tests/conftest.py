@@ -3,7 +3,6 @@ pytest配置文件 - apps/models模块
 共享测试辅助函数
 """
 
-import pytest
 
 
 def filter_mock_data(queryset):

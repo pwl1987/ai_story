@@ -3,10 +3,12 @@
 测试Celery异步任务的触发和执行
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
+
 from apps.projects.models import Project, ProjectStage
 
 User = get_user_model()

@@ -3,9 +3,10 @@
 测试Redis Pub/Sub消息发布和接收
 """
 
-import json
 import time
+
 import pytest
+
 from core.redis.publisher import RedisStreamPublisher
 
 pytestmark = [
@@ -108,7 +109,6 @@ class TestRealtimeMessaging:
         publisher = RedisStreamPublisher(project_id, stage_name)
 
         # 验证频道名称格式
-        expected_channel = 'ai_story:project:proj-123:stage:video_generation'
         # publisher的channel属性应该是私有属性，我们直接验证发布是否成功
 
         result = publisher.publish_token('test', 'test')
@@ -139,7 +139,6 @@ class TestRealtimeMessaging:
         publisher = RedisStreamPublisher(project_id, stage_name)
 
         # 发布带自定义时间戳的消息
-        import time
         custom_timestamp = int(time.time()) - 3600  # 1小时前
 
         result = publisher.publish(

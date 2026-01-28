@@ -6,7 +6,6 @@
 import time
 from unittest.mock import Mock, patch
 
-import pytest
 from django.http import HttpResponse
 from django.test import RequestFactory
 

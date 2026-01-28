@@ -567,9 +567,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         include_model_config = serializer.validated_data["include_model_config"]
 
         # 实现模板保存逻辑
-        import copy
 
-        from apps.models.models import ModelProvider
         from apps.prompts.models import PromptTemplate, PromptTemplateSet
 
         # 1. 复制提示词集配置

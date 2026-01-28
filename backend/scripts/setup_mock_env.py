@@ -8,6 +8,7 @@ Mock环境配置脚本
 """
 import os
 import sys
+
 import django
 
 # 添加backend目录到Python路径
@@ -99,7 +100,7 @@ def main():
         print("\n" + "=" * 60)
         print("✓ Mock环境配置完成")
         print("=" * 60)
-        print(f"\n创建的Providers:")
+        print("\n创建的Providers:")
         for key, provider in providers.items():
             print(f"  - {key}: {provider.name} (ID: {provider.id})")
         return 0

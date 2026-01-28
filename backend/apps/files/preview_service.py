@@ -8,8 +8,6 @@ Epic 6.3: 文件预览功能
 3. 文档预览（PDF/文本）
 """
 
-import io
-import os
 from pathlib import Path
 
 from django.conf import settings
@@ -177,7 +175,6 @@ class FilePreviewService:
         :param older_than_days: 清理多少天前的预览，默认7天
         """
         import time
-        from pathlib import Path
 
         cutoff_time = time.time() - (older_than_days * 24 * 60 * 60)
 

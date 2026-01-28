@@ -4,13 +4,14 @@ AI客户端注册表测试
 """
 
 import pytest
+
+from core.ai_client.base import Image2VideoClient, LLMClient, Text2ImageClient
 from core.ai_client.registry import (
+    get_base_class_for_provider_type,
     get_executor_class,
     validate_executor,
-    get_base_class_for_provider_type,
-    validate_executor_for_provider
+    validate_executor_for_provider,
 )
-from core.ai_client.base import BaseAIClient, LLMClient, Text2ImageClient, Image2VideoClient
 
 
 @pytest.mark.unit

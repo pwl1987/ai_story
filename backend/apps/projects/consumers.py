@@ -17,7 +17,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from django.conf import settings
 
 # Epic 3: 导入自动重连管理器
-from core.websocket import ReconnectState, WebSocketReconnectManager
+from core.websocket import WebSocketReconnectManager
 
 logger = logging.getLogger(__name__)
 

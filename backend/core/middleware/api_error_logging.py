@@ -16,7 +16,6 @@ API错误日志中间件
 """
 
 import logging
-import traceback
 import uuid
 from typing import Any, Dict, Optional
 

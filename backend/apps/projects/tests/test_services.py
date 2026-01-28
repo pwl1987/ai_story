@@ -4,12 +4,10 @@
 遵循SOLID原则和TDD红绿重构循环
 """
 
-from datetime import datetime, timedelta
 
 import pytest
-from django.utils import timezone
 
-from apps.projects.models import Project, ProjectStage
+from apps.projects.models import ProjectStage
 from apps.projects.services import ProjectWorkflowService
 from apps.projects.tests.factories import ProjectFactory, ProjectStageFactory
 

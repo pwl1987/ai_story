@@ -4,11 +4,13 @@ apps.content.processors.llm_stage 单元测试
 测试LLM阶段处理器：文案改写、分镜生成、运镜生成
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch, call
+
 from apps.content.processors.llm_stage import LLMStageProcessor
 from apps.projects.models import Project, ProjectStage
-from core.pipeline.base import PipelineContext, StageResult
+from core.pipeline.base import PipelineContext
 
 
 @pytest.mark.unit
@@ -43,8 +45,9 @@ class TestLLMStageProcessorValidate:
     def project_with_template(self, db):
         """创建带有提示词模板的项目"""
         from django.contrib.auth import get_user_model
-        from apps.prompts.models import PromptTemplateSet, PromptTemplate
+
         from apps.models.models import ModelProvider
+        from apps.prompts.models import PromptTemplate, PromptTemplateSet
 
         User = get_user_model()
 
@@ -72,7 +75,7 @@ class TestLLMStageProcessorValidate:
         )
 
         # 创建提示词模板
-        template = PromptTemplate.objects.create(
+        PromptTemplate.objects.create(
             template_set=template_set,
             stage_type='rewrite',
             template_content='Test prompt: {{ raw_text }}',
@@ -141,8 +144,8 @@ class TestLLMStageProcessorProcessStream:
     @pytest.fixture
     def project_with_stages(self, mock_project):
         """创建带有阶段和提示词模板的项目"""
-        from apps.prompts.models import PromptTemplateSet, PromptTemplate
         from apps.models.models import ModelProvider
+        from apps.prompts.models import PromptTemplate, PromptTemplateSet
 
         # 创建模型提供商
         provider = ModelProvider.objects.create(
@@ -162,7 +165,7 @@ class TestLLMStageProcessorProcessStream:
         )
 
         # 创建提示词模板
-        template = PromptTemplate.objects.create(
+        PromptTemplate.objects.create(
             template_set=template_set,
             stage_type='rewrite',
             template_content='Test prompt: {{ raw_text }}',
@@ -364,7 +367,7 @@ class TestLLMStageProcessorOnFailure:
             user=user
         )
 
-        stage = ProjectStage.objects.create(
+        ProjectStage.objects.create(
             project=project,
             stage_type='rewrite',
             status='processing'
@@ -401,8 +404,9 @@ class TestLLMStageProcessorHelperMethods:
     def project_with_templates(self, db):
         """创建带有提示词模板的项目"""
         from django.contrib.auth import get_user_model
-        from apps.prompts.models import PromptTemplateSet, PromptTemplate
+
         from apps.models.models import ModelProvider
+        from apps.prompts.models import PromptTemplate, PromptTemplateSet
 
         User = get_user_model()
 
@@ -430,7 +434,7 @@ class TestLLMStageProcessorHelperMethods:
         )
 
         # 创建提示词模板
-        template = PromptTemplate.objects.create(
+        PromptTemplate.objects.create(
             template_set=template_set,
             stage_type='rewrite',
             template_content='Test prompt: {{ raw_text }}',

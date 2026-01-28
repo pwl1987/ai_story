@@ -2,11 +2,9 @@
 系统健康检查和监控视图
 """
 
-import json
 import time
 
 from celery import current_app
-from django.conf import settings
 from django.core.cache import cache
 from django.db import connection
 from django.http import HttpRequest, HttpResponse, JsonResponse

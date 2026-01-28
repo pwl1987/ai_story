@@ -3,7 +3,7 @@
 Epic 2优化：测试Prometheus指标模块
 """
 
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock
 
 import pytest
 from django.http import HttpResponse

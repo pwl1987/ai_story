@@ -296,7 +296,6 @@ class WebSocketReconnectManager:
         Args:
             timestamp: ping时间戳
         """
-        import time
         self.last_ping_time = timestamp
         logger.debug(
             f"收到ping: project={self.project_id}, stage={self.stage}, "

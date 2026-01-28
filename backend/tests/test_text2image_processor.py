@@ -9,12 +9,14 @@ apps.content.processors.text2image_stage 单元测试
 - 错误处理
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch, call
+
+from apps.content.models import Storyboard
 from apps.content.processors.text2image_stage import Text2ImageStageProcessor
-from apps.projects.models import Project, ProjectStage
-from apps.content.models import GeneratedImage, Storyboard
 from apps.models.models import ModelProvider
+from apps.projects.models import Project, ProjectStage
 from core.pipeline.base import PipelineContext
 
 
@@ -57,7 +59,7 @@ class TestText2ImageProcessorValidate:
         )
 
         # 创建并完成storyboard阶段
-        storyboard_stage = ProjectStage.objects.create(
+        ProjectStage.objects.create(
             project=project,
             stage_type='storyboard',
             status='completed'
@@ -71,7 +73,7 @@ class TestText2ImageProcessorValidate:
         project = project_with_storyboard
 
         # 创建分镜数据
-        storyboard1 = Storyboard.objects.create(
+        Storyboard.objects.create(
             project=project,
             sequence_number=1,
             scene_description='开场场景',
@@ -79,7 +81,7 @@ class TestText2ImageProcessorValidate:
             image_prompt='产品特写'
         )
 
-        storyboard2 = Storyboard.objects.create(
+        Storyboard.objects.create(
             project=project,
             sequence_number=2,
             scene_description='演示场景',
@@ -106,8 +108,8 @@ class TestText2ImageProcessorValidate:
     def test_validate_with_completed_storyboard(self, processor, project_with_storyboards):
         """测试storyboard已完成时验证成功"""
         # 为项目配置模型
-        from apps.projects.models import ProjectModelConfig
         from apps.models.models import ModelProvider
+        from apps.projects.models import ProjectModelConfig
 
         provider = ModelProvider.objects.create(
             name='SD Provider',
@@ -330,7 +332,7 @@ class TestText2ImageSaveResult:
         )
 
         # 创建image_generation和video_generation阶段
-        image_stage = ProjectStage.objects.create(
+        ProjectStage.objects.create(
             project=project,
             stage_type='image_generation',
             status='processing',
@@ -348,7 +350,7 @@ class TestText2ImageSaveResult:
             }
         )
 
-        video_stage = ProjectStage.objects.create(
+        ProjectStage.objects.create(
             project=project,
             stage_type='video_generation',
             status='pending'
@@ -446,6 +448,7 @@ class TestText2ImageProcessStream:
     def project_with_data(self, db):
         """创建测试项目"""
         from django.contrib.auth import get_user_model
+
         from apps.models.models import ModelProvider
 
         User = get_user_model()
@@ -462,7 +465,7 @@ class TestText2ImageProcessStream:
         )
 
         # 创建模型提供商
-        provider = ModelProvider.objects.create(
+        ModelProvider.objects.create(
             name='SD',
             provider_type='text2image',
             api_url='http://localhost:7860',
@@ -472,7 +475,7 @@ class TestText2ImageProcessStream:
         )
 
         # 创建image_generation阶段
-        stage = ProjectStage.objects.create(
+        ProjectStage.objects.create(
             project=project,
             stage_type='image_generation',
             status='pending',
@@ -580,8 +583,9 @@ class TestText2ImageBuildPrompt:
     def project_with_template(self, db):
         """创建带有模板的项目"""
         from django.contrib.auth import get_user_model
-        from apps.prompts.models import PromptTemplateSet, PromptTemplate
+
         from apps.models.models import ModelProvider
+        from apps.prompts.models import PromptTemplate, PromptTemplateSet
 
         User = get_user_model()
 
@@ -608,7 +612,7 @@ class TestText2ImageBuildPrompt:
         )
 
         # 创建提示词模板
-        template = PromptTemplate.objects.create(
+        PromptTemplate.objects.create(
             template_set=template_set,
             stage_type='image_generation',
             template_content='生成图片：{{ narration }}，风格：{{ visual_prompt }}',
@@ -656,8 +660,9 @@ class TestText2ImageGetProvider:
     def project_with_config(self, db):
         """创建带有模型配置的项目"""
         from django.contrib.auth import get_user_model
-        from apps.projects.models import ProjectModelConfig
+
         from apps.models.models import ModelProvider
+        from apps.projects.models import ProjectModelConfig
 
         User = get_user_model()
 
@@ -700,6 +705,7 @@ class TestText2ImageGetProvider:
     def test_get_provider_returns_default_when_no_config(self, processor, db):
         """测试无配置时返回默认提供商"""
         from django.contrib.auth import get_user_model
+
         from apps.models.models import ModelProvider
 
         User = get_user_model()
@@ -716,7 +722,7 @@ class TestText2ImageGetProvider:
         )
 
         # 创建默认提供商
-        provider = ModelProvider.objects.create(
+        ModelProvider.objects.create(
             name='Default SD',
             provider_type='text2image',
             api_url='http://localhost:7860',

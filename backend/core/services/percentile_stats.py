@@ -14,13 +14,11 @@ Epic 2优化：自动计算和存储API响应时间与Celery任务执行时间�
 - 依赖倒置：依赖Redis抽象
 """
 
-import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from statistics import median
 from typing import Any, Dict, List, Optional
 
-from django.conf import settings
 from django.core.cache import cache
 
 logger = logging.getLogger('apps.core')

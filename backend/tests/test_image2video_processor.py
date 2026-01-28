@@ -10,11 +10,13 @@ apps.content.processors.image2video_stage 单元测试
 - 错误处理
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch, call
+
 from apps.content.processors.image2video_stage import Image2VideoStageProcessor
-from apps.projects.models import Project, ProjectStage
 from apps.models.models import ModelProvider
+from apps.projects.models import Project, ProjectStage
 from core.pipeline.base import PipelineContext
 
 
@@ -59,7 +61,7 @@ class TestImage2VideoProcessorValidate:
         )
 
         # 创建并完成image_generation阶段
-        image_stage = ProjectStage.objects.create(
+        ProjectStage.objects.create(
             project=project,
             stage_type='image_generation',
             status='completed',
@@ -79,7 +81,7 @@ class TestImage2VideoProcessorValidate:
         )
 
         # 创建并完成camera_movement阶段
-        camera_stage = ProjectStage.objects.create(
+        ProjectStage.objects.create(
             project=project,
             stage_type='camera_movement',
             status='completed'
@@ -372,7 +374,7 @@ class TestImage2VideoSaveResult:
         )
 
         # 创建video_generation阶段
-        video_stage = ProjectStage.objects.create(
+        ProjectStage.objects.create(
             project=project,
             stage_type='video_generation',
             status='processing',
@@ -437,6 +439,7 @@ class TestImage2VideoProcessStream:
     def project_with_data(self, db):
         """创建测试项目"""
         from django.contrib.auth import get_user_model
+
         from apps.models.models import ModelProvider
 
         User = get_user_model()
@@ -453,7 +456,7 @@ class TestImage2VideoProcessStream:
         )
 
         # 创建模型提供商
-        provider = ModelProvider.objects.create(
+        ModelProvider.objects.create(
             name='Runway',
             provider_type='image2video',
             api_url='https://api.runway.com',
@@ -463,7 +466,7 @@ class TestImage2VideoProcessStream:
         )
 
         # 创建video_generation阶段
-        stage = ProjectStage.objects.create(
+        ProjectStage.objects.create(
             project=project,
             stage_type='video_generation',
             status='pending',
@@ -578,8 +581,9 @@ class TestImage2VideoBuildPrompt:
     def project_with_template(self, db):
         """创建带有模板的项目"""
         from django.contrib.auth import get_user_model
-        from apps.prompts.models import PromptTemplateSet, PromptTemplate
+
         from apps.models.models import ModelProvider
+        from apps.prompts.models import PromptTemplate, PromptTemplateSet
 
         User = get_user_model()
 
@@ -606,7 +610,7 @@ class TestImage2VideoBuildPrompt:
         )
 
         # 创建提示词模板
-        template = PromptTemplate.objects.create(
+        PromptTemplate.objects.create(
             template_set=template_set,
             stage_type='video_generation',
             template_content='生成视频：{{ narration }}，风格：{{ visual_prompt }}',
@@ -654,8 +658,9 @@ class TestImage2VideoGetProvider:
     def project_with_config(self, db):
         """创建带有模型配置的项目"""
         from django.contrib.auth import get_user_model
-        from apps.projects.models import ProjectModelConfig
+
         from apps.models.models import ModelProvider
+        from apps.projects.models import ProjectModelConfig
 
         User = get_user_model()
 
@@ -698,6 +703,7 @@ class TestImage2VideoGetProvider:
     def test_get_provider_returns_default_when_no_config(self, processor, db):
         """测试无配置时返回默认提供商"""
         from django.contrib.auth import get_user_model
+
         from apps.models.models import ModelProvider
 
         User = get_user_model()
@@ -714,7 +720,7 @@ class TestImage2VideoGetProvider:
         )
 
         # 创建默认提供商
-        provider = ModelProvider.objects.create(
+        ModelProvider.objects.create(
             name='Default Runway',
             provider_type='image2video',
             api_url='https://api.runway.com',

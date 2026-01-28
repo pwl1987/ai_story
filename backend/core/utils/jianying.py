@@ -1,9 +1,8 @@
 # 导入模块
 import os
-from pathlib import Path
 
 import pyJianYingDraft as draft
-from pyJianYingDraft import IntroType, TransitionType, tim, trange
+from pyJianYingDraft import IntroType, tim, trange
 
 # 设置草稿文件夹
 draft_folder = draft.DraftFolder(r"D:\JianyingPro Drafts")

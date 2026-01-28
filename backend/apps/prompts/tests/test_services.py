@@ -9,9 +9,8 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 from asgiref.sync import sync_to_async
 
-from apps.prompts.models import PromptTemplate
 from apps.prompts.services import PromptEvaluationService
-from apps.prompts.tests.factories import PromptTemplateFactory, PromptTemplateSetFactory
+from apps.prompts.tests.factories import PromptTemplateFactory
 
 
 @pytest.mark.asyncio

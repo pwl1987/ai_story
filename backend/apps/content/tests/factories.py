@@ -16,8 +16,7 @@ from apps.content.models import (
     GeneratedVideo,
     Storyboard,
 )
-from apps.models.tests.factories import ModelProviderFactory
-from apps.projects.tests.factories import ProjectFactory, ProjectStageFactory
+from apps.projects.tests.factories import ProjectFactory
 
 User = get_user_model()
 fake = Faker(['zh_CN'])

@@ -3,12 +3,17 @@
 验证：创建项目→启动工作流→AI自动生成→查看进度→完成通知
 """
 
-import os, sys, django
+import os
+import sys
+
+import django
+
 sys.path.insert(0, '/home/code/ai_story/backend')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.base')
 django.setup()
 
 import json
+
 from apps.projects.models import Project
 from apps.projects.tasks import execute_full_pipeline
 
@@ -74,7 +79,7 @@ def execute_workflow(project):
         print(f"  {stage.stage_type}: {stage.status}")
 
     # 执行工作流
-    print(f"\n执行完整工作流...")
+    print("\n执行完整工作流...")
     result = execute_full_pipeline(
         project_id=str(project.id),
         user_id=None
@@ -231,19 +236,19 @@ def generate_verification_report(project):
     # 生成Markdown报告
     md_file = 'FINAL_VERIFICATION_REPORT.md'
     with open(md_file, 'w', encoding='utf-8') as f:
-        f.write(f"# 最终端到端验证报告\n\n")
+        f.write("# 最终端到端验证报告\n\n")
         f.write(f"**验证时间**: {report['timestamp']}\n")
         f.write(f"**项目**: {project.name}\n")
         f.write(f"**状态**: {project.status}\n\n")
 
-        f.write(f"## 执行流程验证\n\n")
-        f.write(f"✅ 创建项目\n")
-        f.write(f"✅ 启动工作流\n")
-        f.write(f"✅ AI自动生成（5个阶段）\n")
-        f.write(f"✅ 查看进度\n")
+        f.write("## 执行流程验证\n\n")
+        f.write("✅ 创建项目\n")
+        f.write("✅ 启动工作流\n")
+        f.write("✅ AI自动生成（5个阶段）\n")
+        f.write("✅ 查看进度\n")
         f.write(f"{'✅' if project.status == 'completed' else '❌'} 完成通知\n\n")
 
-        f.write(f"## 各阶段详情\n\n")
+        f.write("## 各阶段详情\n\n")
         for stage in report['stages']:
             status_icon = "✅" if stage['status'] == 'completed' else "❌"
             f.write(f"### {status_icon} {stage['stage_type']}\n\n")
@@ -255,7 +260,7 @@ def generate_verification_report(project):
             f.write(f"- **输入数据**: {'✅' if stage['has_input_data'] else '❌'}\n")
             f.write(f"- **输出数据**: {'✅' if stage['has_output_data'] else '❌'}\n\n")
 
-        f.write(f"## 验收标准\n\n")
+        f.write("## 验收标准\n\n")
         all_stages_completed = all(s['status'] == 'completed' for s in report['stages'])
         all_data_valid = all(s['has_output_data'] for s in report['stages'])
 
@@ -264,11 +269,11 @@ def generate_verification_report(project):
         f.write(f"- 项目状态: {'✅' if project.status == 'completed' else '❌'}\n")
 
         if all_stages_completed and all_data_valid and project.status == 'completed':
-            f.write(f"\n## 🎉 验收通过\n\n")
-            f.write(f"端到端流程验证成功！所有功能正常运行。")
+            f.write("\n## 🎉 验收通过\n\n")
+            f.write("端到端流程验证成功！所有功能正常运行。")
         else:
-            f.write(f"\n## ⚠️ 需要修复\n\n")
-            f.write(f"部分功能未完成，需要修复后重新验证。")
+            f.write("\n## ⚠️ 需要修复\n\n")
+            f.write("部分功能未完成，需要修复后重新验证。")
 
     print(f"✅ Markdown报告已保存: {md_file}")
 

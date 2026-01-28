@@ -11,7 +11,6 @@ import pytest
 from apps.content.processors.image2video_stage import Image2VideoStageProcessor
 from apps.content.processors.llm_stage import LLMStageProcessor
 from apps.content.processors.text2image_stage import Text2ImageStageProcessor
-from apps.content.tests.factories import ProjectFactory
 
 # ============================================================================
 # LLMStageProcessor 测试

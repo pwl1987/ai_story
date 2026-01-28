@@ -4,8 +4,10 @@ Redis Stream Publisher测试
 """
 
 import json
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from core.redis.publisher import RedisStreamPublisher
 
 
@@ -284,7 +286,7 @@ class TestRedisStreamPublisher:
         mock_client = MagicMock()
         mock_redis.from_url.return_value = mock_client
 
-        publisher = RedisStreamPublisher('proj-1', 'rewrite')
+        RedisStreamPublisher('proj-1', 'rewrite')
 
         # 验证使用了自定义URL
         mock_redis.from_url.assert_called_once()

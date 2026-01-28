@@ -10,7 +10,7 @@ Story 2.6 - Celery任务执行时间监控
 - 队列维度统计
 """
 import time
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from celery.exceptions import Retry
@@ -19,7 +19,6 @@ from config.celery import (
     PROMETHEUS_ENABLED,
     _filter_sensitive_kwargs,
     _get_slow_task_threshold,
-    app,
     celery_task_duration_seconds,
     celery_task_failure_total,
     celery_task_total,

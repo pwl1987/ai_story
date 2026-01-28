@@ -13,10 +13,11 @@ if backend_dir not in sys.path:
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.base')
 
 import django
+
 django.setup()
 
-from core.ai_client.factory import _create_mock_client
 from apps.models.models import ModelProvider
+from core.ai_client.factory import _create_mock_client
 
 
 def main():

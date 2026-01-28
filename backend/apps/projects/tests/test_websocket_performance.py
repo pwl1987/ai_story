@@ -10,14 +10,13 @@ import os
 # 避免循环导入
 import sys
 import time
-from unittest.mock import AsyncMock, patch
 
 import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 from core.metrics.websocket_metrics import ConnectionTimer, MessageLatencyTimer, WebSocketMetrics
-from core.redis.connection_pool import RedisConnectionPool, RedisPublisherWithContext
+from core.redis.connection_pool import RedisConnectionPool
 
 
 @pytest.mark.unit

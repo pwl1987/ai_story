@@ -5,12 +5,13 @@ core.pipeline.base 单元测试
 """
 
 import pytest
+
 from core.pipeline.base import (
     PipelineContext,
-    StageResult,
+    ProcessingError,
     StageProcessor,
+    StageResult,
     ValidationError,
-    ProcessingError
 )
 
 

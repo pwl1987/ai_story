@@ -5,7 +5,7 @@
 
 import logging
 import time
-from typing import Any, Dict, Generator, List, Optional
+from typing import Any, Dict, List, Optional
 
 from .base import AIResponse, Text2ImageClient
 

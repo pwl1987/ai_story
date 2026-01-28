@@ -5,19 +5,18 @@ Epic 3: 实时通信稳定性 - 综合测试和文档
 """
 
 import asyncio
-import json
 import os
 
 # 避免循环导入
 import sys
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
-from core.websocket import ReconnectState, WebSocketReconnectManager
+from core.websocket import WebSocketReconnectManager
 
 
 @pytest.mark.stress
@@ -336,7 +335,6 @@ class TestReconnectManagerUnderLoad:
         目标: 验证长时间运行不会导致内存泄漏
         """
         import gc
-        import sys
 
         # 记录初始内存
         gc.collect()

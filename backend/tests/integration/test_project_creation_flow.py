@@ -6,7 +6,8 @@
 import pytest
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
-from apps.projects.models import Project, ProjectStage, ProjectModelConfig
+
+from apps.projects.models import Project, ProjectModelConfig, ProjectStage
 
 User = get_user_model()
 

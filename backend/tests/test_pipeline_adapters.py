@@ -3,20 +3,19 @@
 Story 5.4: 测试5个阶段适配器的功能
 """
 
+from unittest.mock import patch
+
 import pytest
-import asyncio
-from unittest.mock import Mock, patch, MagicMock, AsyncMock
-from django.utils import timezone
 from asgiref.sync import sync_to_async
 
+from apps.projects.models import Project
 from apps.projects.pipeline_adapters import (
+    CameraMovementStageAdapter,
+    ImageGenerationStageAdapter,
     RewriteStageAdapter,
     StoryboardStageAdapter,
-    ImageGenerationStageAdapter,
-    CameraMovementStageAdapter,
-    VideoGenerationStageAdapter
+    VideoGenerationStageAdapter,
 )
-from apps.projects.models import Project, ProjectStage
 from core.pipeline.base import PipelineContext
 
 

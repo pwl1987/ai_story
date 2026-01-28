@@ -4,10 +4,7 @@
 """
 
 import time
-from unittest.mock import MagicMock, Mock, patch
-
-import pytest
-from celery.exceptions import Ignore, Retry
+from unittest.mock import Mock, patch
 
 from config.celery import (
     _get_slow_task_threshold,

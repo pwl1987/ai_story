@@ -5,12 +5,13 @@ core.ai_client.base 单元测试
 """
 
 import pytest
+
 from core.ai_client.base import (
+    AIResponse,
     BaseAIClient,
+    Image2VideoClient,
     LLMClient,
     Text2ImageClient,
-    Image2VideoClient,
-    AIResponse
 )
 
 
@@ -209,8 +210,8 @@ class TestText2ImageClient:
                 return AIResponse(
                     success=True,
                     data={
-                        'urls': [f'https://example.com/image.png'],
-                        'images': [{'url': f'https://example.com/image.png'}]
+                        'urls': ['https://example.com/image.png'],
+                        'images': [{'url': 'https://example.com/image.png'}]
                     }
                 )
 

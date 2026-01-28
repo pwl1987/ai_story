@@ -6,13 +6,13 @@
 
 import uuid
 from datetime import timedelta
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from asgiref.sync import sync_to_async
 from django.utils import timezone
 
-from apps.models.models import ModelProvider, ModelUsageLog
+from apps.models.models import ModelProvider
 from apps.models.services import ModelProviderService, ModelUsageLogService
 from apps.models.tests.conftest import filter_mock_data
 from apps.models.tests.factories import ModelProviderFactory, ModelUsageLogFactory

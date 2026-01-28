@@ -8,30 +8,30 @@
 3. 内存使用情况
 4. 异步vs同步性能对比
 """
-import pytest
-import time
-import psutil
 import os
-import asyncio
-from typing import Dict, List, Any
+import time
 from datetime import datetime
 
 # Django setup
 import django
+import psutil
+import pytest
+
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.base')
 django.setup()
 
-from apps.projects.tests.factories import ProjectFactory, ProjectStageFactory
+from django.contrib.auth import get_user_model
+
+from apps.models.models import ModelProvider
 from apps.projects.pipeline_adapters import (
+    CameraMovementStageAdapter,
+    ImageGenerationStageAdapter,
     RewriteStageAdapter,
     StoryboardStageAdapter,
-    ImageGenerationStageAdapter,
-    CameraMovementStageAdapter,
-    VideoGenerationStageAdapter
+    VideoGenerationStageAdapter,
 )
+from apps.projects.tests.factories import ProjectFactory, ProjectStageFactory
 from core.pipeline.base import PipelineContext
-from apps.models.models import ModelProvider
-from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
@@ -162,7 +162,7 @@ class TestWorkflowPerformance:
         print("=" * 60)
         print(f"总执行时间: {metrics.total_time:.2f}秒")
         print(f"内存增长: {metrics.memory_used:.2f}MB")
-        print(f"\n各阶段耗时:")
+        print("\n各阶段耗时:")
         for stage, duration in metrics.stage_times.items():
             print(f"  {stage}: {duration:.2f}秒")
         print("=" * 60)

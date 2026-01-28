@@ -6,7 +6,7 @@ Epic 3: 实时通信稳定性 - 历史进度记录功能
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Dict, List, Optional
 
 from django.db import models

@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.models.models import ModelProvider, ModelUsageLog
+from apps.models.models import ModelProvider
 from apps.models.tests.factories import ModelProviderFactory, ModelUsageLogFactory
 
 User = get_user_model()

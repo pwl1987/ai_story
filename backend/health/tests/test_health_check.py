@@ -2,11 +2,10 @@
 健康检查端点单元测试
 Epic 2.2 - 健康检查端点完整实现
 """
+import time
+
 import pytest
 from django.test import Client
-from django.urls import reverse
-from unittest.mock import patch, MagicMock
-import time
 
 
 @pytest.mark.django_db

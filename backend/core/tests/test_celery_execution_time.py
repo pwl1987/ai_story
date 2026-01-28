@@ -6,7 +6,6 @@
 import time
 from unittest.mock import Mock, patch
 
-import pytest
 from celery.exceptions import Ignore, Retry
 
 from config.celery import _get_slow_task_threshold, task_postrun_handler, task_prerun_handler

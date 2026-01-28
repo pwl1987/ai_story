@@ -42,7 +42,7 @@ class HealthCheckViewTestCase(TestCase):
         response = self.client.get('/api/v1/health/')
         checks = response.json().get('checks', {})
         # 应该有5个Redis检查
-        redis_checks = [key for key in checks.keys() if key.startswith('redis_')]
+        redis_checks = [key for key in checks if key.startswith('redis_')]
         self.assertEqual(len(redis_checks), 5)
 
         # 验证每个Redis检查都有必要字段
@@ -110,7 +110,7 @@ class HealthCheckViewTestCase(TestCase):
         checks = data['checks']
 
         # 检查Redis服务（应该失败）
-        redis_checks = [key for key in checks.keys() if key.startswith('redis_')]
+        redis_checks = [key for key in checks if key.startswith('redis_')]
         for key in redis_checks:
             check = checks[key]
             if check['status'] == 'unhealthy':

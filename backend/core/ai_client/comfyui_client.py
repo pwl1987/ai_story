@@ -3,7 +3,6 @@ ComfyUI 文生图客户端实现
 支持 ComfyUI API 接口，包括 WebSocket 实时进度监听
 """
 
-import asyncio
 import json
 import os
 import time
@@ -11,14 +10,12 @@ import uuid
 from io import BytesIO
 from typing import Any, Callable, Dict, Optional
 
-import aiohttp
 import requests
 import websocket
 from PIL import Image
 
 from core.utils.file_storage import image_storage, video_storage
 
-from .base import AIResponse
 from .base import Text2ImageClient as BaseText2ImageClient
 
 

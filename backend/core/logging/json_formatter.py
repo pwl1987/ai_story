@@ -7,8 +7,7 @@ JSON日志格式化器
 import json
 import logging
 import re
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from pythonjsonlogger import json
 
@@ -164,7 +163,6 @@ class RequestContextFilter(logging.Filter):
         """
         # 尝试从线程本地存储获取请求对象
         try:
-            from django.contrib.auth.middleware import get_user
 
             # 获取当前请求(如果存在)
             request = getattr(record, 'request', None)

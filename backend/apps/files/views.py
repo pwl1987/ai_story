@@ -8,15 +8,11 @@ Story 6.4: 文件管理和删除
 
 import hashlib
 import os
-from pathlib import Path
 
 from django.conf import settings
-from django.core.files.uploadedfile import UploadedFile as DjangoUploadedFile
 from django.http import FileResponse, Http404
-from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -256,7 +252,7 @@ class FileUploadViewSet(viewsets.ModelViewSet):
             }
         }
         """
-        from django.db.models import Count, Q, Sum
+        from django.db.models import Sum
 
         queryset = UploadedFile.objects.filter(user=request.user)
 

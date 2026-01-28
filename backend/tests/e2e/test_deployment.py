@@ -18,11 +18,10 @@
 
 import os
 import sys
-import time
-import json
-import requests
-import psycopg2
 from pathlib import Path
+
+import psycopg2
+import requests
 
 # 添加项目路径
 project_root = Path(__file__).parent.parent.parent.parent
@@ -188,7 +187,7 @@ class DeploymentE2ETest:
         try:
             import websocket
 
-            ws_url = f"ws://localhost:8000/ws/projects/test-project/"
+            ws_url = "ws://localhost:8000/ws/projects/test-project/"
             ws = websocket.create_connection(ws_url, timeout=5)
             ws.close()
 

@@ -8,16 +8,15 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
+from rest_framework.test import APIClient
 
-from apps.projects.models import Project, ProjectModelConfig, ProjectStage
+from apps.projects.models import Project
 from apps.projects.tests.factories import (
     ProjectFactory,
     ProjectModelConfigFactory,
     ProjectStageFactory,
     UserFactory,
 )
-from apps.projects.views import ProjectModelConfigViewSet, ProjectStageViewSet, ProjectViewSet
 
 User = get_user_model()
 

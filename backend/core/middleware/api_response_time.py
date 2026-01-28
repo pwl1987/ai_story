@@ -16,7 +16,7 @@ API响应时间监控中间件
 
 import logging
 import time
-from typing import Any, Dict
+from typing import Any
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse

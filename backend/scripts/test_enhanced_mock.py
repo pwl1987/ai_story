@@ -2,9 +2,9 @@
 测试Enhanced Mock客户端集成
 验证factory.py正确创建Enhanced Mock客户端
 """
+import asyncio
 import os
 import sys
-import asyncio
 import time
 
 # 添加backend到sys.path
@@ -15,12 +15,13 @@ if backend_dir not in sys.path:
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.base')
 
 import django
+
 django.setup()
 
 from asgiref.sync import sync_to_async
-from core.ai_client.factory import create_ai_client
-from apps.models.models import ModelProvider
 
+from apps.models.models import ModelProvider
+from core.ai_client.factory import create_ai_client
 
 # 使用sync_to_async包装ORM查询
 get_llm_providers = sync_to_async(
@@ -136,7 +137,7 @@ async def test_enhanced_mock_custom_delay():
 
     # 调用生成
     start = time.time()
-    response = await client.generate(prompt="测试提示词")
+    await client.generate(prompt="测试提示词")
     elapsed = time.time() - start
 
     print(f"✓ 响应时间: {elapsed:.3f}秒")

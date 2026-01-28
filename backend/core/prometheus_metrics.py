@@ -17,7 +17,7 @@ Epic 2优化：提供系统监控指标
 
 import time
 from functools import wraps
-from typing import Callable, Optional
+from typing import Callable
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse

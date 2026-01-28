@@ -4,14 +4,10 @@
 遵循单一职责原则(SRP)
 """
 
-from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from celery.exceptions import Retry
 from django.contrib.auth import get_user_model
-from django.utils import timezone
 
-from apps.projects.models import Project, ProjectStage
 from apps.projects.tasks import (
     execute_image2video_stage,
     execute_llm_stage,

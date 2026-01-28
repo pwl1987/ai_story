@@ -10,7 +10,7 @@ import os
 # 避免循环导入
 import sys
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 

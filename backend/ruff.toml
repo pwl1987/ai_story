@@ -52,8 +52,8 @@ ignore = [
     "RUF013", # implicit-optional (可选类型声明)
 ]
 
-# 每个文件允许的未使用导入
-unfixable = ["F401"]
+# 每个文件允许的未使用导入（已清空以允许修复F401）
+unfixable = []
 
 [lint.per-file-ignores]
 # 测试文件允许更多灵活性

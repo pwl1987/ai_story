@@ -8,8 +8,7 @@ Epic 2.5 - API响应时间监控
 import time
 
 from django.utils.deprecation import MiddlewareMixin
-from prometheus_client import REGISTRY, Counter, Histogram
-from prometheus_client.exposition import generate_latest
+from prometheus_client import Counter, Histogram
 
 # HTTP请求总数
 http_requests_total = Counter(

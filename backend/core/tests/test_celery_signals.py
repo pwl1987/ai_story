@@ -3,9 +3,8 @@
 测试增强的Celery信号处理器
 """
 
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
-import pytest
 from celery.exceptions import Ignore, Retry
 
 from config.celery import (

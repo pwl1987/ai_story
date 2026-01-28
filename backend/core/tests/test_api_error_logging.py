@@ -4,10 +4,8 @@
 """
 
 import json
-from datetime import datetime
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
-import pytest
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import DatabaseError
 from django.http import HttpResponse

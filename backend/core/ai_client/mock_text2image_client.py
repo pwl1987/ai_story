@@ -5,8 +5,6 @@ Mock 文生图客户端实现（异步版本）
 """
 
 import asyncio
-import random
-from typing import Any, Dict
 
 from .base import AIResponse, Text2ImageClient
 

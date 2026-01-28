@@ -9,7 +9,7 @@ import os
 from typing import Optional
 
 from .base import BaseAIClient
-from .registry import get_executor_class, validate_executor_for_provider
+from .registry import get_executor_class
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +134,6 @@ def _create_mock_client(provider, use_enhanced=False) -> BaseAIClient:
     Returns:
         BaseAIClient: Mock客户端实例
     """
-    from .base import Image2VideoClient, LLMClient, Text2ImageClient
     from .mock_image2video_client import MockImage2VideoClient
     from .mock_llm_client import MockLLMClient
     from .mock_text2image_client import MockText2ImageClient

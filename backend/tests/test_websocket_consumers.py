@@ -3,9 +3,12 @@ WebSocket消费者单元测试
 测试apps.projects.consumers的ProjectStageConsumer核心逻辑
 """
 
+import contextlib
 import json
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
+
 from apps.projects.consumers import ProjectStageConsumer
 
 
@@ -84,10 +87,8 @@ class TestProjectStageConsumerUnit:
         # 创建一个假的redis_task（避免调用connect()触发Redis连接）
         import asyncio
         async def fake_redis_task():
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await asyncio.sleep(10)
-            except asyncio.CancelledError:
-                pass
 
         redis_task = asyncio.create_task(fake_redis_task())
         consumer.redis_task = redis_task
@@ -99,10 +100,8 @@ class TestProjectStageConsumerUnit:
         # 直接模拟disconnect的核心逻辑：取消redis_task
         if hasattr(consumer, 'redis_task'):
             consumer.redis_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await consumer.redis_task
-            except asyncio.CancelledError:
-                pass
 
         # 验证cancel被调用
         redis_task.cancel.assert_called_once()
@@ -175,7 +174,7 @@ class TestProjectStageConsumerUnit:
         # 设置自定义Redis URL
         mock_settings.CELERY_BROKER_URL = 'redis://custom-redis:6380/5'
 
-        consumer = self._create_consumer()
+        self._create_consumer()
 
         # 验证能够访问settings
         # (实际连接会在_subscribe_redis中进行)

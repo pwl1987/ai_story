@@ -7,6 +7,7 @@
 """
 import os
 import sys
+
 import django
 
 # 添加backend到sys.path
@@ -17,10 +18,11 @@ if backend_dir not in sys.path:
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.base')
 django.setup()
 
-from apps.projects.models import Project, ProjectStage
-from apps.projects.services import cancel_project_tasks, resume_project_pipeline
-from apps.prompts.models import PromptTemplateSet, PromptTemplate
 from django.contrib.auth import get_user_model
+
+from apps.projects.models import Project
+from apps.projects.services import cancel_project_tasks
+from apps.prompts.models import PromptTemplate, PromptTemplateSet
 
 User = get_user_model()
 
@@ -57,7 +59,7 @@ def test_cancel_project_tasks():
     # 验证阶段状态已重置
     stage.refresh_from_db()
     if stage.status == 'pending':
-        print(f"✓ 阶段状态已重置为pending")
+        print("✓ 阶段状态已重置为pending")
         return True
     else:
         print(f"❌ 阶段状态未重置: {stage.status}")
@@ -109,7 +111,7 @@ def test_save_as_template():
         print(f"✓ 模板复制成功 ({new_templates_count}个)")
         return True
     else:
-        print(f"❌ 模板复制失败")
+        print("❌ 模板复制失败")
         return False
 
 
@@ -128,9 +130,10 @@ def test_export_logic():
     print(f"✓ 找到已完成项目: {completed_project.name}")
 
     # 模拟导出逻辑
+    import uuid
+
     from apps.content.models import GeneratedVideo, Storyboard
     from apps.projects.models import ProjectProgressHistory
-    import uuid
 
     # 获取所有生成的视频片段
     storyboards = Storyboard.objects.filter(project=completed_project).order_by('sequence_number')

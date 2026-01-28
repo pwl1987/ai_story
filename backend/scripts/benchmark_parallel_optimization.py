@@ -12,20 +12,21 @@
 
 import os
 import sys
-import django
 import time
-import asyncio
+
+import django
 
 # 设置Django环境
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.base')
 sys.path.insert(0, '/home/code/ai_story/backend')
 django.setup()
 
-from apps.projects.models import Project, ProjectStage, ProjectModelConfig
-from apps.prompts.models import PromptTemplateSet, PromptTemplate
-from apps.models.models import ModelProvider
 from django.contrib.auth import get_user_model
+
+from apps.models.models import ModelProvider
+from apps.projects.models import Project, ProjectModelConfig, ProjectStage
 from apps.projects.tasks import execute_full_pipeline
+from apps.prompts.models import PromptTemplate, PromptTemplateSet
 
 User = get_user_model()
 
@@ -97,7 +98,7 @@ class PerformanceBenchmark:
                 is_active=True
             )
 
-        print(f"✓ PromptTemplateSet已创建，包含5个模板")
+        print("✓ PromptTemplateSet已创建，包含5个模板")
 
         return True
 
@@ -123,7 +124,7 @@ class PerformanceBenchmark:
                 status='pending'
             )
 
-        print(f"✓ 5个阶段已初始化")
+        print("✓ 5个阶段已初始化")
 
         # 配置模型
         config = ProjectModelConfig.objects.create(project=project)
@@ -133,7 +134,7 @@ class PerformanceBenchmark:
         config.image_providers.add(self.mock_t2i)
         config.video_providers.add(self.mock_i2v)
 
-        print(f"✓ 模型配置完成")
+        print("✓ 模型配置完成")
 
         return project
 
@@ -184,7 +185,7 @@ class PerformanceBenchmark:
                 return total_time
 
             elif project.status == 'failed':
-                print(f"\n\n✗ 工作流失败")
+                print("\n\n✗ 工作流失败")
                 # 显示失败阶段
                 for stage in stages:
                     if stage.status == 'failed':
@@ -237,13 +238,13 @@ class PerformanceBenchmark:
 
         # 判断是否达标
         if improvement >= 42:
-            print(f"\n🎉 优秀！性能提升达到最高预期！")
+            print("\n🎉 优秀！性能提升达到最高预期！")
         elif improvement >= 36:
-            print(f"\n✅ 良好！性能提升达到中等预期")
+            print("\n✅ 良好！性能提升达到中等预期")
         elif improvement >= 30:
-            print(f"\n✓ 达到最低预期")
+            print("\n✓ 达到最低预期")
         else:
-            print(f"\n⚠️ 未达到预期性能提升")
+            print("\n⚠️ 未达到预期性能提升")
 
         print("="*60)
 
@@ -316,18 +317,18 @@ def main():
         # 与基准对比
         improvement = benchmark.compare_with_baseline(avg_time)
 
-        print(f"\n最终结论:")
+        print("\n最终结论:")
         print(f"  平均执行时间: {avg_time:.2f}秒")
         print(f"  性能提升: {improvement:.1f}%")
 
         if improvement >= 30:
-            print(f"\n✅ 性能优化验证成功！")
+            print("\n✅ 性能优化验证成功！")
             return 0
         else:
-            print(f"\n⚠️ 性能提升未达到预期")
+            print("\n⚠️ 性能提升未达到预期")
             return 1
     else:
-        print(f"\n❌ 基准测试失败")
+        print("\n❌ 基准测试失败")
         return 1
 
 

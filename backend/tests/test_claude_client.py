@@ -3,10 +3,11 @@
 测试Anthropic Claude API集成
 """
 
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+
 from core.ai_client.claude_client import ClaudeClient
-from core.ai_client.base import AIResponse
 
 
 class TestClaudeClient:

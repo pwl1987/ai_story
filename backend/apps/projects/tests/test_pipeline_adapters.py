@@ -11,12 +11,12 @@ Pipeline适配器单元测试
 
 使用pytest-asyncio进行异步测试
 """
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from asgiref.sync import sync_to_async
 
-from apps.projects.models import Project, ProjectStage
+from apps.projects.models import ProjectStage
 from apps.projects.pipeline_adapters import (
     CameraMovementStageAdapter,
     ImageGenerationStageAdapter,
@@ -25,7 +25,7 @@ from apps.projects.pipeline_adapters import (
     VideoGenerationStageAdapter,
 )
 from apps.projects.tests.factories import ProjectFactory, ProjectStageFactory
-from core.pipeline.base import PipelineContext, StageResult
+from core.pipeline.base import PipelineContext
 
 
 @pytest.mark.django_db

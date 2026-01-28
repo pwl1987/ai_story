@@ -4,7 +4,7 @@ Epic 3: 实时通信稳定性 - 历史进度记录功能
 测试ProgressHistoryRecorder和ProgressHistoryQuery服务
 """
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
 from django.contrib.auth import get_user_model

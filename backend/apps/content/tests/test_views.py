@@ -6,19 +6,9 @@ Content API集成测试
 from pathlib import Path
 
 import pytest
-from django.conf import settings
 from django.test import override_settings
 from rest_framework import status
 from rest_framework.test import APIClient
-
-from apps.content.models import ContentRewrite, GeneratedImage, GeneratedVideo, Storyboard
-from apps.content.tests.factories import (
-    ContentRewriteFactory,
-    GeneratedImageFactory,
-    GeneratedVideoFactory,
-    ProjectFactory,
-    StoryboardFactory,
-)
 
 
 @pytest.mark.django_db

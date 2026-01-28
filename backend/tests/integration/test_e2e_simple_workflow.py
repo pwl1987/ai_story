@@ -12,9 +12,9 @@
 import pytest
 from django.contrib.auth import get_user_model
 
-from apps.projects.models import Project, ProjectStage, ProjectModelConfig
-from apps.prompts.models import PromptTemplateSet, PromptTemplate
 from apps.models.models import ModelProvider
+from apps.projects.models import Project, ProjectStage
+from apps.prompts.models import PromptTemplate, PromptTemplateSet
 
 User = get_user_model()
 

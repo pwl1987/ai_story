@@ -4,12 +4,13 @@ core.ai_client.factory 单元测试
 测试AI客户端工厂模式的客户端创建逻辑
 """
 
+
 import pytest
-import os
-from core.ai_client.factory import create_ai_client, create_ai_client_safe, _create_mock_client
+
+from core.ai_client.factory import _create_mock_client, create_ai_client, create_ai_client_safe
+from core.ai_client.mock_image2video_client import MockImage2VideoClient
 from core.ai_client.mock_llm_client import MockLLMClient
 from core.ai_client.mock_text2image_client import MockText2ImageClient
-from core.ai_client.mock_image2video_client import MockImage2VideoClient
 
 
 @pytest.mark.unit

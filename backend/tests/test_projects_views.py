@@ -5,7 +5,8 @@
 
 import pytest
 from django.contrib.auth import get_user_model
-from rest_framework.test import APIRequestFactory, force_authenticate, APIClient
+from rest_framework.test import APIRequestFactory, force_authenticate
+
 from apps.projects.models import Project
 from apps.projects.views import ProjectViewSet
 

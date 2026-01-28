@@ -10,13 +10,14 @@ Storyboard端到端集成测试
 6. 验证后续阶段的数据更新
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from django.contrib.auth import get_user_model
 
-from apps.projects.models import Project, ProjectStage
-from apps.prompts.models import PromptTemplateSet, PromptTemplate
 from apps.models.models import ModelProvider
+from apps.projects.models import Project, ProjectStage
+from apps.prompts.models import PromptTemplate, PromptTemplateSet
 
 User = get_user_model()
 
@@ -283,7 +284,7 @@ class TestStoryboardE2E:
         rewrite_stage.save()
 
         # 执行storyboard（模拟）
-        storyboard_stage = ProjectStage.objects.get(
+        ProjectStage.objects.get(
             project=Project.objects.get(id=project_id),
             stage_type='storyboard'
         )

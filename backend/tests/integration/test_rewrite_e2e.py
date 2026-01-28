@@ -9,15 +9,14 @@
 5. 验证数据库状态更新
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-import time
-from unittest.mock import patch, MagicMock
 from django.contrib.auth import get_user_model
 
-from apps.projects.models import Project, ProjectStage
-from apps.prompts.models import PromptTemplateSet, PromptTemplate
 from apps.models.models import ModelProvider
-from core.redis import RedisStreamSubscriber
+from apps.projects.models import Project, ProjectStage
+from apps.prompts.models import PromptTemplate, PromptTemplateSet
 
 User = get_user_model()
 

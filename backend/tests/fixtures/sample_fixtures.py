@@ -7,7 +7,6 @@
 import pytest
 from django.contrib.auth import get_user_model
 
-
 User = get_user_model()
 
 
@@ -124,7 +123,7 @@ def sample_prompt_template(db):
     """
     示例提示词模板fixture
     """
-    from apps.prompts.models import PromptTemplate, PromptTemplateSet
+    from apps.prompts.models import PromptTemplate
 
     template_set = PromptTemplate.objects.create(
         name='测试模板集',

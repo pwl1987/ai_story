@@ -1,6 +1,5 @@
 # 导入模块
 import os
-from pathlib import Path
 
 import pyJianYingDraft as draft
 from pyJianYingDraft import IntroType, TransitionType, tim, trange

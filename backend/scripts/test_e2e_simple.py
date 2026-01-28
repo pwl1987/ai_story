@@ -2,14 +2,18 @@
 简化的端到端测试
 直接测试execute_full_pipeline任务，跳过认证
 """
-import os, sys, django
+import os
+import sys
+
+import django
+
 sys.path.insert(0, '.')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
 django.setup()
 
+
 from apps.projects.models import Project
 from apps.projects.tasks import execute_full_pipeline
-import time
 
 print("="*60)
 print("端到端工作流测试（简化版）")
@@ -36,12 +40,12 @@ try:
         user_id=None  # 不需要用户ID
     )
 
-    print(f"\n任务结果:")
+    print("\n任务结果:")
     print(f"  success: {result.get('success')}")
     print(f"  project_id: {result.get('project_id')}")
 
     if result.get('success'):
-        print(f"\n✓ 工作流完成！")
+        print("\n✓ 工作流完成！")
 
         # 3. 验证项目状态
         print("\n3. 验证项目状态...")
@@ -50,7 +54,7 @@ try:
         print(f"  最终状态: {project.status}")
 
         # 显示各阶段状态
-        print(f"\n  阶段详情:")
+        print("\n  阶段详情:")
         for stage in project.stages.all():
             symbol = "✓" if stage.status == 'completed' else "✗"
             print(f"    {symbol} {stage.stage_type}: {stage.status}")
@@ -69,7 +73,7 @@ try:
             print(f"\n✗ 项目状态异常: {project.status}")
 
     else:
-        print(f"\n✗ 工作流失败")
+        print("\n✗ 工作流失败")
         print(f"  错误: {result.get('error')}")
 
 except Exception as e:

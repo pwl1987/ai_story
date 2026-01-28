@@ -4,8 +4,10 @@ core.redis.publisher 和 core.redis.subscriber 单元测试
 使用Mock测试Redis Pub/Sub消息发布/订阅功能
 """
 
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch
+
 from core.redis.publisher import RedisStreamPublisher
 from core.redis.subscriber import RedisStreamSubscriber
 
@@ -267,7 +269,6 @@ class TestRedisStreamSubscriber:
     @patch('core.redis.subscriber.redis')
     def test_get_message_with_subscription(self, mock_redis):
         """测试获取消息"""
-        import json
 
         mock_client = MagicMock()
         mock_redis.from_url.return_value = mock_client

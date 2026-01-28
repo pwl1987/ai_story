@@ -3,11 +3,12 @@
 Story 5.2 & 5.3
 """
 
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from core.ai_client.stable_diffusion_client import StableDiffusionClient
+
 from core.ai_client.runway_client import RunwayClient
-from core.ai_client.base import AIResponse
+from core.ai_client.stable_diffusion_client import StableDiffusionClient
 
 
 class TestStableDiffusionClient:

@@ -4,8 +4,6 @@ Runway图生视频客户端实现
 使用任务提交+轮询模式
 """
 
-import base64
-import json
 import time
 from typing import Any, Dict, Optional
 

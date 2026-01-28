@@ -4,9 +4,8 @@ Pipeline编排器测试
 """
 
 import pytest
-from core.pipeline.base import (
-    StageProcessor, PipelineContext, StageResult, ValidationError
-)
+
+from core.pipeline.base import PipelineContext, StageProcessor, StageResult, ValidationError
 from core.pipeline.orchestrator import ProjectPipeline
 
 

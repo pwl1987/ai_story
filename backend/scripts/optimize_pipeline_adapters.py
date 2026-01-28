@@ -5,7 +5,7 @@
 import re
 
 # 读取文件
-with open('apps/projects/pipeline_adapters.py', 'r', encoding='utf-8') as f:
+with open('apps/projects/pipeline_adapters.py', encoding='utf-8') as f:
     content = f.read()
 
 # 替换模式：
@@ -36,7 +36,7 @@ def replace_orm_calls(text):
         if 'stage.save()' in line and 'await' not in line:
             # 保留原有缩进
             indent = len(line) - len(line.lstrip())
-            spaces = ' ' * indent
+            ' ' * indent
             new_line = line.replace('stage.save()', 'await astage_save(stage)')
             new_lines.append(new_line)
         else:

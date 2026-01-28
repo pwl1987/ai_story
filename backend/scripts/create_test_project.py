@@ -10,6 +10,7 @@
 """
 import os
 import sys
+
 import django
 
 # 添加backend目录到Python路径
@@ -19,10 +20,11 @@ sys.path.insert(0, backend_dir)
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
 django.setup()
 
-from apps.projects.models import Project, ProjectStage, ProjectModelConfig
-from apps.prompts.models import PromptTemplateSet, PromptTemplate
-from apps.models.models import ModelProvider
 from django.contrib.auth import get_user_model
+
+from apps.models.models import ModelProvider
+from apps.projects.models import Project, ProjectModelConfig, ProjectStage
+from apps.prompts.models import PromptTemplate, PromptTemplateSet
 
 User = get_user_model()
 
@@ -77,7 +79,7 @@ def create_e2e_test_project():
     }
 
     for stage_type, template_content in stage_templates.items():
-        template, created = PromptTemplate.objects.get_or_create(
+        _template, created = PromptTemplate.objects.get_or_create(
             template_set=prompt_set,
             stage_type=stage_type,
             defaults={
@@ -95,10 +97,10 @@ def create_e2e_test_project():
         mock_llm = ModelProvider.objects.get(name='Mock LLM for E2E Test')
         mock_t2i = ModelProvider.objects.get(name='Mock Text2Image for E2E Test')
         mock_i2v = ModelProvider.objects.get(name='Mock Image2Video for E2E Test')
-        print(f"✓ 获取Mock Providers成功")
+        print("✓ 获取Mock Providers成功")
     except ModelProvider.DoesNotExist as e:
         print(f"✗ Mock Provider不存在: {e}")
-        print(f"请先运行: uv run python scripts/setup_mock_env.py")
+        print("请先运行: uv run python scripts/setup_mock_env.py")
         raise
 
     print("\n5. 创建测试项目...")
@@ -139,7 +141,7 @@ def create_e2e_test_project():
     config.image_providers.add(mock_t2i)
     config.video_providers.add(mock_i2v)
 
-    print(f"✓ 配置模型完成")
+    print("✓ 配置模型完成")
 
     return project
 
@@ -157,7 +159,7 @@ def main():
         print("✓ 测试项目创建完成")
         print("=" * 60)
 
-        print(f"\n项目信息:")
+        print("\n项目信息:")
         print(f"  ID: {project.id}")
         print(f"  名称: {project.name}")
         print(f"  状态: {project.status}")

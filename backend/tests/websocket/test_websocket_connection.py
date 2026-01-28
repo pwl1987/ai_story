@@ -10,10 +10,11 @@ WebSocket连接测试
     - channels-3.0.4+
     - pytest-asyncio
 """
+import asyncio
+
 import pytest
 from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model
-import asyncio
 
 User = get_user_model()
 
@@ -35,7 +36,7 @@ class TestWebSocketConnection:
         )
 
         # 连接
-        connected, subprotocol = await communicator.connect()
+        connected, _subprotocol = await communicator.connect()
         assert connected, "WebSocket连接失败"
 
         # 接收连接确认消息
@@ -69,7 +70,7 @@ class TestWebSocketConnection:
         )
 
         # 连接
-        connected, subprotocol = await communicator.connect()
+        connected, _subprotocol = await communicator.connect()
         assert connected, "阶段WebSocket连接失败"
 
         # 接收连接确认消息

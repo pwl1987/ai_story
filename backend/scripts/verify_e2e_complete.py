@@ -22,11 +22,13 @@ sys.path.insert(0, backend_dir)
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
 
 import django
+
 django.setup()
 
 import requests
-from apps.projects.models import Project
 from django.contrib.auth import get_user_model
+
+from apps.projects.models import Project
 
 User = get_user_model()
 
@@ -60,7 +62,7 @@ class E2EVerifier:
         self.token = data.get('token') or data.get('access')
         self.user_id = data.get('user_id')
 
-        print(f"✓ 登录成功")
+        print("✓ 登录成功")
         print(f"  Token: {self.token[:20]}...")
         print(f"  User ID: {self.user_id}")
         return True
@@ -75,7 +77,7 @@ class E2EVerifier:
             project = Project.objects.get(name='E2E Test Project')
             self.project_id = str(project.id)
 
-            print(f"✓ 项目存在")
+            print("✓ 项目存在")
             print(f"  ID: {project.id}")
             print(f"  名称: {project.name}")
             print(f"  状态: {project.status}")
@@ -87,9 +89,9 @@ class E2EVerifier:
             actual_stages = [s.stage_type for s in project.stages.all()]
 
             if set(expected_stages) == set(actual_stages):
-                print(f"✓ 阶段配置正确")
+                print("✓ 阶段配置正确")
             else:
-                print(f"✗ 阶段配置不匹配")
+                print("✗ 阶段配置不匹配")
                 print(f"  期望: {expected_stages}")
                 print(f"  实际: {actual_stages}")
                 return False
@@ -97,8 +99,8 @@ class E2EVerifier:
             return True
 
         except Project.DoesNotExist:
-            print(f"✗ 项目不存在")
-            print(f"  请先运行: uv run python scripts/create_test_project.py")
+            print("✗ 项目不存在")
+            print("  请先运行: uv run python scripts/create_test_project.py")
             return False
 
     def verify_workflow_start(self):
@@ -121,7 +123,7 @@ class E2EVerifier:
         task_id = data.get('task_id')
         channel = data.get('channel')
 
-        print(f"✓ 工作流已启动")
+        print("✓ 工作流已启动")
         print(f"  任务ID: {task_id}")
         print(f"  频道: {channel}")
         print(f"  项目ID: {data.get('project_id')}")
@@ -161,10 +163,10 @@ class E2EVerifier:
 
             # 检查状态
             if status == 'completed':
-                print(f"\n\n✓ 所有阶段已完成")
+                print("\n\n✓ 所有阶段已完成")
 
                 # 显示阶段详情
-                print(f"\n  阶段详情:")
+                print("\n  阶段详情:")
                 for stage in stages:
                     symbol = "✓" if stage['status'] == 'completed' else "✗"
                     print(f"    {symbol} {stage['stage_type']}: {stage['status']}")
@@ -172,7 +174,7 @@ class E2EVerifier:
                 return True
 
             elif status == 'failed':
-                print(f"\n\n✗ 工作流失败")
+                print("\n\n✗ 工作流失败")
 
                 # 显示失败信息
                 for stage in stages:
@@ -194,9 +196,9 @@ class E2EVerifier:
         print("验证5: WebSocket连接（可选）")
         print("="*60)
 
-        print(f"提示: WebSocket验证需要手动测试")
+        print("提示: WebSocket验证需要手动测试")
         print(f"  连接: ws://localhost:8000/ws/projects/{self.project_id}/")
-        print(f"  预期: 接收实时进度更新和完成通知")
+        print("  预期: 接收实时进度更新和完成通知")
 
         # 这里可以添加自动化的WebSocket测试
         # 但由于需要额外的依赖（websocket-client），暂时跳过

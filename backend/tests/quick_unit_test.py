@@ -2,13 +2,12 @@
 快速单元测试 - 跳过复杂的ORM操作
 专注于测试适配器逻辑本身
 """
-import pytest
 from unittest.mock import Mock, patch
-from apps.projects.pipeline_adapters import (
-    RewriteStageAdapter,
-    StoryboardStageAdapter
-)
-from core.pipeline.base import PipelineContext, StageResult
+
+import pytest
+
+from apps.projects.pipeline_adapters import RewriteStageAdapter, StoryboardStageAdapter
+from core.pipeline.base import PipelineContext
 
 
 @pytest.mark.django_db
@@ -39,7 +38,7 @@ class TestAdaptersQuick:
         mock_sync.return_value = mock_project
 
         adapter = RewriteStageAdapter()
-        context = PipelineContext(project_id='test-id')
+        PipelineContext(project_id='test-id')
 
         # 由于mock问题，这里只测试适配器创建
         assert adapter is not None

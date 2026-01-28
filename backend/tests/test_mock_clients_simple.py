@@ -2,15 +2,16 @@
 Mock客户端简化测试 - 只验证核心功能
 """
 import pytest
+
+from core.ai_client.mock_image2video_client import MockImage2VideoClient
 from core.ai_client.mock_llm_client import MockLLMClient
 from core.ai_client.mock_text2image_client import MockText2ImageClient
-from core.ai_client.mock_image2video_client import MockImage2VideoClient
 
 
 @pytest.mark.django_db
 class TestMockClientsBasic:
     """Mock客户端基础功能测试"""
-    
+
     @pytest.fixture
     def mock_llm(self):
         return MockLLMClient(
@@ -18,7 +19,7 @@ class TestMockClientsBasic:
             api_key='key',
             model_name='llm'
         )
-    
+
     @pytest.fixture
     def mock_t2i(self):
         return MockText2ImageClient(
@@ -26,7 +27,7 @@ class TestMockClientsBasic:
             api_key='key',
             model_name='sdxl'
         )
-    
+
     @pytest.fixture
     def mock_i2v(self):
         return MockImage2VideoClient(
@@ -34,7 +35,7 @@ class TestMockClientsBasic:
             api_key='key',
             model_name='runway'
         )
-    
+
     # Mock LLM Client 测试
     @pytest.mark.asyncio
     async def test_mock_llm_generate(self, mock_llm):
@@ -42,25 +43,25 @@ class TestMockClientsBasic:
         response = await mock_llm.generate(prompt='测试')
         assert response.success is True
         assert response.text != ''
-    
+
     @pytest.mark.asyncio
     async def test_mock_llm_validate(self, mock_llm):
         """测试Mock LLM配置验证"""
         assert await mock_llm.validate_config() is True
         assert await mock_llm.health_check() is True
-    
+
     # Mock Text2Image Client 测试
     def test_mock_t2i_generate(self, mock_t2i):
         """测试Mock文生图"""
         response = mock_t2i.generate(prompt='测试')
         assert response.success is True
         assert 'urls' in response.data or 'image_url' in response.data
-    
+
     def test_mock_t2i_validate(self, mock_t2i):
         """测试Mock文生图配置验证"""
         assert mock_t2i.validate_config() is True
         assert mock_t2i.health_check() is True
-    
+
     # Mock Image2Video Client 测试
     def test_mock_i2v_generate(self, mock_i2v):
         """测试Mock图生视频"""
@@ -71,7 +72,7 @@ class TestMockClientsBasic:
         )
         assert response.success is True
         assert 'video_url' in response.data or 'urls' in response.data
-    
+
     def test_mock_i2v_validate(self, mock_i2v):
         """测试Mock图生视频配置验证"""
         assert mock_i2v.validate_config() is True

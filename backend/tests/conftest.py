@@ -16,10 +16,9 @@ sys.path.insert(0, str(backend_root))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
 
 
-import pytest
 import django
+import pytest
 from django.conf import settings
-
 
 # 确保Django已设置
 if not settings.configured:
@@ -46,8 +45,9 @@ def test_project(db):
 
     用于测试项目管理功能
     """
-    from apps.projects.models import Project
     from django.contrib.auth import get_user_model
+
+    from apps.projects.models import Project
 
     User = get_user_model()
 

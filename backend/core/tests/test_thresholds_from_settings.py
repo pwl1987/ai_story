@@ -3,7 +3,6 @@
 Epic 2优化：确保阈值可以通过环境变量配置
 """
 
-import pytest
 from django.test import override_settings
 
 from config.celery import _get_slow_task_threshold

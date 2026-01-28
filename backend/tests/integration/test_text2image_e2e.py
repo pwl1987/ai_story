@@ -9,13 +9,14 @@ Text2Image端到端集成测试
 5. 验证数据库更新（image_generation和video_generation阶段）
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
 from django.contrib.auth import get_user_model
 
-from apps.projects.models import Project, ProjectStage
-from apps.prompts.models import PromptTemplateSet, PromptTemplate
 from apps.models.models import ModelProvider
+from apps.projects.models import Project, ProjectStage
+from apps.prompts.models import PromptTemplate, PromptTemplateSet
 
 User = get_user_model()
 
@@ -181,7 +182,7 @@ class TestText2ImageE2E:
 
         # 3. 配置文生图模型
         from apps.projects.models import ProjectModelConfig
-        config, created = ProjectModelConfig.objects.get_or_create(
+        config, _created = ProjectModelConfig.objects.get_or_create(
             project=project
         )
         config.image_providers.add(model_provider)
@@ -370,7 +371,7 @@ class TestText2ImageE2E:
 
         # 3. 配置模型
         from apps.projects.models import ProjectModelConfig
-        config, created = ProjectModelConfig.objects.get_or_create(
+        config, _created = ProjectModelConfig.objects.get_or_create(
             project=Project.objects.get(id=project_id)
         )
         config.image_providers.add(model_provider)
@@ -479,7 +480,7 @@ class TestText2ImageE2E:
 
         # 3. 配置模型
         from apps.projects.models import ProjectModelConfig
-        config, created = ProjectModelConfig.objects.get_or_create(
+        config, _created = ProjectModelConfig.objects.get_or_create(
             project=Project.objects.get(id=project_id)
         )
         config.image_providers.add(model_provider)

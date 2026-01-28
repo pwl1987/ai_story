@@ -4,8 +4,7 @@ Epic 2.5 - API响应时间监控（Prometheus集成）
 """
 import os
 import sys
-import time
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock
 
 import pytest
 

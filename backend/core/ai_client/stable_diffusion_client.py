@@ -3,10 +3,7 @@ Stable Diffusion文生图客户端实现
 支持Automatic1111 WebUI和Stability AI API
 """
 
-import base64
-import json
 import time
-from typing import Any, Dict, List
 
 import requests
 

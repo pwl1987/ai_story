@@ -19,15 +19,14 @@ Story 2.7 - 日志查询功能
 import argparse
 import json
 import os
-import sys
-import django
 from datetime import datetime, timedelta
+
+import django
 
 # Django环境设置
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.base')
 django.setup()
 
-from django.conf import settings
 
 
 def query_logs_from_file(log_file, filters=None, limit=100, since=None):
@@ -57,7 +56,7 @@ def query_logs_from_file(log_file, filters=None, limit=100, since=None):
             since_time = now - timedelta(minutes=minutes)
 
     try:
-        with open(log_file, 'r', encoding='utf-8') as f:
+        with open(log_file, encoding='utf-8') as f:
             for line in f:
                 if len(results) >= limit:
                     break

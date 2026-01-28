@@ -3,7 +3,6 @@
 提供图片、视频等内容的访问接口
 """
 
-import os
 from pathlib import Path
 
 from django.conf import settings

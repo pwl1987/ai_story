@@ -6,12 +6,10 @@
 import logging
 import os
 import uuid
-from pathlib import Path
-from typing import Optional, Tuple
+from typing import Tuple
 from urllib.parse import urlparse
 
 import requests
-from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 
