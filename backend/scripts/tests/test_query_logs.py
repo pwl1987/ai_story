@@ -17,8 +17,9 @@ class TestLogQueryTool:
 
     def setup_method(self):
         """创建临时日志文件"""
-        self.temp_log = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.log')
-        self.log_file = self.temp_log.name
+        fd, self.log_file = tempfile.mkstemp(suffix='.log')
+        os.close(fd)
+        self.temp_log = open(self.log_file, 'w')
 
         # 写入测试日志
         test_logs = [

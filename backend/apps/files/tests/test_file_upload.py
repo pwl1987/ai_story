@@ -32,12 +32,12 @@ class FileUploadAPITestCase(APITestCase):
         """测试上传图片成功"""
         # 创建临时图片文件
         image = Image.new('RGB', (100, 100), color='red')
-        tmp_file = tempfile.NamedTemporaryFile(suffix='.jpg', delete=False)
-        image.save(tmp_file, format='JPEG')
-        tmp_file.close()
+        with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_file:
+            image.save(tmp_file, format='JPEG')
+            tmp_path = tmp_file.name
 
         # 读取文件并创建上传文件对象
-        with open(tmp_file.name, 'rb') as f:
+        with open(tmp_path, 'rb') as f:
             uploaded_file = SimpleUploadedFile(
                 'test_image.jpg',
                 f.read(),
@@ -63,12 +63,12 @@ class FileUploadAPITestCase(APITestCase):
     def test_upload_document_success(self):
         """测试上传文档成功"""
         # 创建临时文本文件
-        tmp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False)
-        tmp_file.write('This is a test document.')
-        tmp_file.close()
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as tmp_file:
+            tmp_file.write('This is a test document.')
+            tmp_path = tmp_file.name
 
         # 读取文件并创建上传文件对象
-        with open(tmp_file.name, 'rb') as f:
+        with open(tmp_path, 'rb') as f:
             uploaded_file = SimpleUploadedFile(
                 'test_document.txt',
                 f.read(),
@@ -131,11 +131,11 @@ class FileUploadAPITestCase(APITestCase):
         """测试获取文件列表"""
         # 先上传一个文件
         image = Image.new('RGB', (100, 100), color='blue')
-        tmp_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
-        image.save(tmp_file, format='PNG')
-        tmp_file.close()
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
+            image.save(tmp_file, format='PNG')
+            tmp_path = tmp_file.name
 
-        with open(tmp_file.name, 'rb') as f:
+        with open(tmp_path, 'rb') as f:
             uploaded_file = SimpleUploadedFile(
                 'test_list.png',
                 f.read(),
@@ -162,11 +162,11 @@ class FileUploadAPITestCase(APITestCase):
         """测试获取文件详情"""
         # 先上传一个文件
         image = Image.new('RGB', (100, 100), color='green')
-        tmp_file = tempfile.NamedTemporaryFile(suffix='.jpg', delete=False)
-        image.save(tmp_file, format='JPEG')
-        tmp_file.close()
+        with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_file:
+            image.save(tmp_file, format='JPEG')
+            tmp_path = tmp_file.name
 
-        with open(tmp_file.name, 'rb') as f:
+        with open(tmp_path, 'rb') as f:
             uploaded_file = SimpleUploadedFile(
                 'test_detail.jpg',
                 f.read(),
@@ -196,11 +196,11 @@ class FileUploadAPITestCase(APITestCase):
         """测试删除文件"""
         # 先上传一个文件
         image = Image.new('RGB', (100, 100), color='yellow')
-        tmp_file = tempfile.NamedTemporaryFile(suffix='.jpg', delete=False)
-        image.save(tmp_file, format='JPEG')
-        tmp_file.close()
+        with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_file:
+            image.save(tmp_file, format='JPEG')
+            tmp_path = tmp_file.name
 
-        with open(tmp_file.name, 'rb') as f:
+        with open(tmp_path, 'rb') as f:
             uploaded_file = SimpleUploadedFile(
                 'test_delete.jpg',
                 f.read(),
@@ -242,11 +242,11 @@ class FileUploadAPITestCase(APITestCase):
         """测试文件去重功能"""
         # 创建文件
         image = Image.new('RGB', (50, 50), color='red')
-        tmp_file = tempfile.NamedTemporaryFile(suffix='.jpg', delete=False)
-        image.save(tmp_file, format='JPEG')
-        tmp_file.close()
+        with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_file:
+            image.save(tmp_file, format='JPEG')
+            tmp_path = tmp_file.name
 
-        with open(tmp_file.name, 'rb') as f:
+        with open(tmp_path, 'rb') as f:
             file_content = f.read()
 
         # 第一次上传

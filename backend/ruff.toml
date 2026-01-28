@@ -60,6 +60,12 @@ unfixable = []
 "tests/**/*" = ["S101", "ARG", "PLR2004"]
 # migrations文件通常有很多问题
 "**/migrations/*" = ["ALL"]
+# pytest的setup/teardown模式需要保持文件打开
+"scripts/tests/test_query_logs.py" = ["SIM115"]
+# 脚本文件和测试文件允许导入不在顶部
+"scripts/*" = ["E402"]
+"tests/integration/*" = ["E402"]
+"tests/benchmarks/*" = ["E402"]
 
 [format]
 # 使用双引号
