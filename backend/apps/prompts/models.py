@@ -206,7 +206,7 @@ class GlobalVariable(models.Model):
             return self.value
 
     @classmethod
-    def get_variables_for_user(cls, user, include_system=True):
+    async def get_variables_for_user(cls, user, include_system=True):
         """
         获取用户可用的所有变量
 
@@ -218,6 +218,7 @@ class GlobalVariable(models.Model):
             变量字典 {key: typed_value}
         """
         from django.db.models import Q
+        from asgiref.sync import sync_to_async
 
         query = Q(created_by=user, scope='user', is_active=True)
 
@@ -225,7 +226,13 @@ class GlobalVariable(models.Model):
             query |= Q(scope='system', is_active=True)
 
         variables = {}
-        for var in cls.objects.filter(query):
+
+        # 使用sync_to_async包装ORM查询（Django 3.2不支持原生异步ORM）
+        variables_list = await sync_to_async(
+            lambda: list(cls.objects.filter(query))
+        )()
+
+        for var in variables_list:
             variables[var.key] = var.get_typed_value()
 
         return variables

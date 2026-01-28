@@ -9,6 +9,9 @@ from typing import Dict, Any, List
 from core.ai_client.openai_client import OpenAIClient
 from apps.models.models import ModelProvider
 
+# 导入异步ORM包装函数
+from apps.projects.pipeline_adapters import sync_to_async_wrapper
+
 
 class PromptEvaluationService:
     """
@@ -55,10 +58,13 @@ class PromptEvaluationService:
             return self.ai_client
 
         # 查找评估专用的模型提供商
-        provider = await ModelProvider.objects.filter(
-            provider_type='llm',
-            is_active=True
-        ).afirst()
+        # 使用sync_to_async_wrapper包装ORM调用（Django 3.2不支持原生异步ORM）
+        provider = await sync_to_async_wrapper(
+            ModelProvider.objects.filter(
+                provider_type='llm',
+                is_active=True
+            ).first
+        )()
 
         if not provider:
             raise ValueError('未找到可用的LLM模型提供商')
