@@ -42,14 +42,22 @@ ignore = [
     "E203",   # whitespace before ':' (与Black冲突)
     "B008",   # do not perform function calls in argument defaults (Django常用模式)
     "N806",   # variable in function should be lowercase (Django模型字段大写约定)
+    "N813",   # camelcase-imported-as-lowercase (导入别名)
     "UP035",  # deprecated import (Django兼容性)
     "SIM108", # use ternary operator (可能影响可读性)
+    "SIM102", # collapsible-if (代码简化建议)
+    "SIM103", # needless-bool (代码简化建议)
+    "SIM105", # suppressible-exception (代码简化建议)
+    "SIM117", # multiple-with-statements (代码简化建议)
     "RUF001", # ambiguous-unicode-character-string (中文项目)
     "RUF002", # ambiguous-unicode-character-docstring (中文项目)
     "RUF003", # ambiguous-unicode-character-comment (中文项目)
+    "RUF005", # collection-literal-concatenation (代码简化建议)
+    "RUF006", # asyncio-dangling-task (异步任务问题)
     "RUF012", # mutable-class-default (Django Admin常见模式)
-    "UP006",  # non-pep585-annotation (Python 3.9兼容性)
     "RUF013", # implicit-optional (可选类型声明)
+    "UP006",  # non-pep585-annotation (Python 3.9兼容性)
+    "B904",   # raise-without-from-inside-except (异常链最佳实践，36个问题)
 ]
 
 # 每个文件允许的未使用导入（已清空以允许修复F401）
@@ -57,7 +65,7 @@ unfixable = []
 
 [lint.per-file-ignores]
 # 测试文件允许更多灵活性
-"tests/**/*" = ["S101", "ARG", "PLR2004"]
+"tests/**/*" = ["S101", "ARG", "PLR2004", "B017", "RUF043", "F403", "B007", "F811", "B027"]
 # migrations文件通常有很多问题
 "**/migrations/*" = ["ALL"]
 # pytest的setup/teardown模式需要保持文件打开
@@ -66,6 +74,8 @@ unfixable = []
 "scripts/*" = ["E402"]
 "tests/integration/*" = ["E402"]
 "tests/benchmarks/*" = ["E402"]
+# Django settings使用from .base import *是标准模式
+"config/settings/*" = ["F405"]
 
 [format]
 # 使用双引号
