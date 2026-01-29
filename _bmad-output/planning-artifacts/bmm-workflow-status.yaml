@@ -60,7 +60,7 @@ workflow_status:
     workflows:
       - id: "prd"
         name: "Create PRD"
-        status: "required"
+        status: "/home/code/ai_story/_bmad-output/planning-artifacts/prd.md"
         agent: "pm"
         command: "/bmad:bmm:workflows:create-prd"
         output: "Product Requirements Document"
@@ -81,7 +81,7 @@ workflow_status:
     workflows:
       - id: "create-architecture"
         name: "Create Architecture"
-        status: "required"
+        status: "/home/code/ai_story/_bmad-output/planning-artifacts/architecture.md"
         agent: "architect"
         command: "/bmad:bmm:workflows:create-architecture"
         output: "System architecture document"
@@ -89,7 +89,7 @@ workflow_status:
 
       - id: "create-epics-and-stories"
         name: "Create Epics and Stories"
-        status: "required"
+        status: "/home/code/ai_story/_bmad-output/planning-artifacts/epics.md"
         agent: "pm"
         command: "/bmad:bmm:workflows:create-epics-and-stories"
         output: "Epics and user stories with full context"
@@ -105,7 +105,7 @@ workflow_status:
 
       - id: "implementation-readiness"
         name: "Implementation Readiness Check"
-        status: "required"
+        status: "/home/code/ai_story/_bmad-output/planning-artifacts/implementation-readiness-report-2026-01-27.md"
         agent: "architect"
         command: "/bmad:bmm:workflows:check-implementation-readiness"
         output: "Implementation readiness validation"
@@ -117,7 +117,7 @@ workflow_status:
     workflows:
       - id: "sprint-planning"
         name: "Sprint Planning"
-        status: "required"
+        status: "/home/code/ai_story/_bmad-output/implementation-artifacts/sprint-status.yaml"
         agent: "sm"
         command: "/bmad:bmm:workflows:sprint-planning"
         output: "Sprint plan"

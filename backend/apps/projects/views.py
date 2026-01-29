@@ -891,6 +891,55 @@ class ProjectViewSet(viewsets.ModelViewSet):
             status=status.HTTP_202_ACCEPTED,
         )
 
+    @action(detail=False, methods=["get"])
+    def websocket_metrics(self, request):
+        """
+        获取WebSocket连接性能统计
+
+        Story 3-1: WebSocket连接性能优化
+
+        GET /api/v1/projects/websocket_metrics/
+
+        查询参数:
+        - project_id: 项目ID（可选）
+        - stage: 阶段名称（可选）
+
+        返回:
+        {
+            "total_connections": 100,
+            "successful_connections": 99,
+            "success_rate": 99.0,
+            "avg_connection_time_ms": 150.5,
+            "p50_connection_time_ms": 140.0,
+            "p95_connection_time_ms": 250.0,
+            "p99_connection_time_ms": 300.0,
+            "min_connection_time_ms": 100.0,
+            "max_connection_time_ms": 500.0
+        }
+
+        性能要求:
+        - P95连接时间 < 1000ms
+        - 连接成功率 > 99%
+        - 支持100+并发连接
+
+        权限: IsAuthenticated
+        """
+        from .consumers import WebSocketConnectionMetrics
+
+        project_id = request.query_params.get("project_id")
+        stage = request.query_params.get("stage")
+
+        # 获取统计信息
+        metrics = WebSocketConnectionMetrics.get_statistics(project_id=project_id, stage=stage)
+
+        if not metrics:
+            return Response(
+                {"error": "暂无连接统计数据", "hint": "请先建立WebSocket连接后再查询"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(metrics)
+
 
 class ProjectStageViewSet(viewsets.ReadOnlyModelViewSet):
     """

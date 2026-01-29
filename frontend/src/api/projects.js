@@ -9,7 +9,7 @@ export default {
    * @param {Object} params - 查询参数 {page, pageSize, status, search, ordering}
    */
   getProjects(params) {
-    return apiClient.get('/projects/projects/', { params });
+    return apiClient.get('/projects/', { params });
   },
 
   /**
@@ -17,7 +17,7 @@ export default {
    * @param {String} id - 项目ID
    */
   getProject(id) {
-    return apiClient.get(`/projects/projects/${id}/`);
+    return apiClient.get(`/projects/${id}/`);
   },
 
   /**
@@ -25,7 +25,7 @@ export default {
    * @param {Object} data - 项目数据 {name, description, original_topic, prompt_template_set}
    */
   createProject(data) {
-    return apiClient.post('/projects/projects/', data);
+    return apiClient.post('/projects/', data);
   },
 
   /**
@@ -34,7 +34,7 @@ export default {
    * @param {Object} data - 更新数据
    */
   updateProject(id, data) {
-    return apiClient.patch(`/projects/projects/${id}/`, data);
+    return apiClient.patch(`/projects/${id}/`, data);
   },
 
   /**
@@ -42,7 +42,7 @@ export default {
    * @param {String} id - 项目ID
    */
   deleteProject(id) {
-    return apiClient.delete(`/projects/projects/${id}/`);
+    return apiClient.delete(`/projects/${id}/`);
   },
 
   /**
@@ -50,7 +50,7 @@ export default {
    * @param {String} projectId - 项目ID
    */
   getProjectStages(projectId) {
-    return apiClient.get(`/projects/projects/${projectId}/stages/`);
+    return apiClient.get(`/projects/${projectId}/stages/`);
   },
 
   /**
@@ -62,7 +62,7 @@ export default {
   executeStage(projectId, stageName, inputData = {}) {
     console.log(444, projectId, stageName, inputData)
 
-    return apiClient.post(`/projects/projects/${projectId}/execute_stage/`, {
+    return apiClient.post(`/projects/${projectId}/execute_stage/`, {
       stage_name: stageName,
       input_data: inputData,
     });
@@ -74,7 +74,7 @@ export default {
    * @param {String} stageName - 阶段名称
    */
   retryStage(projectId, stageName) {
-    return apiClient.post(`/projects/projects/${projectId}/retry_stage/`, {
+    return apiClient.post(`/projects/${projectId}/retry_stage/`, {
       stage_name: stageName,
     });
   },
@@ -84,7 +84,7 @@ export default {
    * @param {String} projectId - 项目ID
    */
   pauseProject(projectId) {
-    return apiClient.post(`/projects/projects/${projectId}/pause/`);
+    return apiClient.post(`/projects/${projectId}/pause/`);
   },
 
   /**
@@ -92,7 +92,7 @@ export default {
    * @param {String} projectId - 项目ID
    */
   resumeProject(projectId) {
-    return apiClient.post(`/projects/projects/${projectId}/resume/`);
+    return apiClient.post(`/projects/${projectId}/resume/`);
   },
 
   /**
@@ -101,7 +101,7 @@ export default {
    * @param {String} stageName - 阶段名称
    */
   rollbackStage(projectId, stageName) {
-    return apiClient.post(`/projects/projects/${projectId}/rollback_stage/`, {
+    return apiClient.post(`/projects/${projectId}/rollback_stage/`, {
       stage_name: stageName,
     });
   },
@@ -111,7 +111,7 @@ export default {
    * @param {String} projectId - 项目ID
    */
   getModelConfig(projectId) {
-    return apiClient.get(`/projects/projects/${projectId}/model_config/`);
+    return apiClient.get(`/projects/${projectId}/model_config/`);
   },
 
   /**
@@ -120,7 +120,7 @@ export default {
    * @param {Object} data - 配置数据
    */
   updateModelConfig(projectId, data) {
-    return apiClient.patch(`/projects/projects/${projectId}/update_model_config/`, data);
+    return apiClient.patch(`/projects/${projectId}/update_model_config/`, data);
   },
 
   /**
@@ -130,7 +130,7 @@ export default {
    * @param {Boolean} includeModelConfig - 是否包含模型配置
    */
   saveAsTemplate(projectId, templateName, includeModelConfig = true) {
-    return apiClient.post(`/projects/projects/${projectId}/save_as_template/`, {
+    return apiClient.post(`/projects/${projectId}/save_as_template/`, {
       template_name: templateName,
       include_model_config: includeModelConfig,
     });
@@ -142,7 +142,7 @@ export default {
    * @param {Object} options - 导出选项 {include_subtitles, video_format}
    */
   exportProject(projectId, options = {}) {
-    return apiClient.post(`/projects/projects/${projectId}/export/`, {
+    return apiClient.post(`/projects/${projectId}/export/`, {
       include_subtitles: options.includeSubtitles !== false,
       video_format: options.videoFormat || 'mp4',
     });
@@ -152,7 +152,7 @@ export default {
    * 获取项目统计信息
    */
   getStatistics() {
-    return apiClient.get('/projects/projects/statistics/');
+    return apiClient.get('/projects/statistics/');
   },
 
   /**
@@ -178,7 +178,7 @@ export default {
    * @param {Object} data - 更新数据 {input_data, output_data}
    */
   updateStageData(projectId, stageName, data) {
-    return apiClient.patch(`/projects/projects/${projectId}/update_stage_data/`, {
+    return apiClient.patch(`/projects/${projectId}/update_stage_data/`, {
       stage_name: stageName,
       ...data,
     });
@@ -199,6 +199,6 @@ export default {
    *   }
    */
   generateJianyingDraft(projectId, options = {}) {
-    return apiClient.post(`/projects/projects/${projectId}/generate_jianying_draft/`, options);
+    return apiClient.post(`/projects/${projectId}/generate_jianying_draft/`, options);
   },
 };

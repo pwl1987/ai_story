@@ -11,15 +11,135 @@ import contextlib
 import json
 import logging
 import time
+from typing import Dict
 
 import redis.asyncio as aioredis
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.conf import settings
+from django.core.cache import cache
 
 # Epic 3: 导入自动重连管理器
 from core.websocket import WebSocketReconnectManager
 
 logger = logging.getLogger(__name__)
+
+# Story 3-1: 连接性能监控常量
+CONNECTION_METRICS_KEY = "websocket:connection_metrics"
+CONNECTION_TIMEOUT = 5  # 连接超时时间（秒）
+
+
+class WebSocketConnectionMetrics:
+    """
+    Story 3-1: WebSocket连接性能监控器
+
+    职责:
+    - 记录连接建立时间
+    - 计算P95连接延迟
+    - 统计连接成功率
+
+    遵循单一职责原则(SRP)
+    """
+
+    @staticmethod
+    def record_connection(project_id: str, stage: str, connection_time_ms: float, success: bool):
+        """
+        记录连接指标
+
+        Args:
+            project_id: 项目ID
+            stage: 阶段名称
+            connection_time_ms: 连接时间（毫秒）
+            success: 是否成功
+        """
+        try:
+            # 获取现有指标
+            metrics = cache.get(CONNECTION_METRICS_KEY, {})
+
+            # 更新指标
+            key = f"{project_id}:{stage}"
+            if key not in metrics:
+                metrics[key] = {
+                    "total_connections": 0,
+                    "successful_connections": 0,
+                    "connection_times_ms": [],
+                }
+
+            metrics[key]["total_connections"] += 1
+            if success:
+                metrics[key]["successful_connections"] += 1
+                # 只保留最近1000条记录（避免内存溢出）
+                metrics[key]["connection_times_ms"].append(connection_time_ms)
+                if len(metrics[key]["connection_times_ms"]) > 1000:
+                    metrics[key]["connection_times_ms"].pop(0)
+
+            # 缓存1小时
+            cache.set(CONNECTION_METRICS_KEY, metrics, timeout=3600)
+
+        except Exception as e:
+            logger.error(f"记录连接指标失败: {e}")
+
+    @staticmethod
+    def get_statistics(project_id: str = None, stage: str = None) -> Dict:
+        """
+        获取连接统计信息
+
+        Args:
+            project_id: 项目ID（可选）
+            stage: 阶段名称（可选）
+
+        Returns:
+            包含P95、平均连接时间、成功率等统计信息的字典
+        """
+        try:
+            metrics = cache.get(CONNECTION_METRICS_KEY, {})
+
+            if project_id and stage:
+                # 获取特定项目的统计
+                key = f"{project_id}:{stage}"
+                if key not in metrics:
+                    return {}
+                data = metrics[key]
+            else:
+                # 聚合所有项目的统计
+                all_times = []
+                total = 0
+                successful = 0
+                for data in metrics.values():
+                    all_times.extend(data["connection_times_ms"])
+                    total += data["total_connections"]
+                    successful += data["successful_connections"]
+
+                if not all_times:
+                    return {}
+
+                data = {
+                    "connection_times_ms": all_times,
+                    "total_connections": total,
+                    "successful_connections": successful,
+                }
+
+            # 计算统计信息
+            times = sorted(data["connection_times_ms"])
+            n = len(times)
+
+            if n == 0:
+                return {}
+
+            return {
+                "total_connections": data["total_connections"],
+                "successful_connections": data["successful_connections"],
+                "success_rate": data["successful_connections"] / data["total_connections"] * 100,
+                "avg_connection_time_ms": sum(times) / n,
+                "p50_connection_time_ms": times[int(n * 0.5)],
+                "p95_connection_time_ms": times[int(n * 0.95)] if n >= 20 else times[-1],
+                "p99_connection_time_ms": times[int(n * 0.99)] if n >= 100 else times[-1],
+                "min_connection_time_ms": min(times),
+                "max_connection_time_ms": max(times),
+            }
+
+        except Exception as e:
+            logger.error(f"获取连接统计失败: {e}")
+            return {}
 
 
 class ProjectStageConsumer(AsyncWebsocketConsumer):
@@ -46,13 +166,19 @@ class ProjectStageConsumer(AsyncWebsocketConsumer):
         self.redis_client = None
         self.pubsub = None
         self.reconnect_manager = None
+        # Story 3-1: 添加连接开始时间追踪
+        self._connection_start_time = None
 
     async def connect(self):
         """
         WebSocket连接建立
 
         Epic 3: 集成自动重连管理器
+        Story 3-1: 添加连接性能追踪
         """
+        # Story 3-1: 记录连接开始时间
+        self._connection_start_time = time.time()
+
         # 从URL获取参数
         self.project_id = self.scope["url_route"]["kwargs"]["project_id"]
         self.stage_name = self.scope["url_route"]["kwargs"]["stage_name"]
@@ -60,9 +186,9 @@ class ProjectStageConsumer(AsyncWebsocketConsumer):
         # 构建Redis频道名称
         self.channel_name = f"ai_story:project:{self.project_id}:stage:{self.stage_name}"
 
-        logger.info(f"WebSocket连接: {self.channel_name}")
+        logger.info(f"WebSocket连接开始: {self.channel_name}")
 
-        # 接受WebSocket连接
+        # 接受WebSocket连接（优化：立即接受，不等待Redis）
         await self.accept()
 
         # Epic 3: 创建重连管理器
@@ -74,8 +200,32 @@ class ProjectStageConsumer(AsyncWebsocketConsumer):
             max_retries=5,
         )
 
-        # 启动自动重连
-        success = await self.reconnect_manager.start()
+        # 启动自动重连（优化：设置连接超时）
+        try:
+            # 使用asyncio.wait_for添加超时控制
+            success = await asyncio.wait_for(
+                self.reconnect_manager.start(), timeout=CONNECTION_TIMEOUT
+            )
+        except asyncio.TimeoutError:
+            logger.error(f"Redis连接超时（{CONNECTION_TIMEOUT}秒）: {self.channel_name}")
+            success = False
+        except Exception as e:
+            logger.error(f"Redis连接异常: {e}")
+            success = False
+
+        # Story 3-1: 记录连接指标
+        connection_time_ms = (time.time() - self._connection_start_time) * 1000
+        WebSocketConnectionMetrics.record_connection(
+            project_id=self.project_id,
+            stage=self.stage_name,
+            connection_time_ms=connection_time_ms,
+            success=success,
+        )
+
+        logger.info(
+            f"WebSocket连接{'成功' if success else '失败'}: "
+            f"{self.channel_name} (耗时: {connection_time_ms:.2f}ms)"
+        )
 
         if not success:
             # 重连失败，发送错误消息
@@ -246,13 +396,19 @@ class ProjectConsumer(AsyncWebsocketConsumer):
         self.redis_client = None
         self.pubsub = None
         self.reconnect_manager = None
+        # Story 3-1: 添加连接开始时间追踪
+        self._connection_start_time = None
 
     async def connect(self):
         """
         WebSocket连接建立
 
         Epic 3: 集成自动重连管理器
+        Story 3-1: 添加连接性能追踪
         """
+        # Story 3-1: 记录连接开始时间
+        self._connection_start_time = time.time()
+
         self.project_id = self.scope["url_route"]["kwargs"]["project_id"]
 
         # 订阅项目所有阶段的频道
@@ -264,7 +420,7 @@ class ProjectConsumer(AsyncWebsocketConsumer):
             f"ai_story:project:{self.project_id}:stage:video_generation",
         ]
 
-        logger.info(f"WebSocket连接: 项目 {self.project_id}")
+        logger.info(f"WebSocket连接开始: 项目 {self.project_id}")
 
         await self.accept()
 
@@ -277,8 +433,32 @@ class ProjectConsumer(AsyncWebsocketConsumer):
             max_retries=5,
         )
 
-        # 启动自动重连
-        success = await self.reconnect_manager.start()
+        # 启动自动重连（优化：设置连接超时）
+        try:
+            # 使用asyncio.wait_for添加超时控制
+            success = await asyncio.wait_for(
+                self.reconnect_manager.start(), timeout=CONNECTION_TIMEOUT
+            )
+        except asyncio.TimeoutError:
+            logger.error(f"Redis连接超时（{CONNECTION_TIMEOUT}秒）: 项目 {self.project_id}")
+            success = False
+        except Exception as e:
+            logger.error(f"Redis连接异常: {e}")
+            success = False
+
+        # Story 3-1: 记录连接指标
+        connection_time_ms = (time.time() - self._connection_start_time) * 1000
+        WebSocketConnectionMetrics.record_connection(
+            project_id=self.project_id,
+            stage="all",
+            connection_time_ms=connection_time_ms,
+            success=success,
+        )
+
+        logger.info(
+            f"WebSocket连接{'成功' if success else '失败'}: "
+            f"项目 {self.project_id} (耗时: {connection_time_ms:.2f}ms)"
+        )
 
         if not success:
             # 重连失败，发送错误消息

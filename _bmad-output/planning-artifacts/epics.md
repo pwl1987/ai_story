@@ -1,9 +1,10 @@
 ---
-stepsCompleted: ['validate-prerequisites', 'design-epics', 'create-stories']
+stepsCompleted: ['validate-prerequisites', 'design-epics', 'create-stories', 'epic-3-stories-created']
 inputDocuments:
   - /home/code/ai_story/_bmad-output/planning-artifacts/prd.md
   - /home/code/ai_story/_bmad-output/planning-artifacts/architecture.md
   - /home/code/ai_story/_bmad-output/project-context.md
+lastModified: "2026-01-29"
 ---
 
 # AI Story - Epic Breakdown
@@ -447,6 +448,397 @@ inputDocuments:
 **独立性:** ✅ 完全独立
 
 **实施优先级:** P0 (MVP验证必需)
+
+**Stories 总览:**
+- Story 3-1: WebSocket连接性能优化
+- Story 3-2: 进度推送延迟优化
+- Story 3-3: 历史进度记录API
+- Story 3-4: 阶段完成通知增强
+- Story 3-5: 错误推送和建议系统
+- Story 3-6: 前端重连提示UI
+- Story 3-7: SSE备用方案完善
+
+---
+
+#### Story 3-1: WebSocket连接性能优化
+
+**用户故事:**
+
+作为系统开发者，
+我想要优化WebSocket连接建立性能，
+以便满足NFR-P2要求（连接建立 < 1秒）。
+
+**验收标准:**
+
+**Given** Django ASGI服务器已启动
+**When** 前端发起WebSocket连接请求到 `ws://localhost:8000/ws/projects/{project_id}/`
+**Then** 连接建立时间 < 1秒（P95测量）
+**And** 连接成功率 > 99%
+**And** 支持至少100个并发连接
+
+**技术实施:**
+
+1. **连接优化**
+   - 优化 WebSocket 握手逻辑
+   - 减少不必要的初始化操作
+   - 实现连接池复用机制
+
+2. **性能监控**
+   - 在 WebSocket Consumer 中记录连接建立时间
+   - 使用 Django middleware 记录连接建立日志
+   - 实现 P95 连接时间统计
+
+3. **测试验证**
+   - 单元测试：模拟连接建立，测量时间
+   - 压力测试：100个并发连接
+   - 性能基准：P95 < 1秒
+
+**依赖:** 无
+
+**预计工作量:** 2天
+
+---
+
+#### Story 3-2: 进度推送延迟优化
+
+**用户故事:**
+
+作为系统开发者，
+我想要优化进度推送延迟，
+以便满足NFR-P4要求（推送延迟 < 500ms）。
+
+**验收标准:**
+
+**Given** Celery任务正在执行并更新进度
+**When** 任务通过 Redis Pub/Sub 发布进度更新
+**Then** 进度从Celery任务到前端的端到端延迟 < 500ms（P95）
+**And** 推送消息不丢失（可靠性100%）
+**And** 支持高频进度更新（每秒多次）
+
+**技术实施:**
+
+1. **推送路径优化**
+   - 减少 Redis Pub/Sub 发布延迟
+   - 优化 WebSocket Consumer 消息处理逻辑
+   - 实现消息批量推送（去重优化）
+
+2. **延迟监控**
+   - 在进度消息中添加时间戳
+   - 前端记录接收时间，计算端到端延迟
+   - 后端记录推送时间，统计P95延迟
+
+3. **性能测试**
+   - 单元测试：模拟高频进度更新
+   - 压力测试：1000条消息/秒吞吐量
+   - 延迟基准：P95 < 500ms
+
+**依赖:** Story 3-1（需要稳定连接）
+
+**预计工作量:** 2天
+
+---
+
+#### Story 3-3: 历史进度记录API
+
+**用户故事:**
+
+作为创作者，
+我想要查询项目的历史进度记录，
+以便了解每个阶段的执行时间和结果。
+
+**验收标准:**
+
+**Given** 项目已完成或正在执行
+**When** 创作者调用历史进度查询API
+**Then** 返回所有阶段的历史记录
+**And** 每条记录包含：
+  - 阶段名称（rewrite, storyboard等）
+  - 开始时间、完成时间
+  - 执行时长（秒）
+  - 状态（pending, processing, completed, failed）
+  - 输入数据摘要
+  - 输出结果摘要
+  - 错误信息（如果失败）
+**And** 支持按时间范围过滤
+**And** 支持分页查询（每页20条）
+
+**技术实施:**
+
+1. **API开发**
+   - 新增 ViewSet: `ProgressHistoryViewSet`
+   - 端点: `GET /api/v1/projects/{id}/progress-history/`
+   - 查询参数: `start_date`, `end_date`, `page`, `page_size`
+
+2. **数据模型扩展**
+   - 创建 `ProjectProgressHistory` 模型（如果尚未创建）
+   - 字段：
+     - `project`: ForeignKey(Project)
+     - `stage_type`: CharField
+     - `started_at`: DateTimeField
+     - `completed_at`: DateTimeField(null=True)
+     - `duration_seconds`: IntegerField
+     - `status`: CharField
+     - `input_summary`: TextField
+     - `output_summary`: TextField
+     - `error_message`: TextField(blank=True)
+
+3. **数据记录**
+   - 在 Celery 任务开始时创建记录
+   - 在任务完成/失败时更新记录
+   - 实现 TaskHook 集成
+
+4. **测试验证**
+   - API集成测试
+   - 数据一致性测试
+   - 性能测试（查询响应 < 200ms）
+
+**依赖:** 无（已有模型定义）
+
+**预计工作量:** 3天
+
+---
+
+#### Story 3-4: 阶段完成通知增强
+
+**用户故事:**
+
+作为创作者，
+我想要收到详细的阶段完成通知和结果摘要，
+以便快速了解生成结果，无需刷新页面。
+
+**验收标准:**
+
+**Given** 阶段处理完成
+**When** 系统推送完成通知
+**Then** 通知包含以下信息：
+  - 阶段名称（如"文案改写"）
+  - 完成状态（completed/failed）
+  - 输出结果摘要（如"生成了5个场景"）
+  - 输出数据样本（前3条预览）
+  - 执行时长
+  - 下一阶段提示
+**And** 通知通过WebSocket实时推送
+**And** 前端显示友好的通知提示
+
+**技术实施:**
+
+1. **通知内容设计**
+   - 在 `tasks.py` 中增强完成消息
+   - 生成结果摘要（输出数据数量统计）
+   - 提取数据样本（前3条）
+
+2. **WebSocket消息格式**
+   ```json
+   {
+     "type": "stage_completed",
+     "stage": "rewrite",
+     "status": "completed",
+     "summary": "文案改写完成，生成了5个场景",
+     "output_count": 5,
+     "samples": [...],
+     "duration_seconds": 45,
+     "next_stage": "storyboard"
+   }
+   ```
+
+3. **前端展示**
+   - 实现 Notification 组件
+   - 友好的提示样式（成功/失败）
+   - 自动关闭机制（5秒）
+
+4. **测试验证**
+   - 单元测试：通知消息格式验证
+   - 集成测试：端到端通知流程
+   - UX测试：用户友好性验证
+
+**依赖:** Story 3-2（需要稳定推送）
+
+**预计工作量:** 2天
+
+---
+
+#### Story 3-5: 错误推送和建议系统
+
+**用户故事:**
+
+作为创作者，
+我想要在任务失败时收到清晰的错误信息和修复建议，
+以便快速解决问题并继续工作。
+
+**验收标准:**
+
+**Given** 阶段处理失败
+**When** 系统检测到错误
+**Then** 推送错误通知包含：
+  - 错误类型（如"AI API错误"、"超时"、"数据库错误"）
+  - 错误消息（用户友好的描述）
+  - 修复建议（1-3条可操作建议）
+  - 支持重试按钮（一键重试）
+**And** 错误日志记录详细的技术信息（供开发者使用）
+
+**技术实施:**
+
+1. **错误分类系统**
+   - 创建 `ErrorClassifier` 服务
+   - 识别错误类型：
+     - AI API 错误（密钥无效、额度不足）
+     - 超时错误
+     - 数据库错误
+     - Redis 错误
+     - 参数验证错误
+
+2. **建议生成引擎**
+   - 创建 `SuggestionEngine` 服务
+   - 为每种错误类型提供修复建议：
+     - AI API 错误：检查密钥配置、切换模型
+     - 超时错误：重试、减少并发
+     - 数据库错误：检查迁移、重启服务
+
+3. **错误通知格式**
+   ```json
+   {
+     "type": "error",
+     "stage": "rewrite",
+     "error_type": "ai_api_error",
+     "message": "AI API调用失败：API密钥无效",
+     "suggestions": [
+       "1. 检查 .env 文件中的 OPENAI_API_KEY",
+       "2. 确认 API 账户有可用额度",
+       "3. 尝试切换到其他模型（如 Claude）"
+     ],
+     "retry_available": true,
+     "timestamp": "2026-01-29T10:00:00Z"
+   }
+   ```
+
+4. **前端错误提示**
+   - 实现 ErrorAlert 组件
+   - 可操作的修复建议按钮
+   - 一键重试功能
+
+5. **测试验证**
+   - 错误分类准确性测试
+   - 建议合理性测试
+   - 用户可用性测试
+
+**依赖:** Story 3-2（需要稳定推送）
+
+**预计工作量:** 3天
+
+---
+
+#### Story 3-6: 前端重连提示UI
+
+**用户故事:**
+
+作为创作者，
+我想要看到WebSocket重连状态的友好提示，
+以便了解连接状态并在重连成功后收到通知。
+
+**验收标准:**
+
+**Given** WebSocket连接断开
+**When** 系统尝试重连
+**Then** 前端显示重连提示：
+  - 连接状态指示器（灰色=断开、黄色=重连中、绿色=已连接）
+  - 重连进度："正在重连... (第2次/共5次)"
+  - 预计重连时间：显示当前延迟（1s, 2s, 4s...）
+**And** 重连成功后显示通知："连接已恢复"
+**And** 重连失败后显示错误："连接失败，请刷新页面"
+
+**技术实施:**
+
+1. **前端状态管理**
+   - Vuex store: `websocket` 模块
+   - 状态: `disconnected`, `connecting`, `connected`, `reconnecting`, `failed`
+   - 重连计数和当前延迟
+
+2. **UI组件**
+   - `WebSocketStatusIndicator`: 连接状态指示器
+   - `ReconnectingProgress`: 重连进度条
+   - `ConnectionToast`: 通知提示
+
+3. **WebSocket客户端集成**
+   - 监听 WebSocket `onclose` 事件
+   - 监听 `onopen` 事件
+   - 实现指数退避显示
+
+4. **样式设计**
+   - 位置：页面右上角固定
+   - 样式：使用daisyUI的Badge和Alert组件
+   - 动画：重连时闪烁提示
+
+5. **测试验证**
+   - 单元测试：状态转换逻辑
+   - E2E测试：模拟断开和重连场景
+   - UI测试：显示效果验证
+
+**依赖:** Story 3-1（WebSocket连接已优化）
+
+**预计工作量:** 2天
+
+---
+
+#### Story 3-7: SSE备用方案完善
+
+**用户故事:**
+
+作为系统开发者，
+我想要确保SSE(Server-Sent Events)作为WebSocket的完整备用方案，
+以便在不支持WebSocket的环境下也能提供实时进度。
+
+**验收标准:**
+
+**Given** 前端不支持WebSocket（或连接失败）
+**When** 前端请求SSE流式端点
+**Then** SSE端点提供与WebSocket相同的进度数据
+**And** SSE连接建立 < 2秒
+**And** SSE流式推送延迟 < 500ms
+**And** 支持自动重连（EventSource自动重连）
+**And** 文档中说明SSE使用场景和限制
+
+**技术实施:**
+
+1. **SSE端点开发**
+   - 端点: `GET /api/v1/projects/{id}/stream/progress/`
+   - 使用 `StreamingHttpResponse` 返回流式响应
+   - Content-Type: `text/event-stream`
+
+2. **事件格式**
+   ```
+   event: progress_update
+   data: {"stage": "rewrite", "progress": 50, ...}
+
+   event: stage_completed
+   data: {"stage": "rewrite", "summary": "..."}
+
+   event: error
+   data: {"error_type": "...", "message": "..."}
+   ```
+
+3. **Redis订阅集成**
+   - SSE端点订阅同一Redis Pub/Sub频道
+   - 实时推送进度事件
+   - 连接管理：超时自动断开
+
+4. **性能优化**
+   - 实现SSE连接池
+   - 优化心跳机制（SSE使用注释方式：`: ping`）
+   - 控制连接超时（30分钟无活动自动断开）
+
+5. **文档编写**
+   - SSE vs WebSocket对比
+   - SSE使用示例
+   - 限制说明（单向通信、不支持二进制）
+
+6. **测试验证**
+   - SSE端点功能测试
+   - 性能测试（延迟、并发）
+   - 兼容性测试（浏览器支持）
+
+**依赖:** 无（已有基础实现）
+
+**预计工作量:** 2天
 
 ---
 

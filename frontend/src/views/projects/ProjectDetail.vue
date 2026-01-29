@@ -1,6 +1,7 @@
 <template>
   <div class="project-detail">
     <loading-container :loading="loading">
+      <template v-if="project">
       <!-- 项目头部信息 -->
       <div class="bg-base-100 rounded-lg shadow-sm p-6 mb-4">
         <div class="flex justify-between items-center">
@@ -225,6 +226,7 @@
           </div>
         </div>
       </div>
+      </template>
     </loading-container>
   </div>
 </template>

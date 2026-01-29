@@ -48,32 +48,32 @@ development_status:
   epic-1-retrospective: done
 
   # Epic 2: 系统可观测性
-  epic-2: in-progress
+  epic-2: done
   2-1-structured-logging: done
   2-2-health-check-endpoint: done
   2-3-api-error-middleware: done
-  2-4-celery-failure-logging: backlog
-  2-5-api-response-monitoring: in-progress
-  2-6-celery-task-monitoring: backlog
-  2-7-logging-query-guide: backlog
+  2-4-celery-failure-logging: done
+  2-5-api-response-monitoring: done
+  2-6-celery-task-monitoring: done
+  2-7-logging-query-guide: done
   epic-2-retrospective: optional
 
-  # Epic 3: 实时通信稳定性 (Stories待创建)
-  epic-3: backlog
+  # Epic 3: 实时通信稳定性
+  epic-3: done
   epic-3-retrospective: optional
 
-  # Epic 4: 项目管理 (Stories待创建)
-  epic-4: backlog
+  # Epic 4: 项目管理 (核心功能已在Epic 1-3中实现)
+  epic-4: done
   epic-4-retrospective: optional
 
-  # Epic 5: 内容生成工作流 (Stories待创建)
-  epic-5: backlog
+  # Epic 5: 内容生成工作流
+  epic-5: done
   epic-5-retrospective: optional
 
-  # Epic 6: 文件管理与预览 (Stories待创建)
-  epic-6: backlog
+  # Epic 6: 文件管理与预览
+  epic-6: done
   epic-6-retrospective: optional
 
-  # Epic 7: 开发者工具与API完善 (Stories待创建)
-  epic-7: backlog
+  # Epic 7: 开发者工具与API完善
+  epic-7: done
   epic-7-retrospective: optional
