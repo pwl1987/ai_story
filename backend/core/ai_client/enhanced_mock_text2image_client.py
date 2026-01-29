@@ -3,6 +3,7 @@
 支持可配置延迟、失败场景模拟、日志记录
 """
 
+import asyncio
 import logging
 import time
 from typing import Any, Dict, List, Optional
@@ -196,5 +197,3 @@ class EnhancedMockText2ImageClient(Text2ImageClient):
 
         return True
 
-
-import asyncio

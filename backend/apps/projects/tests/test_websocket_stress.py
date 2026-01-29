@@ -478,7 +478,7 @@ class TestEndToEndScenarios:
         assert successful == project_count
 
         # 并发发送心跳
-        for i in range(10):
+        for _i in range(10):
             for manager in managers:
                 manager.on_ping(time.time())
             await asyncio.sleep(0.01)

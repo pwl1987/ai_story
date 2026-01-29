@@ -126,7 +126,7 @@ class TestProjectWorkflowService:
         )
 
         # When & Then - 前置阶段未完成
-        with pytest.raises(ValueError, match="前置阶段.*未完成"):
+        with pytest.raises(ValueError, match=r"前置阶段.*未完成"):
             ProjectWorkflowService.start_stage(project.id, 'storyboard')
 
     def test_complete_stage_success(self):
@@ -474,7 +474,7 @@ class TestProjectWorkflowService:
         )
 
         # When & Then
-        with pytest.raises(ValueError, match="前置阶段.*未完成"):
+        with pytest.raises(ValueError, match=r"前置阶段.*未完成"):
             ProjectWorkflowService._check_prerequisites(project.id, 'storyboard')
 
     def test_check_prerequisites_stage_not_exist(self):
@@ -489,7 +489,7 @@ class TestProjectWorkflowService:
         # rewrite阶段不存在
 
         # When & Then
-        with pytest.raises(ValueError, match="前置阶段.*不存在"):
+        with pytest.raises(ValueError, match=r"前置阶段.*不存在"):
             ProjectWorkflowService._check_prerequisites(project.id, 'storyboard')
 
     def test_stage_order_constants(self):

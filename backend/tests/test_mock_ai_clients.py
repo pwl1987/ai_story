@@ -120,9 +120,10 @@ class TestMockText2ImageClient:
         )
 
     @pytest.mark.unit
-    def test_generate_single_image(self, mock_image_client):
+    @pytest.mark.asyncio
+    async def test_generate_single_image(self, mock_image_client):
         """测试生成单张图片"""
-        response = mock_image_client.generate(
+        response = await mock_image_client.generate(
             prompt="A beautiful sunset",
             width=1024,
             height=1024
@@ -135,9 +136,10 @@ class TestMockText2ImageClient:
         assert response.metadata['is_mock'] is True
 
     @pytest.mark.unit
-    def test_generate_multiple_images(self, mock_image_client):
+    @pytest.mark.asyncio
+    async def test_generate_multiple_images(self, mock_image_client):
         """测试生成多张图片"""
-        response = mock_image_client.generate(
+        response = await mock_image_client.generate(
             prompt="Test prompt",
             sample_count=3
         )

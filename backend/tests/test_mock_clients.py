@@ -42,7 +42,7 @@ class TestMockClients:
     @pytest.mark.asyncio
     async def test_mock_t2i_generate(self, mock_t2i):
         """测试Mock文生图"""
-        response = mock_t2i.generate(prompt='测试')
+        response = await mock_t2i.generate(prompt='测试')
         assert response.success is True
         assert 'urls' in response.data or 'images' in response.data
 

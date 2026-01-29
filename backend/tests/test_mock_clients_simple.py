@@ -51,21 +51,24 @@ class TestMockClientsBasic:
         assert await mock_llm.health_check() is True
 
     # Mock Text2Image Client 测试
-    def test_mock_t2i_generate(self, mock_t2i):
+    @pytest.mark.asyncio
+    async def test_mock_t2i_generate(self, mock_t2i):
         """测试Mock文生图"""
-        response = mock_t2i.generate(prompt='测试')
+        response = await mock_t2i.generate(prompt='测试')
         assert response.success is True
         assert 'urls' in response.data or 'image_url' in response.data
 
-    def test_mock_t2i_validate(self, mock_t2i):
+    @pytest.mark.asyncio
+    async def test_mock_t2i_validate(self, mock_t2i):
         """测试Mock文生图配置验证"""
-        assert mock_t2i.validate_config() is True
-        assert mock_t2i.health_check() is True
+        assert await mock_t2i.validate_config() is True
+        assert await mock_t2i.health_check() is True
 
     # Mock Image2Video Client 测试
-    def test_mock_i2v_generate(self, mock_i2v):
+    @pytest.mark.asyncio
+    async def test_mock_i2v_generate(self, mock_i2v):
         """测试Mock图生视频"""
-        response = mock_i2v.generate(
+        response = await mock_i2v.generate(
             image_url='http://test.jpg',
             camera_movement='推进',
             duration=5
@@ -73,7 +76,8 @@ class TestMockClientsBasic:
         assert response.success is True
         assert 'video_url' in response.data or 'urls' in response.data
 
-    def test_mock_i2v_validate(self, mock_i2v):
+    @pytest.mark.asyncio
+    async def test_mock_i2v_validate(self, mock_i2v):
         """测试Mock图生视频配置验证"""
-        assert mock_i2v.validate_config() is True
-        assert mock_i2v.health_check() is True
+        assert await mock_i2v.validate_config() is True
+        assert await mock_i2v.health_check() is True

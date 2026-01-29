@@ -3,6 +3,7 @@
 支持失败场景、可配置响应速度、日志记录
 """
 
+import asyncio
 import logging
 import time
 from typing import Any, Dict, Generator, List, Optional
@@ -361,5 +362,3 @@ class EnhancedMockLLMClient(LLMClient):
             return self.MOCK_RESPONSES["default"]
 
 
-# 导入asyncio（用于sleep）
-import asyncio

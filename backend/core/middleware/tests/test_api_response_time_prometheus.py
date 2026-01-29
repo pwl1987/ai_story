@@ -24,7 +24,6 @@ class TestAPIResponseTimeMiddlewarePrometheus:
         """测试Prometheus指标已定义"""
         try:
             from core.middleware.api_response_time import (
-                PROMETHEUS_ENABLED,
                 http_request_duration_seconds,
                 http_requests_total,
             )

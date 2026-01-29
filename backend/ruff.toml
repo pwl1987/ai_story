@@ -58,6 +58,7 @@ ignore = [
     "RUF013", # implicit-optional (可选类型声明)
     "UP006",  # non-pep585-annotation (Python 3.9兼容性)
     "B904",   # raise-without-from-inside-except (异常链最佳实践，36个问题)
+    "B027",   # empty abstract method (可选钩子方法设计模式，如StageProcessor.on_success)
 ]
 
 # 每个文件允许的未使用导入（已清空以允许修复F401）
@@ -66,6 +67,8 @@ unfixable = []
 [lint.per-file-ignores]
 # 测试文件允许更多灵活性
 "tests/**/*" = ["S101", "ARG", "PLR2004", "B017", "RUF043", "F403", "B007", "F811", "B027"]
+# conftest.py需要在设置环境后导入Django
+"tests/conftest.py" = ["E402"]
 # migrations文件通常有很多问题
 "**/migrations/*" = ["ALL"]
 # pytest的setup/teardown模式需要保持文件打开
@@ -75,7 +78,7 @@ unfixable = []
 "tests/integration/*" = ["E402"]
 "tests/benchmarks/*" = ["E402"]
 # Django settings使用from .base import *是标准模式
-"config/settings/*" = ["F405"]
+"config/settings/*" = ["F403", "F405"]
 
 [format]
 # 使用双引号

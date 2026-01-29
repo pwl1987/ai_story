@@ -122,10 +122,10 @@ class TestMessageLatencyTimer:
     def test_error_latency_timer(self):
         """测试错误延迟计时器"""
         # 模拟发送失败
-        with pytest.raises(Exception):
+        with pytest.raises(RuntimeError, match="Send failed"):
             with MessageLatencyTimer('proj-1', 'rewrite', 'stage_update'):
                 time.sleep(0.1)
-                raise Exception("Send failed")
+                raise RuntimeError("Send failed")
 
 
 @pytest.mark.performance

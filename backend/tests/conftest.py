@@ -6,6 +6,7 @@ pytest配置文件
 
 import os
 import sys
+import importlib.util
 from pathlib import Path
 
 # 添加项目根目录到Python路径
@@ -36,6 +37,36 @@ def django_db_setup():
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': ':memory:',
     }
+
+
+@pytest.fixture(autouse=True)
+def clear_prometheus_registry():
+    """
+    自动清理Prometheus CollectorRegistry
+
+    解决"ValueError: Duplicated timeseries in CollectorRegistry"问题
+    在每个测试前自动清理注册的指标
+    """
+    # 测试开始前清理Prometheus指标
+    if importlib.util.find_spec('prometheus_client'):
+        from prometheus_client import REGISTRY
+        # 清理所有收集器
+        collectors = list(REGISTRY._collector_to_names.keys())
+        for collector in collectors:
+            REGISTRY.unregister(collector)
+
+    yield
+
+    # 测试结束后再次清理，防止残留
+    if importlib.util.find_spec('prometheus_client'):
+        from prometheus_client import REGISTRY
+        collectors = list(REGISTRY._collector_to_names.keys())
+        for collector in collectors:
+            try:
+                REGISTRY.unregister(collector)
+            except Exception:
+                pass  # 忽略清理错误
+
 
 
 @pytest.fixture

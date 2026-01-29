@@ -180,9 +180,8 @@ class OSSStorageBackendTestCase(TestCase):
 
     def setUp(self):
         """设置测试环境"""
-        try:
-            import oss2
-        except ImportError:
+        import importlib.util
+        if not importlib.util.find_spec('oss2'):
             # oss2未安装，跳过所有测试
             self.skipTest('oss2库未安装')
 
@@ -276,9 +275,8 @@ class StorageBackendFactoryTestCase(TestCase):
 
     def test_create_oss_backend(self):
         """测试创建OSS存储后端"""
-        try:
-            import oss2
-        except ImportError:
+        import importlib.util
+        if not importlib.util.find_spec('oss2'):
             self.skipTest('oss2库未安装')
 
         with patch.dict(os.environ, {

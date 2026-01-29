@@ -9,6 +9,7 @@ Story 2.6 - Celery任务执行时间监控
 - 失败任务记录
 - 队列维度统计
 """
+import importlib.util
 import time
 from unittest.mock import Mock, patch
 
@@ -36,10 +37,9 @@ class TestCeleryMetricsIntegration:
     def test_prometheus_enabled(self):
         """测试Prometheus是否启用"""
         # 验证prometheus_client已安装
-        try:
-            import prometheus_client
+        if importlib.util.find_spec('prometheus_client'):
             assert PROMETHEUS_ENABLED
-        except ImportError:
+        else:
             # 如果未安装，验证禁用标志
             assert not PROMETHEUS_ENABLED
 

@@ -4,7 +4,6 @@ JSON日志格式化器
 支持敏感信息脱敏、请求ID跟踪、用户ID上下文
 """
 
-import json
 import logging
 import re
 from typing import Any, Dict, List
