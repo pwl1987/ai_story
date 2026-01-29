@@ -37,6 +37,11 @@ def django_db_setup():
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": ":memory:",
         "ATOMIC_REQUESTS": True,  # Django 5.2需要显式配置
+        "TIME_ZONE": "Asia/Shanghai",  # Django 5.2需要时区配置
+        "CONN_HEALTH_CHECKS": True,  # Django 5.2需要健康检查配置
+        "OPTIONS": {
+            "timeout": 20,
+        },
     }
 
 
