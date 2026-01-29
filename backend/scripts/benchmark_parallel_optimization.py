@@ -17,8 +17,8 @@ import time
 import django
 
 # 设置Django环境
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.base')
-sys.path.insert(0, '/home/code/ai_story/backend')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.base")
+sys.path.insert(0, "/home/code/ai_story/backend")
 django.setup()
 
 from django.contrib.auth import get_user_model
@@ -43,21 +43,19 @@ class PerformanceBenchmark:
 
     def setup_test_environment(self):
         """设置测试环境"""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("步骤1: 设置测试环境")
-        print("="*60)
+        print("=" * 60)
 
         # 获取或创建测试用户
         self.user, _ = User.objects.get_or_create(
-            username='benchmark_test_user',
-            defaults={'email': 'benchmark@test.com'}
+            username="benchmark_test_user", defaults={"email": "benchmark@test.com"}
         )
         print(f"✓ 测试用户: {self.user.username}")
 
         # 获取Mock Providers
         self.mock_llm = ModelProvider.objects.filter(
-            name__icontains='Mock LLM',
-            provider_type='llm'
+            name__icontains="Mock LLM", provider_type="llm"
         ).first()
 
         if not self.mock_llm:
@@ -65,18 +63,14 @@ class PerformanceBenchmark:
             return False
         print(f"✓ Mock LLM: {self.mock_llm.name}")
 
-        self.mock_t2i = ModelProvider.objects.filter(
-            provider_type='text2image'
-        ).first()
+        self.mock_t2i = ModelProvider.objects.filter(provider_type="text2image").first()
 
         if not self.mock_t2i:
             print("❌ 未找到Mock Text2Image Provider")
             return False
         print(f"✓ Mock Text2Image: {self.mock_t2i.name}")
 
-        self.mock_i2v = ModelProvider.objects.filter(
-            provider_type='image2video'
-        ).first()
+        self.mock_i2v = ModelProvider.objects.filter(provider_type="image2video").first()
 
         if not self.mock_i2v:
             print("❌ 未找到Mock Image2Video Provider")
@@ -85,17 +79,23 @@ class PerformanceBenchmark:
 
         # 创建PromptTemplateSet
         self.prompt_set = PromptTemplateSet.objects.create(
-            name='Benchmark Test Prompt Set',
-            created_by=self.user  # 添加created_by字段
+            name="Benchmark Test Prompt Set",
+            created_by=self.user,  # 添加created_by字段
         )
 
         # 创建5个模板
-        for stage in ['rewrite', 'storyboard', 'image_generation', 'camera_movement', 'video_generation']:
+        for stage in [
+            "rewrite",
+            "storyboard",
+            "image_generation",
+            "camera_movement",
+            "video_generation",
+        ]:
             PromptTemplate.objects.create(
                 template_set=self.prompt_set,
                 stage_type=stage,
-                template_content=f'Test template for {stage}: {{{{ raw_text }}}}',
-                is_active=True
+                template_content=f"Test template for {stage}: {{{{ raw_text }}}}",
+                is_active=True,
             )
 
         print("✓ PromptTemplateSet已创建，包含5个模板")
@@ -109,20 +109,22 @@ class PerformanceBenchmark:
         # 创建项目
         project = Project.objects.create(
             name=project_name,
-            original_topic='宁静的小镇，年轻的画家正在创作一幅美丽的风景画',
+            original_topic="宁静的小镇，年轻的画家正在创作一幅美丽的风景画",
             user=self.user,
             prompt_template_set=self.prompt_set,
-            status='draft'
+            status="draft",
         )
         print(f"✓ 项目创建成功: {project.id}")
 
         # 创建5个阶段
-        for stage_type in ['rewrite', 'storyboard', 'image_generation', 'camera_movement', 'video_generation']:
-            ProjectStage.objects.create(
-                project=project,
-                stage_type=stage_type,
-                status='pending'
-            )
+        for stage_type in [
+            "rewrite",
+            "storyboard",
+            "image_generation",
+            "camera_movement",
+            "video_generation",
+        ]:
+            ProjectStage.objects.create(project=project, stage_type=stage_type, status="pending")
 
         print("✓ 5个阶段已初始化")
 
@@ -140,17 +142,14 @@ class PerformanceBenchmark:
 
     def run_full_pipeline_benchmark(self, project):
         """运行完整工作流基准测试"""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("步骤2: 运行完整工作流性能测试")
-        print("="*60)
+        print("=" * 60)
 
         # 启动Celery任务
         start_time = time.time()
 
-        result = execute_full_pipeline.delay(
-            project_id=str(project.id),
-            user_id=self.user.id
-        )
+        result = execute_full_pipeline.delay(project_id=str(project.id), user_id=self.user.id)
 
         task_id = result.id
         print(f"✓ Celery任务已启动: {task_id}")
@@ -166,16 +165,20 @@ class PerformanceBenchmark:
 
             # 显示进度
             stages = project.stages.all()
-            completed_count = sum(1 for s in stages if s.status == 'completed')
+            completed_count = sum(1 for s in stages if s.status == "completed")
             progress = int((completed_count / len(stages)) * 100)
 
             if progress != last_progress:
-                progress_bar = '[' + '█' * (completed_count) + '░' * (5 - completed_count) + ']'
-                print(f"\r进度: {progress_bar} {completed_count}/5 阶段完成 ({progress}%)", end='', flush=True)
+                progress_bar = "[" + "█" * (completed_count) + "░" * (5 - completed_count) + "]"
+                print(
+                    f"\r进度: {progress_bar} {completed_count}/5 阶段完成 ({progress}%)",
+                    end="",
+                    flush=True,
+                )
                 last_progress = progress
 
             # 检查是否完成
-            if project.status == 'completed':
+            if project.status == "completed":
                 total_time = time.time() - start_time
                 print(f"\n\n✓ 工作流完成！总时间: {total_time:.2f}秒")
 
@@ -184,11 +187,11 @@ class PerformanceBenchmark:
 
                 return total_time
 
-            elif project.status == 'failed':
+            elif project.status == "failed":
                 print("\n\n✗ 工作流失败")
                 # 显示失败阶段
                 for stage in stages:
-                    if stage.status == 'failed':
+                    if stage.status == "failed":
                         print(f"  失败阶段: {stage.stage_type}")
                         print(f"  错误信息: {stage.error_message}")
                 return None
@@ -200,25 +203,25 @@ class PerformanceBenchmark:
 
     def analyze_stage_performance(self, project):
         """分析各阶段性能"""
-        print("\n" + "-"*60)
+        print("\n" + "-" * 60)
         print("各阶段性能分析")
-        print("-"*60)
+        print("-" * 60)
 
-        stages = project.stages.all().order_by('started_at')
+        stages = project.stages.all().order_by("started_at")
 
         for stage in stages:
             if stage.started_at and stage.completed_at:
                 duration = (stage.completed_at - stage.started_at).total_seconds()
-                status_icon = "✅" if stage.status == 'completed' else "❌"
+                status_icon = "✅" if stage.status == "completed" else "❌"
                 print(f"{status_icon} {stage.stage_type:20s}: {duration:6.2f}秒")
 
-        print("-"*60)
+        print("-" * 60)
 
     def compare_with_baseline(self, actual_time):
         """与基准对比"""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("性能对比分析")
-        print("="*60)
+        print("=" * 60)
 
         # 基准时间（优化前）
         baseline_time = 10.91
@@ -246,25 +249,23 @@ class PerformanceBenchmark:
         else:
             print("\n⚠️ 未达到预期性能提升")
 
-        print("="*60)
+        print("=" * 60)
 
         return improvement
 
     def run_benchmark_suite(self, num_runs=3):
         """运行基准测试套件（多次运行取平均值）"""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print(f"性能基准测试套件（{num_runs}次运行）")
-        print("="*60)
+        print("=" * 60)
 
         times = []
 
         for i in range(num_runs):
-            print(f"\n--- 第 {i+1}/{num_runs} 次运行 ---")
+            print(f"\n--- 第 {i + 1}/{num_runs} 次运行 ---")
 
             # 创建测试项目
-            project = self.create_test_project(
-                project_name=f"Benchmark Test Run {i+1}"
-            )
+            project = self.create_test_project(project_name=f"Benchmark Test Run {i + 1}")
 
             # 运行测试
             execution_time = self.run_full_pipeline_benchmark(project)
@@ -272,7 +273,7 @@ class PerformanceBenchmark:
             if execution_time:
                 times.append(execution_time)
             else:
-                print(f"✗ 第 {i+1} 次运行失败")
+                print(f"✗ 第 {i + 1} 次运行失败")
 
             # 清理项目
             project.delete()
@@ -282,14 +283,14 @@ class PerformanceBenchmark:
             min_time = min(times)
             max_time = max(times)
 
-            print("\n" + "="*60)
+            print("\n" + "=" * 60)
             print("基准测试套件结果")
-            print("="*60)
+            print("=" * 60)
             print(f"运行次数: {len(times)}")
             print(f"平均时间: {avg_time:.2f}秒")
             print(f"最快时间: {min_time:.2f}秒")
             print(f"最慢时间: {max_time:.2f}秒")
-            print("="*60)
+            print("=" * 60)
 
             return avg_time
 
@@ -298,10 +299,10 @@ class PerformanceBenchmark:
 
 def main():
     """主函数"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("AI Story Generation - 性能基准测试")
     print("验证并行优化效果")
-    print("="*60)
+    print("=" * 60)
 
     benchmark = PerformanceBenchmark()
 
@@ -332,5 +333,5 @@ def main():
         return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

@@ -98,10 +98,11 @@ class Image2VideoStageProcessor(StageProcessor):
                         storyboard_data = storyboard_stage.output_data
                         if isinstance(storyboard_data, dict):
                             # 提取 scenes 列表
-                            if 'storyboard' in storyboard_data:
-                                storyboard_list = storyboard_data['storyboard']
+                            if "storyboard" in storyboard_data:
+                                storyboard_list = storyboard_data["storyboard"]
                                 if isinstance(storyboard_list, str):
                                     import json
+
                                     scenes = json.loads(storyboard_list)
                                 elif isinstance(storyboard_list, list):
                                     scenes = storyboard_list
@@ -116,9 +117,7 @@ class Image2VideoStageProcessor(StageProcessor):
                     logger.error(f"项目 {context.project_id} 没有图片数据")
                     return False
             else:
-                logger.error(
-                    f"项目 {context.project_id} 的image_generation阶段没有输出数据"
-                )
+                logger.error(f"项目 {context.project_id} 的image_generation阶段没有输出数据")
                 return False
 
             # 检查是否有可用的图生视频模型
@@ -144,7 +143,9 @@ class Image2VideoStageProcessor(StageProcessor):
         try:
             # 获取项目和阶段
             project = Project.objects.get(id=context.project_id)
-            stage, _created = ProjectStage.objects.get_or_create(project=project, stage_type=self.stage_type)
+            stage, _created = ProjectStage.objects.get_or_create(
+                project=project, stage_type=self.stage_type
+            )
 
             # 更新阶段状态
             stage.status = "processing"
@@ -161,22 +162,21 @@ class Image2VideoStageProcessor(StageProcessor):
             ).first()
 
             if not storyboard_stage or not image_stage:
-                return StageResult(
-                    success=False, error="缺少前置阶段数据", can_retry=False
-                )
+                return StageResult(success=False, error="缺少前置阶段数据", can_retry=False)
 
             # 提取场景列表
             storyboard_data = storyboard_stage.output_data or {}
             storyboards = []
 
             # 适配新的数据格式: output_data = {'scenes': [...], 'total': ..., 'success_count': ...}
-            if 'scenes' in storyboard_data:
-                storyboards = storyboard_data['scenes']
+            if "scenes" in storyboard_data:
+                storyboards = storyboard_data["scenes"]
             # 兼容旧格式: output_data = {'storyboard': [...]}
-            elif 'storyboard' in storyboard_data:
-                storyboard_list = storyboard_data['storyboard']
+            elif "storyboard" in storyboard_data:
+                storyboard_list = storyboard_data["storyboard"]
                 if isinstance(storyboard_list, str):
                     import json
+
                     storyboards = json.loads(storyboard_list)
                 elif isinstance(storyboard_list, list):
                     storyboards = storyboard_list
@@ -187,21 +187,19 @@ class Image2VideoStageProcessor(StageProcessor):
             # 将图片URL合并到场景数据中
             for i, scene in enumerate(storyboards):
                 if i < len(images):
-                    scene['urls'] = [images[i]]
+                    scene["urls"] = [images[i]]
                 else:
-                    scene['urls'] = []
+                    scene["urls"] = []
 
             if not storyboards:
-                return StageResult(
-                    success=False, error="没有找到分镜数据", can_retry=False
-                )
+                return StageResult(success=False, error="没有找到分镜数据", can_retry=False)
 
             # 获取AI客户端
             provider = self._get_image2video_provider(project)
             video_generator = VideoGenerator(
                 api_url=provider.api_url or "",
                 api_token=provider.api_key or "",
-                model=provider.model_name or ""
+                model=provider.model_name or "",
             )
 
             # 批量生成视频
@@ -226,9 +224,7 @@ class Image2VideoStageProcessor(StageProcessor):
                     )
 
                     if video_url:
-                        generated_videos.append(
-                            {"scene_number": index, "video_url": video_url}
-                        )
+                        generated_videos.append({"scene_number": index, "video_url": video_url})
                         # 更新output_data
                         storyboard["video_url"] = video_url
                     else:
@@ -282,7 +278,9 @@ class Image2VideoStageProcessor(StageProcessor):
         try:
             # 获取项目和阶段
             project = Project.objects.get(id=project_id)
-            stage, _created = ProjectStage.objects.get_or_create(project=project, stage_type=self.stage_type)
+            stage, _created = ProjectStage.objects.get_or_create(
+                project=project, stage_type=self.stage_type
+            )
 
             # 更新阶段状态
             stage.status = "processing"
@@ -302,9 +300,7 @@ class Image2VideoStageProcessor(StageProcessor):
             # 获取分镜列表(从ProjectStage.output_data读取,而非查询Storyboard模型)
             if storyboard_ids:
                 storyboards = stage.output_data.get("human_text", {}).get("scenes", [])
-                storyboards = [
-                    i for i in storyboards if i["scene_number"] in storyboard_ids
-                ]
+                storyboards = [i for i in storyboards if i["scene_number"] in storyboard_ids]
             else:
                 storyboards = stage.output_data.get("human_text", {}).get("scenes", [])
 
@@ -365,15 +361,15 @@ class Image2VideoStageProcessor(StageProcessor):
                         storyboard["video_urls"] = video_urls
 
                         # 保存到当前阶段(image_generation)
-                        scenes = stage.output_data.get("human_text", {}).get(
-                            "scenes", []
-                        )
+                        scenes = stage.output_data.get("human_text", {}).get("scenes", [])
                         for each in scenes:
                             if each["scene_number"] == storyboard["scene_number"]:
                                 each["video_urls"] = video_urls
 
                         output_data = {"human_text": {"scenes": scenes}}
-                        ProjectStage.objects.filter(id=stage.id).update(output_data=output_data, status="completed", completed_at=timezone.now())
+                        ProjectStage.objects.filter(id=stage.id).update(
+                            output_data=output_data, status="completed", completed_at=timezone.now()
+                        )
                     else:
                         failed_count += 1
                         yield {
@@ -420,9 +416,7 @@ class Image2VideoStageProcessor(StageProcessor):
         """失败处理"""
         try:
             project = Project.objects.get(id=context.project_id)
-            stage = ProjectStage.objects.filter(
-                    project=project, stage_type=self.stage_type
-                ).first()
+            stage = ProjectStage.objects.filter(project=project, stage_type=self.stage_type).first()
 
             if stage:
                 stage.status = "failed"
@@ -434,9 +428,7 @@ class Image2VideoStageProcessor(StageProcessor):
 
     # ===== 私有辅助方法 =====
 
-    def _get_image2video_provider(
-        self, project: Project
-    ) -> Optional[ModelProvider]:
+    def _get_image2video_provider(self, project: Project) -> Optional[ModelProvider]:
         """获取图生视频模型提供商"""
         # 1. 优先从项目模型配置获取
         config = getattr(project, "model_config", None)
@@ -450,9 +442,7 @@ class Image2VideoStageProcessor(StageProcessor):
                 return providers[0]
 
         # 2. 获取系统默认提供商
-        provider = ModelProvider.objects.filter(
-            provider_type="image2video", is_active=True
-        ).first()
+        provider = ModelProvider.objects.filter(provider_type="image2video", is_active=True).first()
 
         if not provider:
             raise Exception("未找到可用的图生视频模型提供商，请在后台配置")
@@ -593,16 +583,14 @@ class Image2VideoStageProcessor(StageProcessor):
             }
 
         except Exception as e:
-            logger.error(
-                f"分镜 {scene_number} 流式视频生成异常: {e!s}", exc_info=True
-            )
+            logger.error(f"分镜 {scene_number} 流式视频生成异常: {e!s}", exc_info=True)
 
             yield {"type": "error", "error": str(e), "scene_number": scene_number}
 
     def _get_prompt_template(self, project: Project):
         """获取提示词模板"""
         # 从项目的prompt_template_set中获取
-        template_set = getattr(project, 'prompt_template_set', None)
+        template_set = getattr(project, "prompt_template_set", None)
         from apps.prompts.models import PromptTemplate, PromptTemplateSet
 
         if not template_set:
@@ -612,11 +600,11 @@ class Image2VideoStageProcessor(StageProcessor):
         if not template_set:
             return None
         # 获取对应阶段的模板 - 使用select_related预加载model_provider
-        template = PromptTemplate.objects.select_related('model_provider').filter(
-            template_set=template_set,
-            stage_type=self.stage_type,
-            is_active=True
-        ).first()
+        template = (
+            PromptTemplate.objects.select_related("model_provider")
+            .filter(template_set=template_set, stage_type=self.stage_type, is_active=True)
+            .first()
+        )
 
         return template
 
@@ -634,7 +622,7 @@ class Image2VideoStageProcessor(StageProcessor):
             raise ValueError(f"分镜 {storyboard.get('scene_number', '')} 没有图片URL")
         storyboard_copy = copy.deepcopy(storyboard)
         image_url = urls[0].get("url", "")
-        image_dir = Path(settings.STORAGE_ROOT) / 'image'
+        image_dir = Path(settings.STORAGE_ROOT) / "image"
         path_list = image_url.split("/")[-2:]
         image_path = Path(image_dir, *path_list)
         base64_image = self.image_to_base64(image_path)
@@ -642,12 +630,12 @@ class Image2VideoStageProcessor(StageProcessor):
         try:
             # 准备模板变量
             template_vars = {
-                'project': {
-                    'name': project.name,
-                    'description': project.description,
-                    'original_topic': project.original_topic,
+                "project": {
+                    "name": project.name,
+                    "description": project.description,
+                    "original_topic": project.original_topic,
                 },
-                **storyboard_copy  # 合并输入数据作为变量
+                **storyboard_copy,  # 合并输入数据作为变量
             }
 
             # 渲染Jinja2模板

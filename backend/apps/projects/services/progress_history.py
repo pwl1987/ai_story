@@ -41,10 +41,10 @@ class ProgressHistoryRecorder:
         project_id: str,
         stage: str,
         progress: int = 0,
-        status: str = 'pending',
-        message: str = '',
-        message_type: str = 'stage_update',
-        metadata: Optional[Dict] = None
+        status: str = "pending",
+        message: str = "",
+        message_type: str = "stage_update",
+        metadata: Optional[Dict] = None,
     ) -> ProjectProgressHistory:
         """
         记录项目进度更新
@@ -78,23 +78,18 @@ class ProgressHistoryRecorder:
             progress=progress,
             status=status,
             message=message,
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
 
         logger.debug(
-            f"记录进度: 项目={project.name}, 阶段={stage}, "
-            f"进度={progress}%, 状态={status}"
+            f"记录进度: 项目={project.name}, 阶段={stage}, 进度={progress}%, 状态={status}"
         )
 
         return history
 
     @staticmethod
     def record_token(
-        project_id: str,
-        stage: str,
-        content: str,
-        full_text: str,
-        metadata: Optional[Dict] = None
+        project_id: str, stage: str, content: str, full_text: str, metadata: Optional[Dict] = None
     ) -> ProjectProgressHistory:
         """
         记录token消息
@@ -112,22 +107,14 @@ class ProgressHistoryRecorder:
         return ProgressHistoryRecorder.record_progress(
             project_id=project_id,
             stage=stage,
-            message_type='token',
+            message_type="token",
             message=content,
-            metadata={
-                **(metadata or {}),
-                'full_text': full_text,
-                'token_length': len(content)
-            }
+            metadata={**(metadata or {}), "full_text": full_text, "token_length": len(content)},
         )
 
     @staticmethod
     def record_stage_update(
-        project_id: str,
-        stage: str,
-        status: str,
-        progress: int,
-        message: str
+        project_id: str, stage: str, status: str, progress: int, message: str
     ) -> ProjectProgressHistory:
         """
         记录阶段更新
@@ -148,15 +135,12 @@ class ProgressHistoryRecorder:
             progress=progress,
             status=status,
             message=message,
-            message_type='stage_update'
+            message_type="stage_update",
         )
 
     @staticmethod
     def record_done(
-        project_id: str,
-        stage: str,
-        result: str,
-        metadata: Optional[Dict] = None
+        project_id: str, stage: str, result: str, metadata: Optional[Dict] = None
     ) -> ProjectProgressHistory:
         """
         记录任务完成
@@ -174,22 +158,19 @@ class ProgressHistoryRecorder:
             project_id=project_id,
             stage=stage,
             progress=100,
-            status='completed',
-            message='Task completed',
-            message_type='done',
+            status="completed",
+            message="Task completed",
+            message_type="done",
             metadata={
                 **(metadata or {}),
-                'result': result,
-                'result_length': len(result) if result else 0
-            }
+                "result": result,
+                "result_length": len(result) if result else 0,
+            },
         )
 
     @staticmethod
     def record_error(
-        project_id: str,
-        stage: str,
-        error: str,
-        retry_count: int = 0
+        project_id: str, stage: str, error: str, retry_count: int = 0
     ) -> ProjectProgressHistory:
         """
         记录错误
@@ -206,10 +187,10 @@ class ProgressHistoryRecorder:
         return ProgressHistoryRecorder.record_progress(
             project_id=project_id,
             stage=stage,
-            status='failed',
+            status="failed",
             message=error,
-            message_type='error',
-            metadata={'retry_count': retry_count}
+            message_type="error",
+            metadata={"retry_count": retry_count},
         )
 
 
@@ -232,7 +213,7 @@ class ProgressHistoryQuery:
         stage: Optional[str] = None,
         message_type: Optional[str] = None,
         limit: int = 100,
-        offset: int = 0
+        offset: int = 0,
     ) -> List[ProjectProgressHistory]:
         """
         查询项目进度历史
@@ -268,20 +249,15 @@ class ProgressHistoryQuery:
             queryset = queryset.filter(message_type=message_type)
 
         # 排序和分页
-        history = queryset.order_by('-timestamp')[offset:offset + limit]
+        history = queryset.order_by("-timestamp")[offset : offset + limit]
 
-        logger.debug(
-            f"查询项目历史: project_id={project_id}, "
-            f"stage={stage}, count={len(history)}"
-        )
+        logger.debug(f"查询项目历史: project_id={project_id}, stage={stage}, count={len(history)}")
 
         return list(history)
 
     @staticmethod
     def get_stage_history(
-        project_id: str,
-        stage: str,
-        limit: int = 100
+        project_id: str, stage: str, limit: int = 100
     ) -> List[ProjectProgressHistory]:
         """
         查询指定阶段的历史
@@ -295,16 +271,11 @@ class ProgressHistoryQuery:
             List[ProjectProgressHistory]: 历史记录列表
         """
         return ProgressHistoryQuery.get_project_history(
-            project_id=project_id,
-            stage=stage,
-            limit=limit
+            project_id=project_id, stage=stage, limit=limit
         )
 
     @staticmethod
-    def get_latest_progress(
-        project_id: str,
-        stage: Optional[str] = None
-    ) -> Optional[Dict]:
+    def get_latest_progress(project_id: str, stage: Optional[str] = None) -> Optional[Dict]:
         """
         获取最新的进度信息
 
@@ -327,41 +298,40 @@ class ProgressHistoryQuery:
         if stage:
             queryset = queryset.filter(stage=stage)
             # 获取该阶段的最新记录
-            latest = queryset.order_by('-timestamp').first()
+            latest = queryset.order_by("-timestamp").first()
             if latest:
                 return {
-                    'stage': latest.stage,
-                    'progress': latest.progress,
-                    'status': latest.status,
-                    'message': latest.message,
-                    'timestamp': latest.timestamp.isoformat()
+                    "stage": latest.stage,
+                    "progress": latest.progress,
+                    "status": latest.status,
+                    "message": latest.message,
+                    "timestamp": latest.timestamp.isoformat(),
                 }
             return None
         else:
             # 返回所有阶段的最新进度
-            stages = ProjectProgressHistory.objects.filter(
-                project_id=project_id
-            ).values_list('stage', flat=True).distinct()
+            stages = (
+                ProjectProgressHistory.objects.filter(project_id=project_id)
+                .values_list("stage", flat=True)
+                .distinct()
+            )
 
             progress_by_stage = {}
             for stage_name in stages:
-                latest = queryset.filter(stage=stage_name).order_by('-timestamp').first()
+                latest = queryset.filter(stage=stage_name).order_by("-timestamp").first()
                 if latest:
                     progress_by_stage[stage_name] = {
-                        'progress': latest.progress,
-                        'status': latest.status,
-                        'message': latest.message,
-                        'timestamp': latest.timestamp.isoformat()
+                        "progress": latest.progress,
+                        "status": latest.status,
+                        "message": latest.message,
+                        "timestamp": latest.timestamp.isoformat(),
                     }
 
             return progress_by_stage if progress_by_stage else None
 
     @staticmethod
     def cleanup_old_history(
-        project_id: str,
-        stage: Optional[str] = None,
-        keep_recent: int = 1000,
-        days_old: int = 30
+        project_id: str, stage: Optional[str] = None, keep_recent: int = 1000, days_old: int = 30
     ) -> int:
         """
         清理旧的历史记录
@@ -390,18 +360,12 @@ class ProgressHistoryQuery:
         # 删除
         old_records.delete()
 
-        logger.info(
-            f"清理旧历史记录: project_id={project_id}, stage={stage}, "
-            f"删除={count}条"
-        )
+        logger.info(f"清理旧历史记录: project_id={project_id}, stage={stage}, 删除={count}条")
 
         return count
 
     @staticmethod
-    def get_history_stats(
-        project_id: str,
-        stage: Optional[str] = None
-    ) -> Dict:
+    def get_history_stats(project_id: str, stage: Optional[str] = None) -> Dict:
         """
         获取历史统计信息
 
@@ -437,26 +401,24 @@ class ProgressHistoryQuery:
 
         # 按阶段统计
         by_stage = {}
-        for stage_name, count in queryset.values_list('stage').annotate(
-            count=models.Count('id')
-        ):
+        for stage_name, count in queryset.values_list("stage").annotate(count=models.Count("id")):
             by_stage[stage_name] = count
 
         # 按消息类型统计
         by_type = {}
-        for msg_type, count in queryset.values_list('message_type').annotate(
-            count=models.Count('id')
+        for msg_type, count in queryset.values_list("message_type").annotate(
+            count=models.Count("id")
         ):
             by_type[msg_type] = count
 
         # 时间范围
-        earliest = queryset.order_by('timestamp').first()
-        latest = queryset.order_by('-timestamp').first()
+        earliest = queryset.order_by("timestamp").first()
+        latest = queryset.order_by("-timestamp").first()
 
         return {
-            'total_records': total,
-            'by_stage': by_stage,
-            'by_type': by_type,
-            'earliest_timestamp': earliest.timestamp.isoformat() if earliest else None,
-            'latest_timestamp': latest.timestamp.isoformat() if latest else None
+            "total_records": total,
+            "by_stage": by_stage,
+            "by_type": by_type,
+            "earliest_timestamp": earliest.timestamp.isoformat() if earliest else None,
+            "latest_timestamp": latest.timestamp.isoformat() if latest else None,
         }

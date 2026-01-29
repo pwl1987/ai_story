@@ -92,9 +92,11 @@ class StageProcessor(ABC):
 
 class ValidationError(Exception):
     """验证错误"""
+
     pass
 
 
 class ProcessingError(Exception):
     """处理错误"""
+
     pass

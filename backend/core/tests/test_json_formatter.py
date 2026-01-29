@@ -25,11 +25,11 @@ class TestJSONFormatter:
         """测试基础JSON格式输出"""
         formatter = JSONFormatter()
         record = logging.LogRecord(
-            name='test.logger',
+            name="test.logger",
             level=logging.INFO,
-            pathname='test.py',
+            pathname="test.py",
             lineno=42,
-            msg='Test message',
+            msg="Test message",
             args=(),
             exc_info=None,
         )
@@ -38,13 +38,13 @@ class TestJSONFormatter:
         log_data = json.loads(result)
 
         # 验证必需字段
-        assert log_data['message'] == 'Test message'
-        assert log_data['level'] == 'INFO'
-        assert log_data['logger'] == 'test.logger'
-        assert 'timestamp' in log_data
-        assert 'process_id' in log_data
-        assert 'thread_id' in log_data
-        assert log_data['line'] == 42
+        assert log_data["message"] == "Test message"
+        assert log_data["level"] == "INFO"
+        assert log_data["logger"] == "test.logger"
+        assert "timestamp" in log_data
+        assert "process_id" in log_data
+        assert "thread_id" in log_data
+        assert log_data["line"] == 42
 
     def test_json_format_with_exception(self):
         """测试带异常信息的JSON格式"""
@@ -52,17 +52,18 @@ class TestJSONFormatter:
 
         # 模拟异常信息
         try:
-            raise ValueError('Test error')
+            raise ValueError("Test error")
         except ValueError:
             import sys
+
             exc_info = sys.exc_info()
 
         record = logging.LogRecord(
-            name='test.logger',
+            name="test.logger",
             level=logging.ERROR,
-            pathname='test.py',
+            pathname="test.py",
             lineno=42,
-            msg='Error occurred',
+            msg="Error occurred",
             args=(),
             exc_info=exc_info,
         )
@@ -70,40 +71,40 @@ class TestJSONFormatter:
         result = formatter.format(record)
         log_data = json.loads(result)
 
-        assert log_data['level'] == 'ERROR'
-        assert 'exception' in log_data
-        assert 'exception_type' in log_data
+        assert log_data["level"] == "ERROR"
+        assert "exception" in log_data
+        assert "exception_type" in log_data
 
     def test_json_format_with_request_id(self):
         """测试带请求ID的JSON格式"""
         formatter = JSONFormatter()
         record = logging.LogRecord(
-            name='test.logger',
+            name="test.logger",
             level=logging.INFO,
-            pathname='test.py',
+            pathname="test.py",
             lineno=42,
-            msg='Request received',
+            msg="Request received",
             args=(),
             exc_info=None,
         )
 
         # 添加请求ID
-        record.request_id = 'test-request-id-123'
+        record.request_id = "test-request-id-123"
 
         result = formatter.format(record)
         log_data = json.loads(result)
 
-        assert log_data['request_id'] == 'test-request-id-123'
+        assert log_data["request_id"] == "test-request-id-123"
 
     def test_json_format_with_user_id(self):
         """测试带用户ID的JSON格式"""
         formatter = JSONFormatter()
         record = logging.LogRecord(
-            name='test.logger',
+            name="test.logger",
             level=logging.INFO,
-            pathname='test.py',
+            pathname="test.py",
             lineno=42,
-            msg='User action',
+            msg="User action",
             args=(),
             exc_info=None,
         )
@@ -114,32 +115,32 @@ class TestJSONFormatter:
         result = formatter.format(record)
         log_data = json.loads(result)
 
-        assert log_data['user_id'] == 42
+        assert log_data["user_id"] == 42
 
     def test_json_format_with_extra_fields(self):
         """测试带额外字段的JSON格式"""
         formatter = JSONFormatter()
         record = logging.LogRecord(
-            name='test.logger',
+            name="test.logger",
             level=logging.INFO,
-            pathname='test.py',
+            pathname="test.py",
             lineno=42,
-            msg='Message with context',
+            msg="Message with context",
             args=(),
             exc_info=None,
         )
 
         # 添加额外字段
         record.extra_fields = {
-            'custom_field': 'custom_value',
-            'another_field': 123,
+            "custom_field": "custom_value",
+            "another_field": 123,
         }
 
         result = formatter.format(record)
         log_data = json.loads(result)
 
-        assert log_data['custom_field'] == 'custom_value'
-        assert log_data['another_field'] == 123
+        assert log_data["custom_field"] == "custom_value"
+        assert log_data["another_field"] == 123
 
 
 class TestSensitiveDataFilter:
@@ -152,9 +153,9 @@ class TestSensitiveDataFilter:
         """测试密码脱敏"""
         filter_obj = SensitiveDataFilter()
         record = logging.LogRecord(
-            name='test.logger',
+            name="test.logger",
             level=logging.INFO,
-            pathname='test.py',
+            pathname="test.py",
             lineno=42,
             msg='User login with {"password": "secret123"}',
             args=(),
@@ -163,16 +164,16 @@ class TestSensitiveDataFilter:
 
         result = filter_obj.filter(record)
         assert result is True  # 不阻止日志记录
-        assert '***' in record.msg
-        assert 'secret123' not in record.msg
+        assert "***" in record.msg
+        assert "secret123" not in record.msg
 
     def test_filter_api_key(self):
         """测试API密钥脱敏"""
         filter_obj = SensitiveDataFilter()
         record = logging.LogRecord(
-            name='test.logger',
+            name="test.logger",
             level=logging.INFO,
-            pathname='test.py',
+            pathname="test.py",
             lineno=42,
             msg='API call with {"api_key": "sk-1234567890"}',
             args=(),
@@ -181,33 +182,33 @@ class TestSensitiveDataFilter:
 
         result = filter_obj.filter(record)
         assert result is True
-        assert '***' in record.msg
-        assert 'sk-1234567890' not in record.msg
+        assert "***" in record.msg
+        assert "sk-1234567890" not in record.msg
 
     def test_filter_bearer_token(self):
         """测试Bearer Token脱敏"""
         filter_obj = SensitiveDataFilter()
         record = logging.LogRecord(
-            name='test.logger',
+            name="test.logger",
             level=logging.INFO,
-            pathname='test.py',
+            pathname="test.py",
             lineno=42,
-            msg='Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
+            msg="Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
             args=(),
             exc_info=None,
         )
 
         result = filter_obj.filter(record)
         assert result is True
-        assert '***' in record.msg
+        assert "***" in record.msg
 
     def test_filter_multiple_sensitive_fields(self):
         """测试多个敏感字段脱敏"""
         filter_obj = SensitiveDataFilter()
         record = logging.LogRecord(
-            name='test.logger',
+            name="test.logger",
             level=logging.INFO,
-            pathname='test.py',
+            pathname="test.py",
             lineno=42,
             msg='{"password": "pass123", "api_key": "key456", "secret": "sec789"}',
             args=(),
@@ -217,16 +218,16 @@ class TestSensitiveDataFilter:
         result = filter_obj.filter(record)
         assert result is True
         # 应该有多个***替换
-        assert record.msg.count('***') >= 3
+        assert record.msg.count("***") >= 3
 
     def test_filter_preserves_safe_data(self):
         """测试保留安全数据"""
         filter_obj = SensitiveDataFilter()
-        safe_message = 'User logged in successfully'
+        safe_message = "User logged in successfully"
         record = logging.LogRecord(
-            name='test.logger',
+            name="test.logger",
             level=logging.INFO,
-            pathname='test.py',
+            pathname="test.py",
             lineno=42,
             msg=safe_message,
             args=(),
@@ -248,11 +249,11 @@ class TestRequestContextFilter:
         """测试无请求对象时的行为"""
         filter_obj = RequestContextFilter()
         record = logging.LogRecord(
-            name='test.logger',
+            name="test.logger",
             level=logging.INFO,
-            pathname='test.py',
+            pathname="test.py",
             lineno=42,
-            msg='Message without request',
+            msg="Message without request",
             args=(),
             exc_info=None,
         )
@@ -269,11 +270,11 @@ class TestRequestContextFilter:
             pass
 
         record = logging.LogRecord(
-            name='test.logger',
+            name="test.logger",
             level=logging.INFO,
-            pathname='test.py',
+            pathname="test.py",
             lineno=42,
-            msg='Message with request',
+            msg="Message with request",
             args=(),
             exc_info=None,
         )
@@ -282,7 +283,7 @@ class TestRequestContextFilter:
         result = filter_obj.filter(record)
         assert result is True
         # 应该生成请求ID
-        assert hasattr(record, 'request_id')
+        assert hasattr(record, "request_id")
 
     def test_filter_with_user(self):
         """测试提取用户ID"""
@@ -296,11 +297,11 @@ class TestRequestContextFilter:
             user = MockUser()
 
         record = logging.LogRecord(
-            name='test.logger',
+            name="test.logger",
             level=logging.INFO,
-            pathname='test.py',
+            pathname="test.py",
             lineno=42,
-            msg='Message with user',
+            msg="Message with user",
             args=(),
             exc_info=None,
         )
@@ -308,7 +309,7 @@ class TestRequestContextFilter:
 
         result = filter_obj.filter(record)
         assert result is True
-        assert hasattr(record, 'user_id')
+        assert hasattr(record, "user_id")
         assert record.user_id == 42
 
 
@@ -321,7 +322,7 @@ class TestIntegrationScenarios:
     def test_full_logging_pipeline(self):
         """测试完整的日志记录流程"""
         # 创建logger
-        logger = logging.getLogger('test.integration')
+        logger = logging.getLogger("test.integration")
         logger.setLevel(logging.DEBUG)
 
         # 清除现有handlers
@@ -346,9 +347,9 @@ class TestIntegrationScenarios:
         filter_obj = SensitiveDataFilter()
 
         record = logging.LogRecord(
-            name='test.logger',
+            name="test.logger",
             level=logging.INFO,
-            pathname='test.py',
+            pathname="test.py",
             lineno=42,
             msg='{"password": "secret123", "username": "admin"}',
             args=(),
@@ -363,42 +364,42 @@ class TestIntegrationScenarios:
         log_data = json.loads(result)
 
         # 验证脱敏
-        assert 'secret123' not in log_data['message']
-        assert '***' in log_data['message']
+        assert "secret123" not in log_data["message"]
+        assert "***" in log_data["message"]
         # 验证username保留
-        assert 'admin' in log_data['message'] or 'username' in log_data['message']
+        assert "admin" in log_data["message"] or "username" in log_data["message"]
 
     def test_combined_fields_in_json(self):
         """测试组合字段在JSON中的表现"""
         formatter = JSONFormatter()
 
         record = logging.LogRecord(
-            name='test.logger',
+            name="test.logger",
             level=logging.INFO,
-            pathname='test.py',
+            pathname="test.py",
             lineno=42,
-            msg='Complex log message',
+            msg="Complex log message",
             args=(),
             exc_info=None,
         )
 
         # 添加多种字段
-        record.request_id = 'req-123'
+        record.request_id = "req-123"
         record.user_id = 456
         record.extra_fields = {
-            'action': 'login',
-            'ip': '192.168.1.1',
+            "action": "login",
+            "ip": "192.168.1.1",
         }
 
         result = formatter.format(record)
         log_data = json.loads(result)
 
         # 验证所有字段都存在
-        assert log_data['message'] == 'Complex log message'
-        assert log_data['request_id'] == 'req-123'
-        assert log_data['user_id'] == 456
-        assert log_data['action'] == 'login'
-        assert log_data['ip'] == '192.168.1.1'
+        assert log_data["message"] == "Complex log message"
+        assert log_data["request_id"] == "req-123"
+        assert log_data["user_id"] == 456
+        assert log_data["action"] == "login"
+        assert log_data["ip"] == "192.168.1.1"
 
 
 @pytest.mark.django_db
@@ -414,29 +415,31 @@ class TestDjangoIntegration:
 
     def test_logging_config_loaded(self, settings):
         """测试Django日志配置已加载"""
-        assert 'LOGGING' in settings
-        assert 'formatters' in settings.LOGGING
-        assert 'json' in settings.LOGGING['formatters']
-        assert 'filters' in settings.LOGGING
-        assert 'sensitive_data' in settings.LOGGING['filters']
-        assert 'request_context' in settings.LOGGING['filters']
+        assert "LOGGING" in settings
+        assert "formatters" in settings.LOGGING
+        assert "json" in settings.LOGGING["formatters"]
+        assert "filters" in settings.LOGGING
+        assert "sensitive_data" in settings.LOGGING["filters"]
+        assert "request_context" in settings.LOGGING["filters"]
 
     def test_json_formatter_in_config(self, settings):
         """测试JSONFormatter在配置中"""
-        json_formatter = settings.LOGGING['formatters']['json']
-        assert json_formatter['()'] == 'core.logging.json_formatter.JSONFormatter'
+        json_formatter = settings.LOGGING["formatters"]["json"]
+        assert json_formatter["()"] == "core.logging.json_formatter.JSONFormatter"
 
     def test_filters_in_config(self, settings):
         """测试过滤器在配置中"""
-        filters = settings.LOGGING['filters']
-        assert 'sensitive_data' in filters
-        assert 'request_context' in filters
-        assert filters['sensitive_data']['()'] == 'core.logging.json_formatter.SensitiveDataFilter'
-        assert filters['request_context']['()'] == 'core.logging.json_formatter.RequestContextFilter'
+        filters = settings.LOGGING["filters"]
+        assert "sensitive_data" in filters
+        assert "request_context" in filters
+        assert filters["sensitive_data"]["()"] == "core.logging.json_formatter.SensitiveDataFilter"
+        assert (
+            filters["request_context"]["()"] == "core.logging.json_formatter.RequestContextFilter"
+        )
 
     def test_handlers_use_filters(self, settings):
         """测试handlers使用过滤器"""
-        console_handler = settings.LOGGING['handlers']['console']
-        assert 'filters' in console_handler
-        assert 'sensitive_data' in console_handler['filters']
-        assert 'request_context' in console_handler['filters']
+        console_handler = settings.LOGGING["handlers"]["console"]
+        assert "filters" in console_handler
+        assert "sensitive_data" in console_handler["filters"]
+        assert "request_context" in console_handler["filters"]

@@ -15,6 +15,7 @@ from apps.models.tests.factories import ModelProviderFactory
 # ModelProvider 测试
 # ============================================================================
 
+
 @pytest.mark.django_db
 class TestModelProviderModel:
     """
@@ -26,16 +27,16 @@ class TestModelProviderModel:
     def test_create_model_provider_minimal(self):
         """测试创建最小模型提供商"""
         provider = ModelProvider.objects.create(
-            name='GPT-4',
-            provider_type='llm',
-            api_url='https://api.openai.com/v1',
-            api_key='sk-test',
-            model_name='gpt-4'
+            name="GPT-4",
+            provider_type="llm",
+            api_url="https://api.openai.com/v1",
+            api_key="sk-test",
+            model_name="gpt-4",
         )
 
         assert provider.id is not None
-        assert provider.name == 'GPT-4'
-        assert provider.provider_type == 'llm'
+        assert provider.name == "GPT-4"
+        assert provider.provider_type == "llm"
         assert provider.is_active is True
         assert provider.max_tokens == 2000  # 默认值
         assert provider.temperature == 0.7  # 默认值
@@ -48,7 +49,7 @@ class TestModelProviderModel:
 
     def test_create_all_provider_types(self):
         """测试创建所有类型的模型提供商"""
-        provider_types = ['llm', 'text2image', 'image2video']
+        provider_types = ["llm", "text2image", "image2video"]
 
         for provider_type in provider_types:
             provider = ModelProviderFactory(provider_type=provider_type)
@@ -57,21 +58,21 @@ class TestModelProviderModel:
 
     def test_provider_str_representation(self):
         """测试字符串表示"""
-        provider = ModelProviderFactory(name='Claude-3', provider_type='llm')
-        expected = 'Claude-3 (LLM模型)'
+        provider = ModelProviderFactory(name="Claude-3", provider_type="llm")
+        expected = "Claude-3 (LLM模型)"
         assert str(provider) == expected
 
     def test_provider_default_values(self):
         """测试默认值"""
         # 使用objects.create绕过factory，确保使用模型默认值
         provider = ModelProvider.objects.create(
-            name='Test Provider',
-            provider_type='llm',
-            api_url='https://api.test.com',
-            api_key='test-key',
-            model_name='test-model',
+            name="Test Provider",
+            provider_type="llm",
+            api_url="https://api.test.com",
+            api_key="test-key",
+            model_name="test-model",
             max_tokens=4000,
-            temperature=0.5
+            temperature=0.5,
         )
 
         assert provider.top_p == 1.0  # 默认值
@@ -84,16 +85,16 @@ class TestModelProviderModel:
     def test_provider_json_field(self):
         """测试JSON字段"""
         extra_config = {
-            'temperature': 0.8,
-            'top_p': 0.95,
-            'frequency_penalty': 0.5,
-            'presence_penalty': 0.5
+            "temperature": 0.8,
+            "top_p": 0.95,
+            "frequency_penalty": 0.5,
+            "presence_penalty": 0.5,
         }
 
         provider = ModelProviderFactory(extra_config=extra_config)
 
         assert provider.extra_config == extra_config
-        assert provider.extra_config['frequency_penalty'] == 0.5
+        assert provider.extra_config["frequency_penalty"] == 0.5
 
     def test_provider_ordering(self):
         """测试默认排序（按priority降序，创建时间降序）"""
@@ -107,7 +108,7 @@ class TestModelProviderModel:
         providers = list(ModelProvider.objects.all())
         assert providers[0].priority == 20  # provider2
         assert providers[1].priority == 10  # provider1
-        assert providers[2].priority == 5   # provider3
+        assert providers[2].priority == 5  # provider3
 
     def test_provider_update(self):
         """测试更新模型提供商"""
@@ -141,7 +142,7 @@ class TestModelProviderMethods:
 
     def test_get_executor_choices_llm(self):
         """测试获取LLM执行器选项"""
-        provider = ModelProviderFactory(provider_type='llm')
+        provider = ModelProviderFactory(provider_type="llm")
 
         choices = provider.get_executor_choices()
 
@@ -151,7 +152,7 @@ class TestModelProviderMethods:
 
     def test_get_executor_choices_text2image(self):
         """测试获取文生图执行器选项"""
-        provider = ModelProviderFactory(provider_type='text2image')
+        provider = ModelProviderFactory(provider_type="text2image")
 
         choices = provider.get_executor_choices()
 
@@ -160,7 +161,7 @@ class TestModelProviderMethods:
 
     def test_get_executor_choices_image2video(self):
         """测试获取图生视频执行器选项"""
-        provider = ModelProviderFactory(provider_type='image2video')
+        provider = ModelProviderFactory(provider_type="image2video")
 
         choices = provider.get_executor_choices()
 
@@ -169,36 +170,35 @@ class TestModelProviderMethods:
 
     def test_get_default_executor_llm(self):
         """测试获取LLM默认执行器"""
-        provider = ModelProviderFactory(provider_type='llm', executor_class='')
+        provider = ModelProviderFactory(provider_type="llm", executor_class="")
 
         default = provider.get_default_executor()
 
-        assert default != ''
-        assert 'MockLLMClient' in default or 'OpenAIClient' in default
+        assert default != ""
+        assert "MockLLMClient" in default or "OpenAIClient" in default
 
     def test_get_default_executor_text2image(self):
         """测试获取文生图默认执行器"""
-        provider = ModelProviderFactory(provider_type='text2image', executor_class='')
+        provider = ModelProviderFactory(provider_type="text2image", executor_class="")
 
         default = provider.get_default_executor()
 
-        assert default != ''
-        assert 'Text2ImageClient' in default or 'ComfyUIClient' in default
+        assert default != ""
+        assert "Text2ImageClient" in default or "ComfyUIClient" in default
 
     def test_get_default_executor_image2video(self):
         """测试获取图生视频默认执行器"""
-        provider = ModelProviderFactory(provider_type='image2video', executor_class='')
+        provider = ModelProviderFactory(provider_type="image2video", executor_class="")
 
         default = provider.get_default_executor()
 
-        assert default != ''
-        assert 'Image2VideoClient' in default or 'ComfyUIClient' in default
+        assert default != ""
+        assert "Image2VideoClient" in default or "ComfyUIClient" in default
 
     def test_validate_executor_class_valid(self):
         """测试验证有效执行器类"""
         provider = ModelProviderFactory(
-            provider_type='llm',
-            executor_class='core.ai_client.mock_llm_client.MockLLMClient'
+            provider_type="llm", executor_class="core.ai_client.mock_llm_client.MockLLMClient"
         )
 
         is_valid = provider.validate_executor_class()
@@ -208,8 +208,7 @@ class TestModelProviderMethods:
     def test_validate_executor_class_invalid(self):
         """测试验证无效执行器类"""
         provider = ModelProviderFactory(
-            provider_type='llm',
-            executor_class='invalid.executor.Class'
+            provider_type="llm", executor_class="invalid.executor.Class"
         )
 
         is_valid = provider.validate_executor_class()
@@ -218,10 +217,7 @@ class TestModelProviderMethods:
 
     def test_validate_executor_class_empty(self):
         """测试验证空执行器类"""
-        provider = ModelProviderFactory(
-            provider_type='llm',
-            executor_class=''
-        )
+        provider = ModelProviderFactory(provider_type="llm", executor_class="")
 
         is_valid = provider.validate_executor_class()
 
@@ -241,24 +237,22 @@ class TestModelProviderConstraints:
         with pytest.raises(IntegrityError):
             ModelProvider.objects.create(
                 name=None,
-                provider_type='llm',
-                api_url='https://api.openai.com/v1',
-                api_key='sk-test',
-                model_name='gpt-4'
+                provider_type="llm",
+                api_url="https://api.openai.com/v1",
+                api_key="sk-test",
+                model_name="gpt-4",
             )
 
     def test_provider_type_choices(self):
         """测试provider_type选择限制"""
-        provider = ModelProviderFactory(provider_type='llm')
+        provider = ModelProviderFactory(provider_type="llm")
 
-        valid_types = ['llm', 'text2image', 'image2video']
+        valid_types = ["llm", "text2image", "image2video"]
         assert provider.provider_type in valid_types
 
     def test_api_url_validation(self):
         """测试API URL格式验证"""
-        provider = ModelProviderFactory(
-            api_url='invalid-url'
-        )
+        provider = ModelProviderFactory(api_url="invalid-url")
 
         # Django的URLField会在保存时验证
         with pytest.raises(ValidationError):
@@ -287,6 +281,7 @@ class TestModelProviderConstraints:
 # ModelUsageLog 测试
 # ============================================================================
 
+
 @pytest.mark.django_db
 class TestModelUsageLogModel:
     """
@@ -299,14 +294,11 @@ class TestModelUsageLogModel:
         """测试创建最小使用日志"""
         provider = ModelProviderFactory()
 
-        log = ModelUsageLog.objects.create(
-            model_provider=provider,
-            status='success'
-        )
+        log = ModelUsageLog.objects.create(model_provider=provider, status="success")
 
         assert log.id is not None
         assert log.model_provider == provider
-        assert log.status == 'success'
+        assert log.status == "success"
         assert log.tokens_used == 0  # 默认值
         assert log.latency_ms == 0  # 默认值
 
@@ -314,36 +306,32 @@ class TestModelUsageLogModel:
         """测试创建完整使用日志"""
         log = ModelUsageLog.objects.create(
             model_provider=ModelProviderFactory(),
-            request_data={'prompt': 'test'},
-            response_data={'text': 'response'},
+            request_data={"prompt": "test"},
+            response_data={"text": "response"},
             tokens_used=500,
             latency_ms=1500,
-            status='success',
-            project_id='123e4567-e89b-12d3-a456-426614174000',
-            stage_type='rewrite'
+            status="success",
+            project_id="123e4567-e89b-12d3-a456-426614174000",
+            stage_type="rewrite",
         )
 
         assert log.id is not None
         assert log.tokens_used == 500
         assert log.latency_ms == 1500
-        assert log.stage_type == 'rewrite'
+        assert log.stage_type == "rewrite"
 
     def test_usage_log_str_representation(self):
         """测试字符串表示"""
-        provider = ModelProviderFactory(name='GPT-4')
-        log = ModelUsageLog.objects.create(
-            model_provider=provider
-        )
+        provider = ModelProviderFactory(name="GPT-4")
+        log = ModelUsageLog.objects.create(model_provider=provider)
 
-        expected = f'{provider.name} - {log.created_at}'
+        expected = f"{provider.name} - {log.created_at}"
         assert str(log) == expected
 
     def test_usage_log_foreign_key_cascade(self):
         """测试外键级联删除"""
         provider = ModelProviderFactory()
-        log = ModelUsageLog.objects.create(
-            model_provider=provider
-        )
+        log = ModelUsageLog.objects.create(model_provider=provider)
         log_id = log.id
 
         provider.delete()
@@ -352,26 +340,19 @@ class TestModelUsageLogModel:
 
     def test_usage_log_json_fields(self):
         """测试JSON字段"""
-        request_data = {
-            'prompt': 'test prompt',
-            'max_tokens': 2000,
-            'temperature': 0.7
-        }
+        request_data = {"prompt": "test prompt", "max_tokens": 2000, "temperature": 0.7}
 
-        response_data = {
-            'text': 'test response',
-            'tokens_used': 500
-        }
+        response_data = {"text": "test response", "tokens_used": 500}
 
         log = ModelUsageLog.objects.create(
             model_provider=ModelProviderFactory(),
             request_data=request_data,
-            response_data=response_data
+            response_data=response_data,
         )
 
         assert log.request_data == request_data
         assert log.response_data == response_data
-        assert log.request_data['prompt'] == 'test prompt'
+        assert log.request_data["prompt"] == "test prompt"
 
     def test_usage_log_ordering(self):
         """测试默认排序（按创建时间降序）"""
@@ -389,11 +370,8 @@ class TestModelUsageLogModel:
         """测试状态选择"""
         provider = ModelProviderFactory()
 
-        for status in ['success', 'error', 'timeout']:
-            log = ModelUsageLog.objects.create(
-                model_provider=provider,
-                status=status
-            )
+        for status in ["success", "error", "timeout"]:
+            log = ModelUsageLog.objects.create(model_provider=provider, status=status)
             assert log.status == status
 
 

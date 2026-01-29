@@ -2,6 +2,7 @@
 API响应时间监控中间件测试（Prometheus集成）
 Epic 2.5 - API响应时间监控（Prometheus集成）
 """
+
 import os
 import sys
 from unittest.mock import MagicMock, Mock
@@ -9,7 +10,7 @@ from unittest.mock import MagicMock, Mock
 import pytest
 
 # 避免Django设置问题
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../"))
 
 
 class TestAPIResponseTimeMiddlewarePrometheus:
@@ -27,6 +28,7 @@ class TestAPIResponseTimeMiddlewarePrometheus:
                 http_request_duration_seconds,
                 http_requests_total,
             )
+
             # 验证指标存在
             assert http_requests_total is not None
             assert http_request_duration_seconds is not None
@@ -40,13 +42,14 @@ class TestAPIResponseTimeMiddlewarePrometheus:
                 http_request_duration_seconds,
                 http_requests_total,
             )
-            # 验证标签
-            assert 'method' in http_requests_total._labelnames
-            assert 'endpoint' in http_requests_total._labelnames
-            assert 'status' in http_requests_total._labelnames
 
-            assert 'method' in http_request_duration_seconds._labelnames
-            assert 'endpoint' in http_request_duration_seconds._labelnames
+            # 验证标签
+            assert "method" in http_requests_total._labelnames
+            assert "endpoint" in http_requests_total._labelnames
+            assert "status" in http_requests_total._labelnames
+
+            assert "method" in http_request_duration_seconds._labelnames
+            assert "endpoint" in http_request_duration_seconds._labelnames
         except ImportError:
             pytest.skip("Prometheus not installed")
 
@@ -54,11 +57,12 @@ class TestAPIResponseTimeMiddlewarePrometheus:
         """测试Prometheus直方图桶配置合理"""
         try:
             from core.middleware.api_response_time import http_request_duration_seconds
+
             # 验证直方图存在并且有合理的桶配置
             # prometheus_client的Histogram使用buckets参数配置
             assert http_request_duration_seconds is not None
             # 验证指标类型
-            assert hasattr(http_request_duration_seconds, '_type')
+            assert hasattr(http_request_duration_seconds, "_type")
         except ImportError:
             pytest.skip("Prometheus not installed")
 
@@ -70,16 +74,16 @@ class TestAPIResponseTimeMiddlewarePrometheus:
 
         # 创建模拟请求
         request = Mock()
-        request.method = 'GET'
-        request.path = '/api/v1/projects/'
+        request.method = "GET"
+        request.path = "/api/v1/projects/"
         request.resolver_match = Mock()
-        request.resolver_match.url_name = 'project-list'
+        request.resolver_match.url_name = "project-list"
 
         # 调用方法
         endpoint = middleware._extract_endpoint(request)
 
         # 验证endpoint
-        assert endpoint == 'project-list'
+        assert endpoint == "project-list"
 
     def test_extract_endpoint_fallback_to_path(self):
         """测试endpoint提取回退到路径"""
@@ -89,8 +93,8 @@ class TestAPIResponseTimeMiddlewarePrometheus:
 
         # 创建模拟请求（没有resolver_match）
         request = Mock()
-        request.method = 'GET'
-        request.path = '/api/v1/unknown/'
+        request.method = "GET"
+        request.path = "/api/v1/unknown/"
         request.resolver_match = None
 
         # 调用方法
@@ -162,7 +166,7 @@ class TestAPIResponseTimeMiddlewareStandalone:
         middleware = APIResponseTimeMiddlewareStandalone(lambda r: MagicMock())
 
         # 验证方法存在
-        assert hasattr(middleware, '_log_response_time')
+        assert hasattr(middleware, "_log_response_time")
         assert callable(middleware._log_response_time)
 
 
@@ -175,12 +179,12 @@ class TestPrometheusMetricsStructure:
             from core.middleware.api_response_time import http_requests_total
 
             # 验证指标类型
-            assert http_requests_total._type == 'counter'
+            assert http_requests_total._type == "counter"
 
             # 验证标签
-            assert 'method' in http_requests_total._labelnames
-            assert 'endpoint' in http_requests_total._labelnames
-            assert 'status' in http_requests_total._labelnames
+            assert "method" in http_requests_total._labelnames
+            assert "endpoint" in http_requests_total._labelnames
+            assert "status" in http_requests_total._labelnames
         except ImportError:
             pytest.skip("Prometheus not installed")
 
@@ -190,11 +194,11 @@ class TestPrometheusMetricsStructure:
             from core.middleware.api_response_time import http_request_duration_seconds
 
             # 验证指标类型
-            assert http_request_duration_seconds._type == 'histogram'
+            assert http_request_duration_seconds._type == "histogram"
 
             # 验证标签
-            assert 'method' in http_request_duration_seconds._labelnames
-            assert 'endpoint' in http_request_duration_seconds._labelnames
+            assert "method" in http_request_duration_seconds._labelnames
+            assert "endpoint" in http_request_duration_seconds._labelnames
 
             # 验证指标存在
             assert http_request_duration_seconds is not None
@@ -210,8 +214,7 @@ class TestPrometheusMetricsStructure:
             )
 
             # 验证文档字符串
-            assert http_requests_total._documentation == 'Total HTTP requests'
-            assert http_request_duration_seconds._documentation == 'HTTP request duration seconds'
+            assert http_requests_total._documentation == "Total HTTP requests"
+            assert http_request_duration_seconds._documentation == "HTTP request duration seconds"
         except ImportError:
             pytest.skip("Prometheus not installed")
-

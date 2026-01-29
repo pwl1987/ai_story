@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 from core.websocket import WebSocketReconnectManager
 
@@ -41,10 +41,10 @@ class TestWebSocketConcurrency:
         tasks = []
         for i in range(connection_count):
             manager = WebSocketReconnectManager(
-                project_id=f'proj-{i}',
-                stage='rewrite',
+                project_id=f"proj-{i}",
+                stage="rewrite",
                 connect_callback=mock_connect,
-                max_retries=3
+                max_retries=3,
             )
             tasks.append(manager.start())
 
@@ -62,11 +62,12 @@ class TestWebSocketConcurrency:
         print(f"  成功连接: {successful_connections}")
         print(f"  失败连接: {failed_connections}")
         print(f"  总耗时: {elapsed:.2f}秒")
-        print(f"  平均延迟: {elapsed/connection_count*1000:.2f}ms")
+        print(f"  平均延迟: {elapsed / connection_count * 1000:.2f}ms")
 
         # 验证: 所有连接都应成功
-        assert successful_connections == connection_count, \
+        assert successful_connections == connection_count, (
             f"期望{connection_count}个成功连接，实际{successful_connections}个"
+        )
         assert failed_connections == 0
 
         # 验证: 总耗时应在合理范围内 (< 5秒)
@@ -84,7 +85,11 @@ class TestWebSocketConcurrency:
         call_counters = {}
 
         async def mock_connect_with_retry():
-            project_id = asyncio.current_task().get_name() if hasattr(asyncio.current_task(), 'get_name') else 'unknown'
+            project_id = (
+                asyncio.current_task().get_name()
+                if hasattr(asyncio.current_task(), "get_name")
+                else "unknown"
+            )
             if project_id not in call_counters:
                 call_counters[project_id] = 0
 
@@ -100,12 +105,12 @@ class TestWebSocketConcurrency:
         tasks = []
         for i in range(reconnection_count):
             manager = WebSocketReconnectManager(
-                project_id=f'proj-{i}',
-                stage='rewrite',
+                project_id=f"proj-{i}",
+                stage="rewrite",
                 connect_callback=mock_connect_with_retry,
-                max_retries=5
+                max_retries=5,
             )
-            tasks.append(asyncio.create_task(manager.start(), name=f'proj-{i}'))
+            tasks.append(asyncio.create_task(manager.start(), name=f"proj-{i}"))
 
         # 并发执行所有重连
         start_time = time.time()
@@ -123,8 +128,9 @@ class TestWebSocketConcurrency:
         print(f"  总耗时: {elapsed:.2f}秒")
 
         # 验证: 所有连接最终都应成功
-        assert successful == reconnection_count, \
+        assert successful == reconnection_count, (
             f"期望{reconnection_count}个成功连接，实际{successful}个"
+        )
         assert failed == 0
 
     async def test_rapid_connection_disconnect_200(self):
@@ -149,11 +155,11 @@ class TestWebSocketConcurrency:
 
         for i in range(cycle_count):
             manager = WebSocketReconnectManager(
-                project_id=f'proj-{i}',
-                stage='rewrite',
+                project_id=f"proj-{i}",
+                stage="rewrite",
                 connect_callback=mock_connect,
                 disconnect_callback=mock_disconnect,
-                max_retries=3
+                max_retries=3,
             )
 
             # 连接
@@ -170,7 +176,7 @@ class TestWebSocketConcurrency:
         print(f"  总循环次数: {cycle_count}")
         print(f"  成功循环: {successful_cycles}")
         print(f"  总耗时: {elapsed:.2f}秒")
-        print(f"  平均延迟: {elapsed/cycle_count*1000:.2f}ms")
+        print(f"  平均延迟: {elapsed / cycle_count * 1000:.2f}ms")
 
         # 验证: 所有循环都应成功
         assert successful_cycles == cycle_count
@@ -216,8 +222,8 @@ class TestRedisPubSubStress:
         print(f"  总消息数: {message_count}")
         print(f"  成功发布: {published_count}")
         print(f"  总耗时: {elapsed:.2f}秒")
-        print(f"  平均延迟: {elapsed/message_count*1000:.2f}ms")
-        print(f"  吞吐量: {message_count/elapsed:.2f} msg/s")
+        print(f"  平均延迟: {elapsed / message_count * 1000:.2f}ms")
+        print(f"  吞吐量: {message_count / elapsed:.2f} msg/s")
 
         # 验证: 所有消息都应发布成功
         assert published_count == message_count
@@ -245,10 +251,7 @@ class TestRedisPubSubStress:
             return published
 
         # 创建10个并发发布者
-        tasks = [
-            mock_publish_messages(i)
-            for i in range(publisher_count)
-        ]
+        tasks = [mock_publish_messages(i) for i in range(publisher_count)]
 
         start_time = time.time()
         results = await asyncio.gather(*tasks)
@@ -262,7 +265,7 @@ class TestRedisPubSubStress:
         print(f"  总消息数: {total_messages}")
         print(f"  成功发布: {total_published}")
         print(f"  总耗时: {elapsed:.2f}秒")
-        print(f"  吞吐量: {total_published/elapsed:.2f} msg/s")
+        print(f"  吞吐量: {total_published / elapsed:.2f} msg/s")
 
         # 验证: 所有消息都应发布成功
         assert total_published == total_messages
@@ -293,6 +296,7 @@ class TestReconnectManagerUnderLoad:
 
             # 30%的概率模拟超时
             import random
+
             if random.random() < 0.3:
                 timeout_count += 1
                 raise asyncio.TimeoutError("Connection timeout")
@@ -303,10 +307,10 @@ class TestReconnectManagerUnderLoad:
         tasks = []
         for i in range(connection_count):
             manager = WebSocketReconnectManager(
-                project_id=f'proj-{i}',
-                stage='rewrite',
+                project_id=f"proj-{i}",
+                stage="rewrite",
                 connect_callback=mock_connect_with_timeout,
-                max_retries=3
+                max_retries=3,
             )
             tasks.append(manager.start())
 
@@ -343,11 +347,11 @@ class TestReconnectManagerUnderLoad:
         # 执行1000次连接/断开循环
         for i in range(1000):
             manager = WebSocketReconnectManager(
-                project_id=f'proj-{i}',
-                stage='rewrite',
+                project_id=f"proj-{i}",
+                stage="rewrite",
                 connect_callback=AsyncMock(return_value=True),
                 disconnect_callback=AsyncMock(),
-                max_retries=3
+                max_retries=3,
             )
 
             await manager.start()
@@ -363,7 +367,7 @@ class TestReconnectManagerUnderLoad:
         print(f"  初始对象数: {initial_objects}")
         print(f"  最终对象数: {final_objects}")
         print(f"  对象增长: {object_growth}")
-        print(f"  增长率: {object_growth/initial_objects*100:.2f}%")
+        print(f"  增长率: {object_growth / initial_objects * 100:.2f}%")
 
         # 验证: 对象增长应 < 10%
         growth_rate = object_growth / initial_objects
@@ -399,47 +403,47 @@ class TestEndToEndScenarios:
 
         # 创建管理器
         manager = WebSocketReconnectManager(
-            project_id='proj-e2e',
-            stage='rewrite',
+            project_id="proj-e2e",
+            stage="rewrite",
             connect_callback=mock_connect,
             disconnect_callback=mock_disconnect,
-            max_retries=5
+            max_retries=5,
         )
 
         # 1. 连接
         assert await manager.start() is True
-        message_log.append('connected')
+        message_log.append("connected")
 
         # 2. 模拟接收消息
         for _i in range(5):
             manager.on_ping(time.time())
             await asyncio.sleep(0.01)
-        message_log.append('received_5_messages')
+        message_log.append("received_5_messages")
 
         # 3. 健康检查
         assert manager.check_health() is True
-        message_log.append('health_ok')
+        message_log.append("health_ok")
 
         # 4. 断开
         await manager.stop()
-        message_log.append('disconnected')
+        message_log.append("disconnected")
 
         # 5. 重新连接 (会触发重连逻辑)
         connection_attempt = 0  # 重置计数器，模拟第2次连接失败
         manager.is_connected = False
         success = await manager.start()
-        message_log.append(f'reconnected_{success}')
+        message_log.append(f"reconnected_{success}")
 
         print("\n端到端工作流日志:")
         for log in message_log:
             print(f"  - {log}")
 
         # 验证工作流
-        assert 'connected' in message_log
-        assert 'received_5_messages' in message_log
-        assert 'health_ok' in message_log
-        assert 'disconnected' in message_log
-        assert 'reconnected_True' in message_log
+        assert "connected" in message_log
+        assert "received_5_messages" in message_log
+        assert "health_ok" in message_log
+        assert "disconnected" in message_log
+        assert "reconnected_True" in message_log
 
     async def test_multiple_projects_concurrent(self):
         """
@@ -453,11 +457,11 @@ class TestEndToEndScenarios:
         managers = []
         for i in range(project_count):
             manager = WebSocketReconnectManager(
-                project_id=f'proj-{i}',
-                stage=f'stage-{i % 5}',  # 5个阶段轮询
+                project_id=f"proj-{i}",
+                stage=f"stage-{i % 5}",  # 5个阶段轮询
                 connect_callback=AsyncMock(return_value=True),
                 disconnect_callback=AsyncMock(),
-                max_retries=3
+                max_retries=3,
             )
             managers.append(manager)
 

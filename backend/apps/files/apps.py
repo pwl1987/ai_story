@@ -7,9 +7,9 @@ from django.apps import AppConfig
 
 
 class FilesConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'apps.files'
-    verbose_name = '文件管理'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.files"
+    verbose_name = "文件管理"
 
     def ready(self):
         """应用启动时的初始化逻辑"""

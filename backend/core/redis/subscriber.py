@@ -55,7 +55,7 @@ class RedisStreamSubscriber:
         """
         try:
             # 从Django settings获取Redis Pub/Sub专用配置
-            redis_url = getattr(settings, 'REDIS_PUBSUB_URL', 'redis://localhost:6379/2')
+            redis_url = getattr(settings, "REDIS_PUBSUB_URL", "redis://localhost:6379/2")
 
             # 解析Redis URL
             return redis.from_url(
@@ -64,7 +64,7 @@ class RedisStreamSubscriber:
                 socket_connect_timeout=5,
                 socket_timeout=5,
                 retry_on_timeout=True,
-                health_check_interval=30
+                health_check_interval=30,
             )
         except Exception as e:
             logger.error(f"Redis连接失败: {e!s}")
@@ -82,7 +82,7 @@ class RedisStreamSubscriber:
                 self.pubsub = self.redis_client.pubsub()
 
             # 支持模式匹配订阅
-            if '*' in self.channel:
+            if "*" in self.channel:
                 self.pubsub.psubscribe(self.channel)
                 logger.info(f"模式订阅频道: {self.channel}")
             else:
@@ -99,7 +99,7 @@ class RedisStreamSubscriber:
         """
         try:
             if self.pubsub:
-                if '*' in self.channel:
+                if "*" in self.channel:
                     self.pubsub.punsubscribe(self.channel)
                 else:
                     self.pubsub.unsubscribe(self.channel)
@@ -122,34 +122,34 @@ class RedisStreamSubscriber:
 
             # 设置超时
             if timeout:
-                self.pubsub.connection_pool.connection_kwargs['socket_timeout'] = timeout
+                self.pubsub.connection_pool.connection_kwargs["socket_timeout"] = timeout
 
             for message in self.pubsub.listen():
                 # 过滤订阅确认消息
-                if message['type'] in ('subscribe', 'psubscribe'):
+                if message["type"] in ("subscribe", "psubscribe"):
                     logger.debug(f"订阅成功: {message}")
                     continue
 
                 # 过滤取消订阅消息
-                if message['type'] in ('unsubscribe', 'punsubscribe'):
+                if message["type"] in ("unsubscribe", "punsubscribe"):
                     logger.debug(f"取消订阅: {message}")
                     break
 
                 # 处理实际消息
-                if message['type'] in ('message', 'pmessage'):
+                if message["type"] in ("message", "pmessage"):
                     try:
                         # 解析JSON数据
-                        data = json.loads(message['data'])
+                        data = json.loads(message["data"])
 
                         # 添加频道信息
-                        data['channel'] = message.get('channel', self.channel)
+                        data["channel"] = message.get("channel", self.channel)
 
                         # logger.debug(f"接收消息: {data.get('type')} from {data['channel']}")
 
                         yield data
 
                         # 如果收到done或error消息,结束监听
-                        if data.get('type') in ('done', 'error'):
+                        if data.get("type") in ("done", "error"):
                             logger.info(f"收到结束消息: {data.get('type')}")
                             break
 
@@ -162,18 +162,10 @@ class RedisStreamSubscriber:
 
         except redis.RedisError as e:
             logger.error(f"Redis监听失败: {e!s}")
-            yield {
-                'type': 'error',
-                'error': f'Redis连接错误: {e!s}',
-                'project_id': self.project_id
-            }
+            yield {"type": "error", "error": f"Redis连接错误: {e!s}", "project_id": self.project_id}
         except Exception as e:
             logger.error(f"监听异常: {e!s}")
-            yield {
-                'type': 'error',
-                'error': f'监听异常: {e!s}',
-                'project_id': self.project_id
-            }
+            yield {"type": "error", "error": f"监听异常: {e!s}", "project_id": self.project_id}
         finally:
             self.close()
 
@@ -197,14 +189,14 @@ class RedisStreamSubscriber:
                 return None
 
             # 过滤订阅确认消息
-            if message['type'] in ('subscribe', 'psubscribe', 'unsubscribe', 'punsubscribe'):
+            if message["type"] in ("subscribe", "psubscribe", "unsubscribe", "punsubscribe"):
                 return None
 
             # 处理实际消息
-            if message['type'] in ('message', 'pmessage'):
+            if message["type"] in ("message", "pmessage"):
                 try:
-                    data = json.loads(message['data'])
-                    data['channel'] = message.get('channel', self.channel)
+                    data = json.loads(message["data"])
+                    data["channel"] = message.get("channel", self.channel)
                     return data
                 except json.JSONDecodeError as e:
                     logger.error(f"JSON解析失败: {e!s}")

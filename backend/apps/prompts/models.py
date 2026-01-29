@@ -18,28 +18,25 @@ class PromptTemplateSet(models.Model):
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField('名称', max_length=255)
-    description = models.TextField('描述', blank=True)
-    is_active = models.BooleanField('是否激活', default=True)
-    is_default = models.BooleanField('是否默认', default=False)
+    name = models.CharField("名称", max_length=255)
+    description = models.TextField("描述", blank=True)
+    is_active = models.BooleanField("是否激活", default=True)
+    is_default = models.BooleanField("是否默认", default=False)
 
     created_by = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name='创建者',
-        related_name='prompt_sets'
+        User, on_delete=models.CASCADE, verbose_name="创建者", related_name="prompt_sets"
     )
 
-    created_at = models.DateTimeField('创建时间', auto_now_add=True)
-    updated_at = models.DateTimeField('更新时间', auto_now=True)
+    created_at = models.DateTimeField("创建时间", auto_now_add=True)
+    updated_at = models.DateTimeField("更新时间", auto_now=True)
 
     class Meta:
-        db_table = 'prompt_template_sets'
-        verbose_name = '提示词集'
-        verbose_name_plural = '提示词集'
-        ordering = ['-created_at']
+        db_table = "prompt_template_sets"
+        verbose_name = "提示词集"
+        verbose_name_plural = "提示词集"
+        ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=['is_active', 'is_default']),
+            models.Index(fields=["is_active", "is_default"]),
         ]
 
     def __str__(self):
@@ -60,59 +57,59 @@ class PromptTemplate(models.Model):
     """
 
     STAGE_TYPES = [
-        ('rewrite', '文案改写'),
-        ('storyboard', '分镜生成'),
-        ('image_generation', '文生图'),
-        ('camera_movement', '运镜生成'),
-        ('video_generation', '图生视频'),
+        ("rewrite", "文案改写"),
+        ("storyboard", "分镜生成"),
+        ("image_generation", "文生图"),
+        ("camera_movement", "运镜生成"),
+        ("video_generation", "图生视频"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     template_set = models.ForeignKey(
         PromptTemplateSet,
         on_delete=models.CASCADE,
-        related_name='templates',
-        verbose_name='提示词集'
+        related_name="templates",
+        verbose_name="提示词集",
     )
 
-    stage_type = models.CharField('阶段类型', max_length=20, choices=STAGE_TYPES)
+    stage_type = models.CharField("阶段类型", max_length=20, choices=STAGE_TYPES)
 
     # 关联的模型提供商 (该阶段使用的默认模型)
     model_provider = models.ForeignKey(
-        'models.ModelProvider',
+        "models.ModelProvider",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='prompt_templates',
-        verbose_name='模型提供商',
-        help_text='该提示词模板默认使用的AI模型'
+        related_name="prompt_templates",
+        verbose_name="模型提供商",
+        help_text="该提示词模板默认使用的AI模型",
     )
 
     # 模板内容 (支持Jinja2语法)
-    template_content = models.TextField('模板内容')
+    template_content = models.TextField("模板内容")
 
     # 变量定义 (JSON格式)
     # 示例: {"topic": "string", "style": "string", "length": "int"}
-    variables = models.JSONField('变量定义', default=dict, blank=True)
+    variables = models.JSONField("变量定义", default=dict, blank=True)
 
     # 版本控制
-    version = models.IntegerField('版本', default=1)
-    is_active = models.BooleanField('是否激活', default=True)
+    version = models.IntegerField("版本", default=1)
+    is_active = models.BooleanField("是否激活", default=True)
 
-    created_at = models.DateTimeField('创建时间', auto_now_add=True)
-    updated_at = models.DateTimeField('更新时间', auto_now=True)
+    created_at = models.DateTimeField("创建时间", auto_now_add=True)
+    updated_at = models.DateTimeField("更新时间", auto_now=True)
 
     class Meta:
-        db_table = 'prompt_templates'
-        verbose_name = '提示词模板'
-        verbose_name_plural = '提示词模板'
-        unique_together = [('template_set', 'stage_type')]
+        db_table = "prompt_templates"
+        verbose_name = "提示词模板"
+        verbose_name_plural = "提示词模板"
+        unique_together = [("template_set", "stage_type")]
         indexes = [
-            models.Index(fields=['template_set', 'stage_type', 'is_active']),
+            models.Index(fields=["template_set", "stage_type", "is_active"]),
         ]
 
     def __str__(self):
-        return f'{self.template_set.name} - {self.get_stage_type_display()}'
+        return f"{self.template_set.name} - {self.get_stage_type_display()}"
 
 
 class GlobalVariable(models.Model):
@@ -123,60 +120,49 @@ class GlobalVariable(models.Model):
     """
 
     VARIABLE_TYPES = [
-        ('string', '字符串'),
-        ('number', '数字'),
-        ('boolean', '布尔值'),
-        ('json', 'JSON对象'),
+        ("string", "字符串"),
+        ("number", "数字"),
+        ("boolean", "布尔值"),
+        ("json", "JSON对象"),
     ]
 
     SCOPE_TYPES = [
-        ('system', '系统级'),  # 所有用户可见
-        ('user', '用户级'),    # 仅创建者可见
+        ("system", "系统级"),  # 所有用户可见
+        ("user", "用户级"),  # 仅创建者可见
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    key = models.CharField('变量键', max_length=100, db_index=True)
-    value = models.TextField('变量值')
+    key = models.CharField("变量键", max_length=100, db_index=True)
+    value = models.TextField("变量值")
     variable_type = models.CharField(
-        '变量类型',
-        max_length=20,
-        choices=VARIABLE_TYPES,
-        default='string'
+        "变量类型", max_length=20, choices=VARIABLE_TYPES, default="string"
     )
-    scope = models.CharField(
-        '作用域',
-        max_length=20,
-        choices=SCOPE_TYPES,
-        default='user'
-    )
-    group = models.CharField('分组', max_length=100, blank=True, default='')
-    description = models.TextField('描述', blank=True)
-    is_active = models.BooleanField('是否激活', default=True)
+    scope = models.CharField("作用域", max_length=20, choices=SCOPE_TYPES, default="user")
+    group = models.CharField("分组", max_length=100, blank=True, default="")
+    description = models.TextField("描述", blank=True)
+    is_active = models.BooleanField("是否激活", default=True)
 
     created_by = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name='创建者',
-        related_name='global_variables'
+        User, on_delete=models.CASCADE, verbose_name="创建者", related_name="global_variables"
     )
 
-    created_at = models.DateTimeField('创建时间', auto_now_add=True)
-    updated_at = models.DateTimeField('更新时间', auto_now=True)
+    created_at = models.DateTimeField("创建时间", auto_now_add=True)
+    updated_at = models.DateTimeField("更新时间", auto_now=True)
 
     class Meta:
-        db_table = 'global_variables'
-        verbose_name = '全局变量'
-        verbose_name_plural = '全局变量'
-        ordering = ['group', 'key']
-        unique_together = [('key', 'created_by', 'scope')]
+        db_table = "global_variables"
+        verbose_name = "全局变量"
+        verbose_name_plural = "全局变量"
+        ordering = ["group", "key"]
+        unique_together = [("key", "created_by", "scope")]
         indexes = [
-            models.Index(fields=['scope', 'is_active']),
-            models.Index(fields=['created_by', 'is_active']),
-            models.Index(fields=['group', 'is_active']),
+            models.Index(fields=["scope", "is_active"]),
+            models.Index(fields=["created_by", "is_active"]),
+            models.Index(fields=["group", "is_active"]),
         ]
 
     def __str__(self):
-        return f'{self.key} ({self.get_scope_display()})'
+        return f"{self.key} ({self.get_scope_display()})"
 
     def get_typed_value(self):
         """
@@ -187,18 +173,18 @@ class GlobalVariable(models.Model):
         """
         import json
 
-        if self.variable_type == 'number':
+        if self.variable_type == "number":
             try:
                 # 尝试转换为整数
-                if '.' not in self.value:
+                if "." not in self.value:
                     return int(self.value)
                 # 否则转换为浮点数
                 return float(self.value)
             except ValueError:
                 return 0
-        elif self.variable_type == 'boolean':
-            return self.value.lower() in ('true', '1', 'yes', 'on')
-        elif self.variable_type == 'json':
+        elif self.variable_type == "boolean":
+            return self.value.lower() in ("true", "1", "yes", "on")
+        elif self.variable_type == "json":
             try:
                 return json.loads(self.value)
             except json.JSONDecodeError:
@@ -221,17 +207,15 @@ class GlobalVariable(models.Model):
         from asgiref.sync import sync_to_async
         from django.db.models import Q
 
-        query = Q(created_by=user, scope='user', is_active=True)
+        query = Q(created_by=user, scope="user", is_active=True)
 
         if include_system:
-            query |= Q(scope='system', is_active=True)
+            query |= Q(scope="system", is_active=True)
 
         variables = {}
 
         # 使用sync_to_async包装ORM查询（Django 3.2不支持原生异步ORM）
-        variables_list = await sync_to_async(
-            lambda: list(cls.objects.filter(query))
-        )()
+        variables_list = await sync_to_async(lambda: list(cls.objects.filter(query)))()
 
         for var in variables_list:
             variables[var.key] = var.get_typed_value()
@@ -254,10 +238,10 @@ class GlobalVariable(models.Model):
         """
         from django.db.models import Q
 
-        query = Q(created_by=user, scope='user', is_active=True)
+        query = Q(created_by=user, scope="user", is_active=True)
 
         if include_system:
-            query |= Q(scope='system', is_active=True)
+            query |= Q(scope="system", is_active=True)
 
         variables = {}
 

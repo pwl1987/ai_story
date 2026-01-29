@@ -35,12 +35,11 @@ class ModelProviderService:
         if provider_type:
             queryset = queryset.filter(provider_type=provider_type)
 
-        return queryset.order_by('-priority', '-created_at')
+        return queryset.order_by("-priority", "-created_at")
 
     @staticmethod
     def get_provider_by_type_and_priority(
-        provider_type: str,
-        min_priority: int = 0
+        provider_type: str, min_priority: int = 0
     ) -> Optional[ModelProvider]:
         """
         根据类型和优先级获取模型提供商
@@ -52,17 +51,17 @@ class ModelProviderService:
         Returns:
             符合条件的最高优先级提供商
         """
-        return ModelProvider.objects.filter(
-            provider_type=provider_type,
-            is_active=True,
-            priority__gte=min_priority
-        ).order_by('-priority').first()
+        return (
+            ModelProvider.objects.filter(
+                provider_type=provider_type, is_active=True, priority__gte=min_priority
+            )
+            .order_by("-priority")
+            .first()
+        )
 
     @staticmethod
     def search_providers(
-        keyword: str,
-        provider_type: Optional[str] = None,
-        is_active: Optional[bool] = None
+        keyword: str, provider_type: Optional[str] = None, is_active: Optional[bool] = None
     ) -> List[ModelProvider]:
         """
         搜索模型提供商
@@ -80,9 +79,9 @@ class ModelProviderService:
         # 关键词搜索
         if keyword:
             queryset = queryset.filter(
-                Q(name__icontains=keyword) |
-                Q(model_name__icontains=keyword) |
-                Q(api_url__icontains=keyword)
+                Q(name__icontains=keyword)
+                | Q(model_name__icontains=keyword)
+                | Q(api_url__icontains=keyword)
             )
 
         # 类型过滤
@@ -93,7 +92,7 @@ class ModelProviderService:
         if is_active is not None:
             queryset = queryset.filter(is_active=is_active)
 
-        return queryset.order_by('-priority', '-created_at')
+        return queryset.order_by("-priority", "-created_at")
 
     @staticmethod
     @transaction.atomic
@@ -184,45 +183,39 @@ class ModelProviderService:
         total_count = provider.usage_logs.count()
 
         # 成功/失败次数
-        success_count = provider.usage_logs.filter(status='success').count()
-        failed_count = provider.usage_logs.filter(status='failed').count()
+        success_count = provider.usage_logs.filter(status="success").count()
+        failed_count = provider.usage_logs.filter(status="failed").count()
 
         # 成功率
         success_rate = (success_count / total_count * 100) if total_count > 0 else 0
 
         # 平均延迟
-        avg_latency = provider.usage_logs.aggregate(
-            avg=Avg('latency_ms')
-        )['avg'] or 0
+        avg_latency = provider.usage_logs.aggregate(avg=Avg("latency_ms"))["avg"] or 0
 
         # 总Token使用量
-        total_tokens = provider.usage_logs.aggregate(
-            total=Sum('tokens_used')
-        )['total'] or 0
+        total_tokens = provider.usage_logs.aggregate(total=Sum("tokens_used"))["total"] or 0
 
         # 最近7天使用情况
         from datetime import timedelta
 
         from django.utils import timezone
+
         seven_days_ago = timezone.now() - timedelta(days=7)
-        recent_count = provider.usage_logs.filter(
-            created_at__gte=seven_days_ago
-        ).count()
+        recent_count = provider.usage_logs.filter(created_at__gte=seven_days_ago).count()
 
         return {
-            'total_count': total_count,
-            'success_count': success_count,
-            'failed_count': failed_count,
-            'success_rate': round(success_rate, 2),
-            'avg_latency_ms': round(avg_latency, 2),
-            'total_tokens_used': total_tokens,
-            'recent_7days_count': recent_count
+            "total_count": total_count,
+            "success_count": success_count,
+            "failed_count": failed_count,
+            "success_rate": round(success_rate, 2),
+            "avg_latency_ms": round(avg_latency, 2),
+            "total_tokens_used": total_tokens,
+            "recent_7days_count": recent_count,
         }
 
     @staticmethod
     async def test_provider_connection(
-        provider_id: str,
-        test_prompt: str = "Hello, this is a test."
+        provider_id: str, test_prompt: str = "Hello, this is a test."
     ) -> Dict[str, Any]:
         """
         测试模型提供商连接
@@ -240,34 +233,20 @@ class ModelProviderService:
         provider = await sync_to_async(ModelProvider.objects.get)(id=provider_id)
 
         if not provider.is_active:
-            return {
-                'success': False,
-                'error': '模型提供商未激活'
-            }
+            return {"success": False, "error": "模型提供商未激活"}
 
         start_time = time.time()
 
         try:
             # 根据提供商类型选择测试方法
-            if provider.provider_type == 'llm':
-                result = ModelProviderService._test_llm_provider(
-                    provider,
-                    test_prompt
-                )
-            elif provider.provider_type == 'text2image':
-                result = await ModelProviderService._test_text2image_provider(
-                    provider,
-                    test_prompt
-                )
-            elif provider.provider_type == 'image2video':
-                result = await ModelProviderService._test_image2video_provider(
-                    provider
-                )
+            if provider.provider_type == "llm":
+                result = ModelProviderService._test_llm_provider(provider, test_prompt)
+            elif provider.provider_type == "text2image":
+                result = await ModelProviderService._test_text2image_provider(provider, test_prompt)
+            elif provider.provider_type == "image2video":
+                result = await ModelProviderService._test_image2video_provider(provider)
             else:
-                return {
-                    'success': False,
-                    'error': f'不支持的提供商类型: {provider.provider_type}'
-                }
+                return {"success": False, "error": f"不支持的提供商类型: {provider.provider_type}"}
 
             # 计算延迟
             latency_ms = int((time.time() - start_time) * 1000)
@@ -275,21 +254,21 @@ class ModelProviderService:
             # 记录使用日志
             await sync_to_async(ModelUsageLog.objects.create)(
                 model_provider=provider,
-                request_data={'test_prompt': test_prompt},
-                response_data=result.get('data', {}),
-                tokens_used=result.get('tokens_used', 0),
+                request_data={"test_prompt": test_prompt},
+                response_data=result.get("data", {}),
+                tokens_used=result.get("tokens_used", 0),
                 latency_ms=latency_ms,
-                status='success' if result.get('success') else 'failed',
-                error_message=result.get('error', '暂无错误') or "暂无错误",
-                stage_type='test'
+                status="success" if result.get("success") else "failed",
+                error_message=result.get("error", "暂无错误") or "暂无错误",
+                stage_type="test",
             )
 
             return {
-                'success': result.get('success', False),
-                'latency_ms': latency_ms,
-                'response': result.get('text', ''),
-                'data': result.get('data', {}),
-                'error': result.get('error')
+                "success": result.get("success", False),
+                "latency_ms": latency_ms,
+                "response": result.get("text", ""),
+                "data": result.get("data", {}),
+                "error": result.get("error"),
             }
 
         except Exception as e:
@@ -298,25 +277,18 @@ class ModelProviderService:
             # 记录失败日志
             await sync_to_async(ModelUsageLog.objects.create)(
                 model_provider=provider,
-                request_data={'test_prompt': test_prompt},
+                request_data={"test_prompt": test_prompt},
                 response_data={},
                 latency_ms=latency_ms,
-                status='failed',
+                status="failed",
                 error_message=str(e),
-                stage_type='test'
+                stage_type="test",
             )
 
-            return {
-                'success': False,
-                'latency_ms': latency_ms,
-                'error': str(e)
-            }
+            return {"success": False, "latency_ms": latency_ms, "error": str(e)}
 
     @staticmethod
-    def _test_llm_provider(
-        provider: ModelProvider,
-        prompt: str
-    ) -> Dict[str, Any]:
+    def _test_llm_provider(provider: ModelProvider, prompt: str) -> Dict[str, Any]:
         """测试LLM提供商"""
         from core.ai_client.openai_client import OpenAIClient
 
@@ -326,7 +298,7 @@ class ModelProviderService:
             model_name=provider.model_name,
             max_tokens=min(provider.max_tokens, 100),  # 测试时限制token数
             temperature=provider.temperature,
-            timeout=provider.timeout
+            timeout=provider.timeout,
         )
         full_text = ""
         is_success = False
@@ -338,30 +310,21 @@ class ModelProviderService:
                 full_text = chunk.get("error")
                 is_success = False
         return {
-            'success': is_success,
-            'text': full_text,
-            'data': {
-                'prompt': prompt,
-                'provider': provider.name
-            },
-            'tokens_used': 0
+            "success": is_success,
+            "text": full_text,
+            "data": {"prompt": prompt, "provider": provider.name},
+            "tokens_used": 0,
         }
 
     @staticmethod
-    async def _test_text2image_provider(
-        provider: ModelProvider,
-        prompt: str
-    ) -> Dict[str, Any]:
+    async def _test_text2image_provider(provider: ModelProvider, prompt: str) -> Dict[str, Any]:
         """测试文生图提供商"""
         # 这里返回模拟结果,实际实现需要调用对应的AI客户端
         return {
-            'success': True,
-            'text': 'Text2Image test successful',
-            'data': {
-                'prompt': prompt,
-                'provider': provider.name
-            },
-            'tokens_used': 0
+            "success": True,
+            "text": "Text2Image test successful",
+            "data": {"prompt": prompt, "provider": provider.name},
+            "tokens_used": 0,
         }
 
     @staticmethod
@@ -369,12 +332,10 @@ class ModelProviderService:
         """测试图生视频提供商"""
         # 这里返回模拟结果,实际实现需要调用对应的AI客户端
         return {
-            'success': True,
-            'text': 'Image2Video test successful',
-            'data': {
-                'provider': provider.name
-            },
-            'tokens_used': 0
+            "success": True,
+            "text": "Image2Video test successful",
+            "data": {"provider": provider.name},
+            "tokens_used": 0,
         }
 
 
@@ -385,10 +346,7 @@ class ModelUsageLogService:
     """
 
     @staticmethod
-    def get_logs_by_provider(
-        provider_id: str,
-        limit: int = 100
-    ) -> List[ModelUsageLog]:
+    def get_logs_by_provider(provider_id: str, limit: int = 100) -> List[ModelUsageLog]:
         """
         获取指定提供商的使用日志
 
@@ -399,14 +357,13 @@ class ModelUsageLogService:
         Returns:
             使用日志列表
         """
-        return ModelUsageLog.objects.filter(
-            model_provider_id=provider_id
-        ).order_by('-created_at')[:limit]
+        return ModelUsageLog.objects.filter(model_provider_id=provider_id).order_by("-created_at")[
+            :limit
+        ]
 
     @staticmethod
     def get_logs_by_project(
-        project_id: str,
-        stage_type: Optional[str] = None
+        project_id: str, stage_type: Optional[str] = None
     ) -> List[ModelUsageLog]:
         """
         获取指定项目的使用日志
@@ -423,7 +380,7 @@ class ModelUsageLogService:
         if stage_type:
             queryset = queryset.filter(stage_type=stage_type)
 
-        return queryset.order_by('-created_at')
+        return queryset.order_by("-created_at")
 
     @staticmethod
     def get_failed_logs(limit: int = 100) -> List[ModelUsageLog]:
@@ -436,9 +393,7 @@ class ModelUsageLogService:
         Returns:
             失败日志列表
         """
-        return ModelUsageLog.objects.filter(
-            status='failed'
-        ).order_by('-created_at')[:limit]
+        return ModelUsageLog.objects.filter(status="failed").order_by("-created_at")[:limit]
 
     @staticmethod
     def create_usage_log(data: Dict[str, Any]) -> ModelUsageLog:

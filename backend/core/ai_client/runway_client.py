@@ -33,7 +33,7 @@ class RunwayClient(Image2VideoClient):
         model: str = "gen3a_turbo",
         ratio: str = "1280:720",
         watermark: bool = False,
-        **kwargs
+        **kwargs,
     ) -> AIResponse:
         """
         生成视频
@@ -60,38 +60,29 @@ class RunwayClient(Image2VideoClient):
             duration=duration,
             ratio=ratio,
             watermark=watermark,
-            **kwargs
+            **kwargs,
         )
 
         if not task_id:
-            return AIResponse(
-                success=False,
-                error='任务提交失败'
-            )
+            return AIResponse(success=False, error="任务提交失败")
 
         # 轮询任务状态
         result = self._poll_task(task_id)
 
-        if result['success']:
+        if result["success"]:
             latency_ms = int((time.time() - start_time) * 1000)
             return AIResponse(
                 success=True,
-                data={
-                    'url': result['url'],
-                    'task_id': task_id
-                },
+                data={"url": result["url"], "task_id": task_id},
                 metadata={
-                    'latency_ms': latency_ms,
-                    'model': model,
-                    'duration': duration,
-                    'ratio': ratio
-                }
+                    "latency_ms": latency_ms,
+                    "model": model,
+                    "duration": duration,
+                    "ratio": ratio,
+                },
             )
         else:
-            return AIResponse(
-                success=False,
-                error=result.get('error', '视频生成失败')
-            )
+            return AIResponse(success=False, error=result.get("error", "视频生成失败"))
 
     def _submit_task(
         self,
@@ -101,7 +92,7 @@ class RunwayClient(Image2VideoClient):
         duration: int = 5,
         ratio: str = "1280:720",
         watermark: bool = False,
-        **kwargs
+        **kwargs,
     ) -> Optional[str]:
         """
         提交视频生成任务
@@ -112,21 +103,15 @@ class RunwayClient(Image2VideoClient):
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
-            "X-Runway-Version": "2024-09-26"
+            "X-Runway-Version": "2024-09-26",
         }
 
         # 构建请求payload
-        payload = {
-            "model": model,
-            "input_image": image_url,
-            "duration": duration
-        }
+        payload = {"model": model, "input_image": image_url, "duration": duration}
 
         # 添加可选参数
         if prompt:
-            payload["prompt"] = {
-                "prompt": prompt
-            }
+            payload["prompt"] = {"prompt": prompt}
 
         if ratio:
             payload["ratio"] = ratio
@@ -135,27 +120,22 @@ class RunwayClient(Image2VideoClient):
             payload["watermark"] = watermark
 
         # 添加运镜参数
-        if 'move_camera' in kwargs:
-            payload["move_camera"] = kwargs['move_camera']
+        if "move_camera" in kwargs:
+            payload["move_camera"] = kwargs["move_camera"]
 
-        if 'zoom' in kwargs:
-            payload["zoom"] = kwargs['zoom']
+        if "zoom" in kwargs:
+            payload["zoom"] = kwargs["zoom"]
 
         try:
-            timeout = self.config.get('timeout', 30)
+            timeout = self.config.get("timeout", 30)
 
-            api_url = self.api_url.rstrip('/')
+            api_url = self.api_url.rstrip("/")
 
             # Runway API端点
-            if not api_url.endswith('/tasks'):
-                api_url += '/tasks'
+            if not api_url.endswith("/tasks"):
+                api_url += "/tasks"
 
-            response = requests.post(
-                api_url,
-                headers=headers,
-                json=payload,
-                timeout=timeout
-            )
+            response = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
 
             if response.status_code not in [200, 201]:
                 print(f"Runway API错误: {response.status_code} - {response.text}")
@@ -164,8 +144,8 @@ class RunwayClient(Image2VideoClient):
             result = response.json()
 
             # 提取任务ID
-            if 'id' in result:
-                return result['id']
+            if "id" in result:
+                return result["id"]
 
             return None
 
@@ -177,10 +157,7 @@ class RunwayClient(Image2VideoClient):
             return None
 
     def _poll_task(
-        self,
-        task_id: str,
-        max_wait_time: int = 600,
-        poll_interval: int = 5
+        self, task_id: str, max_wait_time: int = 600, poll_interval: int = 5
     ) -> Dict[str, Any]:
         """
         轮询任务状态直到完成
@@ -193,82 +170,51 @@ class RunwayClient(Image2VideoClient):
         Returns:
             Dict: {success: bool, url: str, error: str}
         """
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "X-Runway-Version": "2024-09-26"
-        }
+        headers = {"Authorization": f"Bearer {self.api_key}", "X-Runway-Version": "2024-09-26"}
 
         start_time = time.time()
 
         try:
             while (time.time() - start_time) < max_wait_time:
                 # 查询任务状态
-                api_url = self.api_url.rstrip('/')
-                if not api_url.endswith('/tasks'):
-                    api_url += '/tasks'
+                api_url = self.api_url.rstrip("/")
+                if not api_url.endswith("/tasks"):
+                    api_url += "/tasks"
 
-                response = requests.get(
-                    f"{api_url}/{task_id}",
-                    headers=headers,
-                    timeout=30
-                )
+                response = requests.get(f"{api_url}/{task_id}", headers=headers, timeout=30)
 
                 if response.status_code != 200:
-                    return {
-                        'success': False,
-                        'error': f'任务状态查询失败: {response.status_code}'
-                    }
+                    return {"success": False, "error": f"任务状态查询失败: {response.status_code}"}
 
                 result = response.json()
-                status = result.get('status', '')
+                status = result.get("status", "")
 
                 # 检查任务状态
-                if status == 'SUCCEEDED':
+                if status == "SUCCEEDED":
                     # 提取视频URL
-                    output = result.get('output', [])
+                    output = result.get("output", [])
                     if output and len(output) > 0:
-                        return {
-                            'success': True,
-                            'url': output[0].get('URL', ''),
-                            'status': status
-                        }
+                        return {"success": True, "url": output[0].get("URL", ""), "status": status}
 
-                elif status == 'FAILED':
-                    error = result.get('error', '未知错误')
-                    return {
-                        'success': False,
-                        'error': error,
-                        'status': status
-                    }
+                elif status == "FAILED":
+                    error = result.get("error", "未知错误")
+                    return {"success": False, "error": error, "status": status}
 
-                elif status in ['PENDING', 'PROCESSING', 'RUNNING']:
+                elif status in ["PENDING", "PROCESSING", "RUNNING"]:
                     # 继续轮询
                     time.sleep(poll_interval)
                     continue
                 else:
                     # 未知状态
-                    return {
-                        'success': False,
-                        'error': f'未知任务状态: {status}',
-                        'status': status
-                    }
+                    return {"success": False, "error": f"未知任务状态: {status}", "status": status}
 
             # 超时
-            return {
-                'success': False,
-                'error': f'任务超时（超过{max_wait_time}秒）'
-            }
+            return {"success": False, "error": f"任务超时（超过{max_wait_time}秒）"}
 
         except requests.RequestException as e:
-            return {
-                'success': False,
-                'error': f'网络请求错误: {e!s}'
-            }
+            return {"success": False, "error": f"网络请求错误: {e!s}"}
         except Exception as e:
-            return {
-                'success': False,
-                'error': f'未知错误: {e!s}'
-            }
+            return {"success": False, "error": f"未知错误: {e!s}"}
 
     def validate_config(self) -> bool:
         """
@@ -279,24 +225,23 @@ class RunwayClient(Image2VideoClient):
             return False
 
         # 检查模型名称
-        valid_models = ['gen3', 'gen3a_turbo', 'gen2']
+        valid_models = ["gen3", "gen3a_turbo", "gen2"]
         if self.model_name and self.model_name not in valid_models:
             # 允许自定义模型名，但给出警告
             pass
 
         # 简单连通性测试
         try:
-            headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "X-Runway-Version": "2024-09-26"
-            }
+            headers = {"Authorization": f"Bearer {self.api_key}", "X-Runway-Version": "2024-09-26"}
 
             # 尝试获取账户信息（验证API key）
-            api_url = self.api_url.rstrip('/')
+            api_url = self.api_url.rstrip("/")
             response = requests.get(
-                api_url + '/users/me' if '/tasks' not in api_url else api_url.replace('/tasks', '/users/me'),
+                api_url + "/users/me"
+                if "/tasks" not in api_url
+                else api_url.replace("/tasks", "/users/me"),
                 headers=headers,
-                timeout=10
+                timeout=10,
             )
 
             # 200, 401或404都表示API可达
@@ -306,11 +251,7 @@ class RunwayClient(Image2VideoClient):
             return False
 
     async def generate(
-        self,
-        image_url: str,
-        prompt: str = "",
-        duration: int = 5,
-        **kwargs
+        self, image_url: str, prompt: str = "", duration: int = 5, **kwargs
     ) -> AIResponse:
         """
         异步生成视频（接口方法）
@@ -325,9 +266,4 @@ class RunwayClient(Image2VideoClient):
             AIResponse: 生成结果
         """
         # 同步调用
-        return self._generate_video(
-            image_url=image_url,
-            prompt=prompt,
-            duration=duration,
-            **kwargs
-        )
+        return self._generate_video(image_url=image_url, prompt=prompt, duration=duration, **kwargs)

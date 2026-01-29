@@ -16,11 +16,12 @@ logger = logging.getLogger(__name__)
 
 class ReconnectState(Enum):
     """重连状态枚举"""
-    DISCONNECTED = 'disconnected'  # 已断开
-    CONNECTING = 'connecting'      # 连接中
-    CONNECTED = 'connected'        # 已连接
-    RECONNECTING = 'reconnecting'  # 重连中
-    FAILED = 'failed'              # 重连失败
+
+    DISCONNECTED = "disconnected"  # 已断开
+    CONNECTING = "connecting"  # 连接中
+    CONNECTED = "connected"  # 已连接
+    RECONNECTING = "reconnecting"  # 重连中
+    FAILED = "failed"  # 重连失败
 
 
 class ReconnectStrategy:
@@ -49,7 +50,7 @@ class ReconnectStrategy:
         max_retries: int = 5,
         initial_delay: float = 1.0,
         max_delay: float = 16.0,
-        backoff_multiplier: float = 2.0
+        backoff_multiplier: float = 2.0,
     ):
         """
         初始化重连策略
@@ -93,7 +94,7 @@ class ReconnectStrategy:
             # 指数退避: 1s, 2s, 4s, 8s, 16s
             delay = min(
                 self.initial_delay * (self.backoff_multiplier ** (self.retry_count - 1)),
-                self.max_delay
+                self.max_delay,
             )
             self.current_delay = delay
 
@@ -107,9 +108,7 @@ class ReconnectStrategy:
         else:
             # 重连次数耗尽
             self.state = ReconnectState.FAILED
-            logger.error(
-                f"重连失败: 已达到最大重连次数({self.max_retries}次)"
-            )
+            logger.error(f"重连失败: 已达到最大重连次数({self.max_retries}次)")
 
     def on_success(self) -> None:
         """
@@ -165,7 +164,7 @@ class WebSocketReconnectManager:
         disconnect_callback: Optional[Callable] = None,
         max_retries: int = 5,
         ping_interval: int = 30,
-        ping_timeout: int = 60
+        ping_timeout: int = 60,
     ):
         """
         初始化重连管理器
@@ -234,14 +233,10 @@ class WebSocketReconnectManager:
             success = await self.connect_callback()
 
             if success:
-                logger.info(
-                    f"连接成功: project={self.project_id}, stage={self.stage}"
-                )
+                logger.info(f"连接成功: project={self.project_id}, stage={self.stage}")
                 return True
             else:
-                logger.warning(
-                    f"连接失败: project={self.project_id}, stage={self.stage}"
-                )
+                logger.warning(f"连接失败: project={self.project_id}, stage={self.stage}")
                 return False
 
         except Exception as e:
@@ -285,9 +280,7 @@ class WebSocketReconnectManager:
         if self.disconnect_callback:
             await self.disconnect_callback()
 
-        logger.info(
-            f"重连管理器已停止: project={self.project_id}, stage={self.stage}"
-        )
+        logger.info(f"重连管理器已停止: project={self.project_id}, stage={self.stage}")
 
     def on_ping(self, timestamp: float) -> None:
         """
@@ -298,8 +291,7 @@ class WebSocketReconnectManager:
         """
         self.last_ping_time = timestamp
         logger.debug(
-            f"收到ping: project={self.project_id}, stage={self.stage}, "
-            f"timestamp={timestamp}"
+            f"收到ping: project={self.project_id}, stage={self.stage}, timestamp={timestamp}"
         )
 
     def check_health(self) -> bool:

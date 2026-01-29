@@ -163,7 +163,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
         # 根据阶段类型启动对应的Celery任务
         if stage_name in ["rewrite", "storyboard", "camera_movement"]:
             # LLM类阶段
-            print("execute_llm_stage", settings.CELERY_BROKER_URL, execute_llm_stage.app.conf.broker_url)
+            print(
+                "execute_llm_stage",
+                settings.CELERY_BROKER_URL,
+                execute_llm_stage.app.conf.broker_url,
+            )
             task = execute_llm_stage.delay(
                 project_id=str(project.id),
                 stage_name=stage_name,
@@ -268,9 +272,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
                         data_queue.put(f"data: {event_data}\n\n".encode())
 
             except Exception as e:
-                error_data = json.dumps(
-                    {"type": "error", "error": str(e)}, ensure_ascii=False
-                )
+                error_data = json.dumps({"type": "error", "error": str(e)}, ensure_ascii=False)
                 data_queue.put(f"data: {error_data}\n\n".encode())
             finally:
                 # 标记结束
@@ -347,9 +349,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         task_id = request.query_params.get("task_id")
 
         if not task_id:
-            return Response(
-                {"error": "缺少task_id参数"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "缺少task_id参数"}, status=status.HTTP_400_BAD_REQUEST)
 
         # 获取Celery任务结果
         task_result = AsyncResult(task_id)
@@ -450,9 +450,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         project = self.get_object()
 
         if project.status != "paused":
-            return Response(
-                {"error": "只有暂停的项目才能恢复"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "只有暂停的项目才能恢复"}, status=status.HTTP_400_BAD_REQUEST)
 
         project.status = "processing"
         project.save()
@@ -467,15 +465,12 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 {
                     "message": f"项目已恢复，将从阶段 {resume_result['next_stage']} 继续",
                     "project": ProjectDetailSerializer(project).data,
-                    "task_id": resume_result['task_id'],
-                    "next_stage": resume_result['next_stage'],
+                    "task_id": resume_result["task_id"],
+                    "next_stage": resume_result["next_stage"],
                 }
             )
         except ValueError as e:
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=["post"])
     def rollback_stage(self, request, pk=None):
@@ -488,9 +483,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         stage_name = request.data.get("stage_name")
 
         if not stage_name:
-            return Response(
-                {"error": "缺少阶段名称"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "缺少阶段名称"}, status=status.HTTP_400_BAD_REQUEST)
 
         stage = get_object_or_404(ProjectStage, project=project, stage_type=stage_name)
 
@@ -545,9 +538,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         """
         project = self.get_object()
         config, _created = ProjectModelConfig.objects.get_or_create(project=project)
-        serializer = ProjectModelConfigSerializer(
-            config, data=request.data, partial=True
-        )
+        serializer = ProjectModelConfigSerializer(config, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
@@ -576,7 +567,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             name=f"{template_name} (模板)",
             description=f"基于项目 '{project.name}' 创建的模板",
             created_by=request.user,
-            is_active=True
+            is_active=True,
         )
 
         # 2. 复制所有提示词模板
@@ -586,7 +577,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 template_set=new_template_set,
                 stage_type=template.stage_type,
                 template_content=template.template_content,
-                is_active=True
+                is_active=True,
             )
 
         result = {
@@ -597,26 +588,32 @@ class ProjectViewSet(viewsets.ModelViewSet):
         }
 
         # 3. 如果include_model_config=True,记录模型配置信息
-        if include_model_config and hasattr(project, 'model_config'):
+        if include_model_config and hasattr(project, "model_config"):
             model_config = project.model_config
             provider_info = {}
 
             # 收集各阶段的模型配置
-            for stage_type in ['rewrite', 'storyboard', 'image_generation', 'camera_movement', 'video_generation']:
+            for stage_type in [
+                "rewrite",
+                "storyboard",
+                "image_generation",
+                "camera_movement",
+                "video_generation",
+            ]:
                 providers_field = f"{stage_type}_providers"
                 if hasattr(model_config, providers_field):
                     providers = getattr(model_config, providers_field).all()
                     provider_info[stage_type] = [
                         {
-                            'id': str(p.id),
-                            'name': p.name,
-                            'provider_type': p.provider_type,
-                            'model_name': p.model_name
+                            "id": str(p.id),
+                            "name": p.name,
+                            "provider_type": p.provider_type,
+                            "model_name": p.model_name,
                         }
                         for p in providers
                     ]
 
-            result['model_config'] = provider_info
+            result["model_config"] = provider_info
 
         return Response(result)
 
@@ -630,9 +627,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         project = self.get_object()
 
         if project.status != "completed":
-            return Response(
-                {"error": "只有完成的项目才能导出"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "只有完成的项目才能导出"}, status=status.HTTP_400_BAD_REQUEST)
 
         include_subtitles = request.data.get("include_subtitles", True)
         video_format = request.data.get("video_format", "mp4")
@@ -645,26 +640,24 @@ class ProjectViewSet(viewsets.ModelViewSet):
         from .models import ProjectProgressHistory
 
         # 1. 获取所有生成的视频片段
-        storyboards = Storyboard.objects.filter(project=project).order_by('sequence_number')
+        storyboards = Storyboard.objects.filter(project=project).order_by("sequence_number")
         videos = []
 
         for storyboard in storyboards:
-            video = GeneratedVideo.objects.filter(
-                storyboard=storyboard,
-                status='completed'
-            ).first()
+            video = GeneratedVideo.objects.filter(storyboard=storyboard, status="completed").first()
 
             if video and video.video_url:
-                videos.append({
-                    'sequence_number': storyboard.sequence_number,
-                    'video_url': video.video_url,
-                    'duration': 5  # 默认5秒，实际应该从generation_params获取
-                })
+                videos.append(
+                    {
+                        "sequence_number": storyboard.sequence_number,
+                        "video_url": video.video_url,
+                        "duration": 5,  # 默认5秒，实际应该从generation_params获取
+                    }
+                )
 
         if not videos:
             return Response(
-                {"error": "没有找到已生成的视频片段"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "没有找到已生成的视频片段"}, status=status.HTTP_400_BAD_REQUEST
             )
 
         # 2. 创建导出任务记录（这里简化处理，实际应启动异步任务）
@@ -673,16 +666,16 @@ class ProjectViewSet(viewsets.ModelViewSet):
         # 记录导出历史
         ProjectProgressHistory.objects.create(
             project=project,
-            stage='export',
-            status='processing',
+            stage="export",
+            status="processing",
             progress=0,
             message=f"开始导出视频，共{len(videos)}个片段",
             metadata={
-                'export_id': export_id,
-                'include_subtitles': include_subtitles,
-                'video_format': video_format,
-                'video_count': len(videos)
-            }
+                "export_id": export_id,
+                "include_subtitles": include_subtitles,
+                "video_format": video_format,
+                "video_count": len(videos),
+            },
         )
 
         # 3. 返回导出任务信息
@@ -736,9 +729,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         stage_name = request.data.get("stage_name")
 
         if not stage_name:
-            return Response(
-                {"error": "缺少阶段名称"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "缺少阶段名称"}, status=status.HTTP_400_BAD_REQUEST)
 
         # 获取阶段
         try:
@@ -821,7 +812,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             project_id=str(project.id),
             user_id=self.request.user.id,
             background_music=background_music,
-            **options
+            **options,
         )
 
         # 构建Redis频道名称
@@ -885,10 +876,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             project.save()
 
         # 启动Celery任务
-        task = execute_full_pipeline.delay(
-            project_id=str(project.id),
-            user_id=request.user.id
-        )
+        task = execute_full_pipeline.delay(project_id=str(project.id), user_id=request.user.id)
 
         # 构建Redis频道名称
         channel = f"ai_story:project:{project.id}:pipeline"
@@ -898,7 +886,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 "task_id": task.id,
                 "channel": channel,
                 "message": "完整工作流已启动",
-                "project_id": str(project.id)
+                "project_id": str(project.id),
             },
             status=status.HTTP_202_ACCEPTED,
         )
@@ -919,9 +907,9 @@ class ProjectStageViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         """只返回当前用户项目的阶段"""
-        return ProjectStage.objects.filter(
-            project__user=self.request.user
-        ).select_related("project")
+        return ProjectStage.objects.filter(project__user=self.request.user).select_related(
+            "project"
+        )
 
 
 class ProjectModelConfigViewSet(viewsets.ModelViewSet):

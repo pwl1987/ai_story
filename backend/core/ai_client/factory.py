@@ -36,11 +36,13 @@ def create_ai_client(provider) -> BaseAIClient:
         raise ValueError("ModelProvider实例不能为空")
 
     # 检查是否启用Mock AI模式（用于离线测试）
-    enable_mock = os.environ.get('ENABLE_MOCK_AI', '').lower() == 'true'
-    use_enhanced = os.environ.get('USE_ENHANCED_MOCK', '').lower() == 'true'
+    enable_mock = os.environ.get("ENABLE_MOCK_AI", "").lower() == "true"
+    use_enhanced = os.environ.get("USE_ENHANCED_MOCK", "").lower() == "true"
 
     if enable_mock:
-        logger.info(f"检测到ENABLE_MOCK_AI=true，使用{'Enhanced' if use_enhanced else '标准'}Mock客户端")
+        logger.info(
+            f"检测到ENABLE_MOCK_AI=true，使用{'Enhanced' if use_enhanced else '标准'}Mock客户端"
+        )
         return _create_mock_client(provider, use_enhanced=use_enhanced)
 
     # 获取执行器类路径
@@ -55,10 +57,7 @@ def create_ai_client(provider) -> BaseAIClient:
         )
 
     if not executor_class_path:
-        raise ValueError(
-            f"ModelProvider '{provider.name}' 未配置执行器，"
-            f"且无法获取默认执行器"
-        )
+        raise ValueError(f"ModelProvider '{provider.name}' 未配置执行器，且无法获取默认执行器")
 
     try:
         # 动态导入执行器类
@@ -66,11 +65,11 @@ def create_ai_client(provider) -> BaseAIClient:
 
         # 准备配置参数
         config = {
-            'timeout': provider.timeout,
-            'max_tokens': provider.max_tokens,
-            'temperature': provider.temperature,
-            'top_p': provider.top_p,
-            **provider.extra_config  # 合并额外配置
+            "timeout": provider.timeout,
+            "max_tokens": provider.max_tokens,
+            "temperature": provider.temperature,
+            "top_p": provider.top_p,
+            **provider.extra_config,  # 合并额外配置
         }
 
         # 创建客户端实例
@@ -78,12 +77,11 @@ def create_ai_client(provider) -> BaseAIClient:
             api_url=provider.api_url,
             api_key=provider.api_key,
             model_name=provider.model_name,
-            **config
+            **config,
         )
 
         logger.info(
-            f"成功创建AI客户端: provider='{provider.name}', "
-            f"executor='{executor_class_path}'"
+            f"成功创建AI客户端: provider='{provider.name}', executor='{executor_class_path}'"
         )
 
         return client
@@ -96,7 +94,7 @@ def create_ai_client(provider) -> BaseAIClient:
         logger.error(
             f"创建AI客户端失败: provider='{provider.name}', "
             f"executor='{executor_class_path}', error={e!s}",
-            exc_info=True
+            exc_info=True,
         )
         raise Exception(f"创建AI客户端失败: {e!s}")
 
@@ -139,64 +137,70 @@ def _create_mock_client(provider, use_enhanced=False) -> BaseAIClient:
     from .mock_text2image_client import MockText2ImageClient
 
     # 获取provider的类型/类别
-    getattr(provider, 'provider_type', '').lower()
-    getattr(provider, 'name', '').lower()
+    getattr(provider, "provider_type", "").lower()
+    getattr(provider, "name", "").lower()
 
     # 根据provider类型选择合适的Mock客户端
     # 检查executor_class来判断客户端类型
-    executor_class = getattr(provider, 'executor_class', '')
+    executor_class = getattr(provider, "executor_class", "")
 
     # Enhanced Mock配置（从环境变量读取）
-    enhanced_delay = float(os.environ.get('MOCK_DELAY', '0.5'))
-    enhanced_error = os.environ.get('MOCK_ERROR', '')
+    enhanced_delay = float(os.environ.get("MOCK_DELAY", "0.5"))
+    enhanced_error = os.environ.get("MOCK_ERROR", "")
 
     # 创建Mock客户端
-    if 'llm' in executor_class.lower() or 'openai' in executor_class.lower():
+    if "llm" in executor_class.lower() or "openai" in executor_class.lower():
         if use_enhanced:
-            logger.info(f"创建EnhancedMockLLMClient for provider '{provider.name}' (delay={enhanced_delay}s)")
+            logger.info(
+                f"创建EnhancedMockLLMClient for provider '{provider.name}' (delay={enhanced_delay}s)"
+            )
             from .enhanced_mock_llm_client import EnhancedMockLLMClient
+
             return EnhancedMockLLMClient(
-                api_url='mock://llm',
-                api_key='mock_key',
-                model_name=provider.model_name or 'enhanced-mock-llm',
-                stage_type='',  # 自动检测
+                api_url="mock://llm",
+                api_key="mock_key",
+                model_name=provider.model_name or "enhanced-mock-llm",
+                stage_type="",  # 自动检测
                 simulate_delay=enhanced_delay,
                 simulate_error=enhanced_error if enhanced_error else None,
-                enable_logging=True
+                enable_logging=True,
             )
         else:
             logger.info(f"创建标准MockLLMClient for provider '{provider.name}'")
             return MockLLMClient(
-                api_url='mock://llm',
-                api_key='mock_key',
-                model_name=provider.model_name or 'mock-llm'
+                api_url="mock://llm",
+                api_key="mock_key",
+                model_name=provider.model_name or "mock-llm",
             )
-    elif 'text2image' in executor_class.lower() or 'stable' in executor_class.lower():
+    elif "text2image" in executor_class.lower() or "stable" in executor_class.lower():
         if use_enhanced:
-            logger.info(f"创建EnhancedMockText2ImageClient for provider '{provider.name}' (delay={enhanced_delay}s)")
+            logger.info(
+                f"创建EnhancedMockText2ImageClient for provider '{provider.name}' (delay={enhanced_delay}s)"
+            )
             from .enhanced_mock_text2image_client import EnhancedMockText2ImageClient
+
             return EnhancedMockText2ImageClient(
-                api_url='mock://text2image',
-                api_key='mock_key',
-                model_name=provider.model_name or 'enhanced-mock-text2image',
+                api_url="mock://text2image",
+                api_key="mock_key",
+                model_name=provider.model_name or "enhanced-mock-text2image",
                 simulate_delay=enhanced_delay,
                 simulate_error=enhanced_error if enhanced_error else None,
-                enable_logging=True
+                enable_logging=True,
             )
         else:
             logger.info(f"创建标准MockText2ImageClient for provider '{provider.name}'")
             return MockText2ImageClient(
-                api_url='mock://text2image',
-                api_key='mock_key',
-                model_name=provider.model_name or 'mock-text2image'
+                api_url="mock://text2image",
+                api_key="mock_key",
+                model_name=provider.model_name or "mock-text2image",
             )
-    elif 'image2video' in executor_class.lower() or 'runway' in executor_class.lower():
+    elif "image2video" in executor_class.lower() or "runway" in executor_class.lower():
         logger.info(f"创建MockImage2VideoClient for provider '{provider.name}'")
         # Image2Video暂无Enhanced版本
         return MockImage2VideoClient(
-            api_url='mock://image2video',
-            api_key='mock_key',
-            model_name=provider.model_name or 'mock-image2video'
+            api_url="mock://image2video",
+            api_key="mock_key",
+            model_name=provider.model_name or "mock-image2video",
         )
     else:
         # 默认使用MockLLMClient
@@ -206,17 +210,17 @@ def _create_mock_client(provider, use_enhanced=False) -> BaseAIClient:
         )
         if use_enhanced:
             from .enhanced_mock_llm_client import EnhancedMockLLMClient
+
             return EnhancedMockLLMClient(
-                api_url='mock://llm',
-                api_key='mock_key',
-                model_name=provider.model_name or 'enhanced-mock-llm',
+                api_url="mock://llm",
+                api_key="mock_key",
+                model_name=provider.model_name or "enhanced-mock-llm",
                 simulate_delay=enhanced_delay,
-                enable_logging=True
+                enable_logging=True,
             )
         else:
             return MockLLMClient(
-                api_url='mock://llm',
-                api_key='mock_key',
-                model_name=provider.model_name or 'mock-llm'
+                api_url="mock://llm",
+                api_key="mock_key",
+                model_name=provider.model_name or "mock-llm",
             )
-

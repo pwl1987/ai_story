@@ -19,14 +19,14 @@ from celery import shared_task
 
 from core.services.percentile_stats import PercentileStats
 
-logger = logging.getLogger('apps.core')
+logger = logging.getLogger("apps.core")
 
 
 @shared_task(
-    name='core.calculate_percentile_stats',
+    name="core.calculate_percentile_stats",
     bind=True,
     max_retries=3,
-    default_retry_delay=60  # 1分钟后重试
+    default_retry_delay=60,  # 1分钟后重试
 )
 def calculate_percentile_stats_task(self, time_window_minutes: int = 15):
     """
@@ -43,10 +43,9 @@ def calculate_percentile_stats_task(self, time_window_minutes: int = 15):
     """
     logger.info(
         "开始执行百分位数统计任务",
-        extra={'extra_fields': {
-            'task_id': self.request.id,
-            'time_window_minutes': time_window_minutes
-        }}
+        extra={
+            "extra_fields": {"task_id": self.request.id, "time_window_minutes": time_window_minutes}
+        },
     )
 
     try:
@@ -55,15 +54,17 @@ def calculate_percentile_stats_task(self, time_window_minutes: int = 15):
 
         logger.info(
             "百分位数统计任务完成",
-            extra={'extra_fields': {
-                'task_id': self.request.id,
-                'api_sample_count': result['api']['sample_count'],
-                'celery_sample_count': result['celery']['sample_count'],
-                'api_p95': result['api']['percentiles'].get('p95'),
-                'api_p99': result['api']['percentiles'].get('p99'),
-                'celery_p95': result['celery']['percentiles'].get('p95'),
-                'celery_p99': result['celery']['percentiles'].get('p99')
-            }}
+            extra={
+                "extra_fields": {
+                    "task_id": self.request.id,
+                    "api_sample_count": result["api"]["sample_count"],
+                    "celery_sample_count": result["celery"]["sample_count"],
+                    "api_p95": result["api"]["percentiles"].get("p95"),
+                    "api_p99": result["api"]["percentiles"].get("p99"),
+                    "celery_p95": result["celery"]["percentiles"].get("p95"),
+                    "celery_p99": result["celery"]["percentiles"].get("p99"),
+                }
+            },
         )
 
         return result
@@ -72,20 +73,18 @@ def calculate_percentile_stats_task(self, time_window_minutes: int = 15):
         logger.error(
             f"百分位数统计任务失败: {e}",
             exc_info=True,
-            extra={'extra_fields': {
-                'task_id': self.request.id,
-                'error': str(e),
-                'retries': self.request.retries
-            }}
+            extra={
+                "extra_fields": {
+                    "task_id": self.request.id,
+                    "error": str(e),
+                    "retries": self.request.retries,
+                }
+            },
         )
         raise
 
 
-@shared_task(
-    name='core.calculate_api_percentiles',
-    bind=True,
-    max_retries=3
-)
+@shared_task(name="core.calculate_api_percentiles", bind=True, max_retries=3)
 def calculate_api_percentiles_task(self, time_window_minutes: int = 15):
     """
     计算API响应时间百分位数
@@ -99,10 +98,9 @@ def calculate_api_percentiles_task(self, time_window_minutes: int = 15):
     """
     logger.info(
         "开始计算API响应时间百分位数",
-        extra={'extra_fields': {
-            'task_id': self.request.id,
-            'time_window_minutes': time_window_minutes
-        }}
+        extra={
+            "extra_fields": {"task_id": self.request.id, "time_window_minutes": time_window_minutes}
+        },
     )
 
     try:
@@ -110,12 +108,14 @@ def calculate_api_percentiles_task(self, time_window_minutes: int = 15):
 
         logger.info(
             "API百分位数计算完成",
-            extra={'extra_fields': {
-                'task_id': self.request.id,
-                'sample_count': result['sample_count'],
-                'p95': result['percentiles'].get('p95'),
-                'p99': result['percentiles'].get('p99')
-            }}
+            extra={
+                "extra_fields": {
+                    "task_id": self.request.id,
+                    "sample_count": result["sample_count"],
+                    "p95": result["percentiles"].get("p95"),
+                    "p99": result["percentiles"].get("p99"),
+                }
+            },
         )
 
         return result
@@ -124,19 +124,12 @@ def calculate_api_percentiles_task(self, time_window_minutes: int = 15):
         logger.error(
             f"API百分位数计算失败: {e}",
             exc_info=True,
-            extra={'extra_fields': {
-                'task_id': self.request.id,
-                'error': str(e)
-            }}
+            extra={"extra_fields": {"task_id": self.request.id, "error": str(e)}},
         )
         raise
 
 
-@shared_task(
-    name='core.calculate_celery_percentiles',
-    bind=True,
-    max_retries=3
-)
+@shared_task(name="core.calculate_celery_percentiles", bind=True, max_retries=3)
 def calculate_celery_percentiles_task(self, time_window_minutes: int = 15):
     """
     计算Celery任务执行时间百分位数
@@ -150,10 +143,9 @@ def calculate_celery_percentiles_task(self, time_window_minutes: int = 15):
     """
     logger.info(
         "开始计算Celery任务执行时间百分位数",
-        extra={'extra_fields': {
-            'task_id': self.request.id,
-            'time_window_minutes': time_window_minutes
-        }}
+        extra={
+            "extra_fields": {"task_id": self.request.id, "time_window_minutes": time_window_minutes}
+        },
     )
 
     try:
@@ -161,12 +153,14 @@ def calculate_celery_percentiles_task(self, time_window_minutes: int = 15):
 
         logger.info(
             "Celery百分位数计算完成",
-            extra={'extra_fields': {
-                'task_id': self.request.id,
-                'sample_count': result['sample_count'],
-                'p95': result['percentiles'].get('p95'),
-                'p99': result['percentiles'].get('p99')
-            }}
+            extra={
+                "extra_fields": {
+                    "task_id": self.request.id,
+                    "sample_count": result["sample_count"],
+                    "p95": result["percentiles"].get("p95"),
+                    "p99": result["percentiles"].get("p99"),
+                }
+            },
         )
 
         return result
@@ -175,9 +169,6 @@ def calculate_celery_percentiles_task(self, time_window_minutes: int = 15):
         logger.error(
             f"Celery百分位数计算失败: {e}",
             exc_info=True,
-            extra={'extra_fields': {
-                'task_id': self.request.id,
-                'error': str(e)
-            }}
+            extra={"extra_fields": {"task_id": self.request.id, "error": str(e)}},
         )
         raise

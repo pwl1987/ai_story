@@ -63,15 +63,12 @@ class LLMStageProcessor(StageProcessor):
                 return False
 
             # 检查前置阶段数据
-            stage = ProjectStage.objects.filter(
-                project=project,
-                stage_type=self.stage_type
-            ).first()
+            stage = ProjectStage.objects.filter(project=project, stage_type=self.stage_type).first()
 
             if stage and not stage.input_data:
                 logger.warning(f"项目 {context.project_id} 的 {self.stage_type} 阶段缺少输入数据")
                 # 对于第一个阶段(rewrite),允许从project.original_topic获取
-                if self.stage_type != 'rewrite':
+                if self.stage_type != "rewrite":
                     return False
 
             return True
@@ -83,9 +80,7 @@ class LLMStageProcessor(StageProcessor):
             return False
 
     def process_stream(
-        self,
-        project_id: str,
-        input_data: Dict[str, Any] = None
+        self, project_id: str, input_data: Dict[str, Any] = None
     ) -> Generator[Dict[str, Any], None, None]:
         """
         流式执行LLM生成
@@ -99,8 +94,7 @@ class LLMStageProcessor(StageProcessor):
             # 获取项目和阶段
             project = Project.objects.get(id=project_id)
             stage, _created = ProjectStage.objects.get_or_create(
-                project=project,
-                stage_type=self.stage_type
+                project=project, stage_type=self.stage_type
             )
 
             # 获取输入数据(优先使用传入的input_data)
@@ -108,18 +102,18 @@ class LLMStageProcessor(StageProcessor):
                 input_data = self._get_input_data(project, stage)
 
             # 更新阶段状态为运行中
-            stage.status = 'processing'
+            stage.status = "processing"
             stage.started_at = timezone.now()
             stage.save()
 
             yield {
-                'type': 'stage_update',
-                'stage': {
-                    'id': str(stage.id),
-                    'status': 'processing',
-                    'stage_type': self.stage_type,
-                    'started_at': stage.started_at.isoformat()
-                }
+                "type": "stage_update",
+                "stage": {
+                    "id": str(stage.id),
+                    "status": "processing",
+                    "stage_type": self.stage_type,
+                    "started_at": stage.started_at.isoformat(),
+                },
             }
 
             # 获取AI客户端
@@ -130,9 +124,9 @@ class LLMStageProcessor(StageProcessor):
 
             # 发送提示词信息
             yield {
-                'type': 'info',
-                'message': f'开始生成{self._get_stage_display_name()}...',
-                'prompt_length': len(prompt)
+                "type": "info",
+                "message": f"开始生成{self._get_stage_display_name()}...",
+                "prompt_length": len(prompt),
             }
             stage_input_data = stage.input_data
             human_text = stage_input_data.get("human_text", "")
@@ -141,9 +135,22 @@ class LLMStageProcessor(StageProcessor):
                 # 运镜的时候走这里
                 scenes = human_text.get("scenes", [])
                 if len(storyboard_ids) == 0:
-                    tasks = [{"user_prompt": f'剧本:{i["narration"]}\n 画面: {i["visual_prompt"]}', "scene_number": i["scene_number"]} for i in scenes]
+                    tasks = [
+                        {
+                            "user_prompt": f"剧本:{i['narration']}\n 画面: {i['visual_prompt']}",
+                            "scene_number": i["scene_number"],
+                        }
+                        for i in scenes
+                    ]
                 else:
-                    tasks = [{"user_prompt": f'剧本:{i["narration"]}\n 画面: {i["visual_prompt"]}', "scene_number": i["scene_number"]} for i in scenes if i["scene_number"] in storyboard_ids]
+                    tasks = [
+                        {
+                            "user_prompt": f"剧本:{i['narration']}\n 画面: {i['visual_prompt']}",
+                            "scene_number": i["scene_number"],
+                        }
+                        for i in scenes
+                        if i["scene_number"] in storyboard_ids
+                    ]
             else:
                 tasks = [{"user_prompt": input_data.get("raw_text", input_data)}]
 
@@ -151,55 +158,53 @@ class LLMStageProcessor(StageProcessor):
                 # 流式生成
                 full_text = ""
                 for chunk in ai_client.generate_stream(
-                    prompt=f'## 用户输入\n{task.get("user_prompt", "")}',
+                    prompt=f"## 用户输入\n{task.get('user_prompt', '')}",
                     system_prompt=prompt,
                     max_tokens=self._get_max_tokens(),
-                    temperature=self._get_temperature()
+                    temperature=self._get_temperature(),
                 ):
-                    if chunk['type'] == 'token':
-                        full_text = chunk['full_text']
-                        print(chunk['content'], end="")
-                        yield {
-                            'type': 'token',
-                            'content': chunk['content'],
-                            'full_text': full_text
-                        }
+                    if chunk["type"] == "token":
+                        full_text = chunk["full_text"]
+                        print(chunk["content"], end="")
+                        yield {"type": "token", "content": chunk["content"], "full_text": full_text}
 
-                    elif chunk['type'] == 'done':
+                    elif chunk["type"] == "done":
                         # 保存结果
                         output_data = self._save_result(
-                            project, stage, full_text, prompt, {"index": task.get("scene_number", "")}
+                            project,
+                            stage,
+                            full_text,
+                            prompt,
+                            {"index": task.get("scene_number", "")},
                         )
 
                         # 保存最终结果到阶段
                         ProjectStage.objects.filter(id=stage.id).update(
-                            output_data=output_data,
-                            completed_at=timezone.now(),
-                            status='completed'
+                            output_data=output_data, completed_at=timezone.now(), status="completed"
                         )
 
-                    elif chunk['type'] == 'error':
+                    elif chunk["type"] == "error":
                         # 更新阶段状态为失败
-                        stage.status = 'failed'
-                        stage.error_message = chunk['error']
+                        stage.status = "failed"
+                        stage.error_message = chunk["error"]
                         stage.save()
 
                         yield {
-                            'type': 'error',
-                            'error': chunk['error'],
-                            'stage': {
-                                'id': str(stage.id),
-                                'status': 'failed',
-                                'error_message': chunk['error']
-                            }
+                            "type": "error",
+                            "error": chunk["error"],
+                            "stage": {
+                                "id": str(stage.id),
+                                "status": "failed",
+                                "error_message": chunk["error"],
+                            },
                         }
 
             yield {
-                'type': 'done',
-                'stage': {
-                    'id': str(stage.id),
-                    'status': 'completed',
-                }
+                "type": "done",
+                "stage": {
+                    "id": str(stage.id),
+                    "status": "completed",
+                },
             }
         except Exception as e:
             logger.error(f"流式{self.stage_type}处理失败: {e!s}", exc_info=True)
@@ -207,28 +212,22 @@ class LLMStageProcessor(StageProcessor):
             # 更新阶段状态
             if stage:
                 try:
-                    stage.status = 'failed'
+                    stage.status = "failed"
                     stage.error_message = str(e)
                     stage.save()
                 except Exception:
                     pass
 
-            yield {
-                'type': 'error',
-                'error': str(e)
-            }
+            yield {"type": "error", "error": str(e)}
 
     def on_failure(self, context: PipelineContext, error: Exception):
         """失败处理"""
         try:
             project = Project.objects.get(id=context.project_id)
-            stage = ProjectStage.objects.filter(
-                project=project,
-                stage_type=self.stage_type
-            ).first()
+            stage = ProjectStage.objects.filter(project=project, stage_type=self.stage_type).first()
 
             if stage:
-                stage.status = 'failed'
+                stage.status = "failed"
                 stage.error_message = str(error)
                 stage.save()
 
@@ -247,34 +246,28 @@ class LLMStageProcessor(StageProcessor):
             return stage.input_data
 
         # 根据阶段类型获取默认输入
-        if self.stage_type == 'rewrite':
+        if self.stage_type == "rewrite":
             # 文案改写: 从项目的original_topic获取
-            return {
-                'raw_text': project.original_topic,
-                'human_text': ''
-            }
-        elif self.stage_type == 'storyboard':
+            return {"raw_text": project.original_topic, "human_text": ""}
+        elif self.stage_type == "storyboard":
             # 分镜生成: 从rewrite阶段的输出获取
             rewrite_stage = ProjectStage.objects.filter(
-                project=project,
-                stage_type='rewrite',
-                status='completed'
+                project=project, stage_type="rewrite", status="completed"
             ).first()
             if rewrite_stage and rewrite_stage.output_data:
-                return {
-                    'raw_text': rewrite_stage.output_data.get('raw_text', ''),
-                    'human_text': ''
-                }
+                return {"raw_text": rewrite_stage.output_data.get("raw_text", ""), "human_text": ""}
             raise ValueError("前置阶段(文案改写)未完成或无输出数据")
-        elif self.stage_type == 'camera_movement':
+        elif self.stage_type == "camera_movement":
             # 运镜生成: 从storyboard阶段获取
             camera_movement_stage = ProjectStage.objects.filter(
                 project=project,
-                stage_type='camera_movement',
+                stage_type="camera_movement",
             ).first()
             if camera_movement_stage and camera_movement_stage.input_data:
                 return {
-                    'human_text': camera_movement_stage.input_data.get('human_text', {}).get("scenes", [])
+                    "human_text": camera_movement_stage.input_data.get("human_text", {}).get(
+                        "scenes", []
+                    )
                 }
             raise ValueError("前置阶段(分镜生成)未完成或无输出数据")
         else:
@@ -283,22 +276,23 @@ class LLMStageProcessor(StageProcessor):
     def _get_prompt_template(self, project: Project) -> Optional[PromptTemplate]:
         """获取提示词模板"""
         # 从项目的prompt_template_set中获取
-        template_set = getattr(project, 'prompt_template_set', None)
+        template_set = getattr(project, "prompt_template_set", None)
 
         if not template_set:
             # 尝试获取默认提示词集
             from apps.prompts.models import PromptTemplateSet
+
             template_set = PromptTemplateSet.objects.filter(is_default=True).first()
 
         if not template_set:
             return None
 
         # 获取对应阶段的模板 - 使用select_related预加载model_provider
-        template = PromptTemplate.objects.select_related('model_provider').filter(
-            template_set=template_set,
-            stage_type=self.stage_type,
-            is_active=True
-        ).first()
+        template = (
+            PromptTemplate.objects.select_related("model_provider")
+            .filter(template_set=template_set, stage_type=self.stage_type, is_active=True)
+            .first()
+        )
 
         return template
 
@@ -310,10 +304,7 @@ class LLMStageProcessor(StageProcessor):
         from apps.prompts.models import GlobalVariable
 
         # 调用GlobalVariable的异步API
-        return GlobalVariable.get_variables_for_user(
-            user=project.user,
-            include_system=True
-        )
+        return GlobalVariable.get_variables_for_user(user=project.user, include_system=True)
 
     def _get_global_variables_sync(self, project: Project) -> Dict[str, Any]:
         """
@@ -323,10 +314,7 @@ class LLMStageProcessor(StageProcessor):
         from apps.prompts.models import GlobalVariable
 
         # 调用GlobalVariable的同步API
-        return GlobalVariable.get_variables_for_user_sync(
-            user=project.user,
-            include_system=True
-        )
+        return GlobalVariable.get_variables_for_user_sync(user=project.user, include_system=True)
 
     def _build_prompt(self, project: Project, input_data: Dict[str, Any]) -> str:
         """
@@ -346,12 +334,12 @@ class LLMStageProcessor(StageProcessor):
             # 准备模板变量（优先级：input_data > project > global_vars）
             template_vars = {
                 **global_vars,  # 全局变量（最低优先级）
-                'project': {
-                    'name': project.name,
-                    'description': project.description,
-                    'original_topic': project.original_topic,
+                "project": {
+                    "name": project.name,
+                    "description": project.description,
+                    "original_topic": project.original_topic,
                 },
-                **input_data  # 输入数据（最高优先级）
+                **input_data,  # 输入数据（最高优先级）
             }
 
             # 渲染Jinja2模板
@@ -369,16 +357,16 @@ class LLMStageProcessor(StageProcessor):
         from core.ai_client.factory import create_ai_client
 
         # 获取项目模型配置
-        config = getattr(project, 'model_config', None)
+        config = getattr(project, "model_config", None)
 
         provider = None
 
         if config:
             # 根据阶段类型获取对应的模型提供商
             provider_field_map = {
-                'rewrite': 'rewrite_providers',
-                'storyboard': 'storyboard_providers',
-                'camera_movement': 'camera_providers',
+                "rewrite": "rewrite_providers",
+                "storyboard": "storyboard_providers",
+                "camera_movement": "camera_providers",
             }
 
             field_name = provider_field_map.get(self.stage_type)
@@ -405,23 +393,21 @@ class LLMStageProcessor(StageProcessor):
         client = create_ai_client(provider)
 
         # 如果是Mock客户端，传递stage_type参数
-        if 'mock_llm_client' in provider.executor_class.lower():
+        if "mock_llm_client" in provider.executor_class.lower():
             from core.ai_client.mock_llm_client import MockLLMClient
+
             return MockLLMClient(
                 api_url=provider.api_url or "",
                 api_key=provider.api_key or "",
                 model_name=provider.model_name or "mock-model",
-                stage_type=self.stage_type
+                stage_type=self.stage_type,
             )
 
         return client
 
     def _get_default_provider(self) -> ModelProvider:
         """获取默认的LLM提供商"""
-        provider = ModelProvider.objects.filter(
-            provider_type='llm',
-            is_active=True
-        ).first()
+        provider = ModelProvider.objects.filter(provider_type="llm", is_active=True).first()
 
         if not provider:
             raise Exception("未找到可用的LLM模型提供商,请在后台配置")
@@ -434,42 +420,30 @@ class LLMStageProcessor(StageProcessor):
         stage: ProjectStage,
         generated_text: str,
         prompt_used: str,
-        metadata: Dict[str, Any]
+        metadata: Dict[str, Any],
     ) -> Dict[str, Any]:
         """
         保存生成结果到对应的模型
         不同阶段保存到不同的模型表
         """
-        if self.stage_type == 'rewrite':
-            output_data = {
-                'raw_text': generated_text,
-                "human_text": ""
-            }
-            ProjectStage.objects.filter(
-                project=project, stage_type="storyboard"
-            ).update(input_data=output_data)
+        if self.stage_type == "rewrite":
+            output_data = {"raw_text": generated_text, "human_text": ""}
+            ProjectStage.objects.filter(project=project, stage_type="storyboard").update(
+                input_data=output_data
+            )
             return output_data
 
-        elif self.stage_type == 'storyboard':
+        elif self.stage_type == "storyboard":
             # 分镜生成: 需要解析生成的JSON/结构化文本
             human_text = parse_storyboard_json(generated_text)
-            output_data = {
-                "human_text": human_text,
-                "raw_text": ""
-            }
+            output_data = {"human_text": human_text, "raw_text": ""}
             ProjectStage.objects.filter(
                 project=project,
-                stage_type__in=["image_generation", "camera_movement", "video_generation"]
-            ).update(
-                input_data=output_data,
-                output_data=output_data
-            )
-            return {
-                'human_text': human_text,
-                'raw_text': generated_text
-            }
+                stage_type__in=["image_generation", "camera_movement", "video_generation"],
+            ).update(input_data=output_data, output_data=output_data)
+            return {"human_text": human_text, "raw_text": generated_text}
 
-        elif self.stage_type == 'camera_movement':
+        elif self.stage_type == "camera_movement":
             # 运镜生成: 返回运镜参数
             index = metadata["index"]
             # 保存
@@ -479,8 +453,7 @@ class LLMStageProcessor(StageProcessor):
                     each["camera_movement"] = generated_text
 
             video_stage = ProjectStage.objects.filter(
-                project=project,
-                stage_type="video_generation"
+                project=project, stage_type="video_generation"
             ).first()
             if video_stage:
                 # 深拷贝现有数据
@@ -508,46 +481,43 @@ class LLMStageProcessor(StageProcessor):
                             break
                 # 保存更新后的数据
                 ProjectStage.objects.filter(id=video_stage.id).update(
-                    input_data=updated_input,
-                    output_data=updated_output
+                    input_data=updated_input, output_data=updated_output
                 )
             return {
-                "human_text": {
-                    "scenes": scenes
-                },
-                'raw_text': generated_text,
+                "human_text": {"scenes": scenes},
+                "raw_text": generated_text,
             }
 
         else:
             # 默认返回
             return {
-                'raw_text': generated_text,
-                'human_text': generated_text,
+                "raw_text": generated_text,
+                "human_text": generated_text,
             }
 
     def _get_max_tokens(self) -> int:
         """获取最大token数(根据阶段类型)"""
         token_map = {
-            'rewrite': 2000,
-            'storyboard': 4000,
-            'camera_movement': 1000,
+            "rewrite": 2000,
+            "storyboard": 4000,
+            "camera_movement": 1000,
         }
         return token_map.get(self.stage_type, 2000)
 
     def _get_temperature(self) -> float:
         """获取temperature参数(根据阶段类型)"""
         temp_map = {
-            'rewrite': 0.7,
-            'storyboard': 0.8,
-            'camera_movement': 0.6,
+            "rewrite": 0.7,
+            "storyboard": 0.8,
+            "camera_movement": 0.6,
         }
         return temp_map.get(self.stage_type, 0.7)
 
     def _get_stage_display_name(self) -> str:
         """获取阶段显示名称"""
         name_map = {
-            'rewrite': '改写文案',
-            'storyboard': '分镜脚本',
-            'camera_movement': '运镜参数',
+            "rewrite": "改写文案",
+            "storyboard": "分镜脚本",
+            "camera_movement": "运镜参数",
         }
         return name_map.get(self.stage_type, self.stage_type)

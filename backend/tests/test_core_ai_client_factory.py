@@ -4,7 +4,6 @@ core.ai_client.factory 单元测试
 测试AI客户端工厂模式的客户端创建逻辑
 """
 
-
 import pytest
 
 from core.ai_client.factory import _create_mock_client, create_ai_client, create_ai_client_safe
@@ -20,28 +19,34 @@ class TestCreateMockClient:
     @pytest.fixture
     def mock_llm_provider(self):
         """创建Mock LLM Provider对象"""
+
         class Provider:
             name = "OpenAI"
             executor_class = "core.ai_client.openai_client.OpenAIClient"
             model_name = "gpt-4"
+
         return Provider()
 
     @pytest.fixture
     def mock_text2image_provider(self):
         """创建Mock文生图Provider"""
+
         class Provider:
             name = "Stable Diffusion"
             executor_class = "core.ai_client.text2image_client.Text2ImageClient"
             model_name = "stable-diffusion-v1.5"
+
         return Provider()
 
     @pytest.fixture
     def mock_image2video_provider(self):
         """创建Mock图生视频Provider"""
+
         class Provider:
             name = "Runway"
             executor_class = "core.ai_client.image2video_client.Image2VideoClient"
             model_name = "gen2"
+
         return Provider()
 
     def test_create_mock_llm_client(self, mock_llm_provider):
@@ -68,6 +73,7 @@ class TestCreateMockClient:
 
     def test_create_mock_client_default_fallback(self):
         """测试无法识别类型时默认使用LLM客户端"""
+
         class UnknownProvider:
             name = "Unknown"
             executor_class = "some.unknown.Class"
@@ -87,6 +93,7 @@ class TestCreateAIClient:
     @pytest.fixture
     def mock_provider(self):
         """创建Mock Provider对象"""
+
         class Provider:
             name = "Test Provider"
             executor_class = "core.ai_client.openai_client.OpenAIClient"
@@ -103,7 +110,7 @@ class TestCreateAIClient:
 
     def test_create_client_with_mock_enabled(self, mock_provider, monkeypatch):
         """测试启用Mock模式时创建Mock客户端"""
-        monkeypatch.setenv('ENABLE_MOCK_AI', 'true')
+        monkeypatch.setenv("ENABLE_MOCK_AI", "true")
 
         client = create_ai_client(mock_provider)
 
@@ -113,7 +120,7 @@ class TestCreateAIClient:
     def test_create_client_without_mock_succeeds(self, mock_provider, monkeypatch):
         """测试未启用Mock时工厂函数会成功创建客户端（延迟验证）"""
         # 确保环境变量未设置
-        monkeypatch.delenv('ENABLE_MOCK_AI', raising=False)
+        monkeypatch.delenv("ENABLE_MOCK_AI", raising=False)
 
         # factory函数采用延迟验证设计，会成功创建客户端对象
         # 实际配置验证在validate_config()或调用API时进行
@@ -136,15 +143,17 @@ class TestCreateAIClientSafe:
     @pytest.fixture
     def invalid_provider(self):
         """创建无效Provider对象"""
+
         class Provider:
             name = "Invalid Provider"
             executor_class = "non.existent.Class"
             model_name = "invalid"
+
         return Provider()
 
     def test_create_client_safe_with_invalid_provider(self, invalid_provider, monkeypatch):
         """测试安全版本捕获异常并返回None"""
-        monkeypatch.delenv('ENABLE_MOCK_AI', raising=False)
+        monkeypatch.delenv("ENABLE_MOCK_AI", raising=False)
 
         client = create_ai_client_safe(invalid_provider)
 
@@ -165,7 +174,7 @@ class TestFactoryIntegration:
     def test_factory_with_env_var_integration(self, monkeypatch):
         """测试环境变量集成"""
         # 设置环境变量
-        monkeypatch.setenv('ENABLE_MOCK_AI', 'true')
+        monkeypatch.setenv("ENABLE_MOCK_AI", "true")
 
         class Provider:
             name = "Test"
@@ -181,8 +190,8 @@ class TestFactoryIntegration:
     def test_factory_case_insensitive_env_var(self, monkeypatch):
         """测试环境变量大小写不敏感"""
         # 测试不同的环境变量值
-        for env_value in ['true', 'True', 'TRUE']:
-            monkeypatch.setenv('ENABLE_MOCK_AI', env_value)
+        for env_value in ["true", "True", "TRUE"]:
+            monkeypatch.setenv("ENABLE_MOCK_AI", env_value)
 
             class Provider:
                 name = "Test"
@@ -194,7 +203,7 @@ class TestFactoryIntegration:
 
     def test_factory_env_var_false(self, monkeypatch):
         """测试环境变量为false时不使用Mock"""
-        monkeypatch.setenv('ENABLE_MOCK_AI', 'false')
+        monkeypatch.setenv("ENABLE_MOCK_AI", "false")
 
         class Provider:
             name = "Test"
@@ -207,7 +216,7 @@ class TestFactoryIntegration:
 
     def test_factory_multiple_provider_types(self, monkeypatch):
         """测试工厂支持多种provider类型"""
-        monkeypatch.setenv('ENABLE_MOCK_AI', 'true')
+        monkeypatch.setenv("ENABLE_MOCK_AI", "true")
 
         # 测试LLM类型
         class LLMProvider:

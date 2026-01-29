@@ -20,9 +20,7 @@ def test_user(db):
             assert test_user.username == 'testuser'
     """
     user = User.objects.create_user(
-        username='testuser',
-        email='test@example.com',
-        password='testpass123'
+        username="testuser", email="test@example.com", password="testpass123"
     )
     return user
 
@@ -49,10 +47,10 @@ def sample_project_data():
     返回不依赖数据库的测试数据
     """
     return {
-        'name': '示例项目',
-        'description': '这是一个示例项目描述',
-        'story_idea': '一个关于AI的故事',
-        'video_style': '科幻风格'
+        "name": "示例项目",
+        "description": "这是一个示例项目描述",
+        "story_idea": "一个关于AI的故事",
+        "video_style": "科幻风格",
     }
 
 
@@ -61,12 +59,7 @@ def mock_ai_text_response():
     """
     Mock LLM文本生成响应
     """
-    return {
-        'text': '这是AI生成的文本内容',
-        'tokens_used': 100,
-        'model': 'gpt-4',
-        'success': True
-    }
+    return {"text": "这是AI生成的文本内容", "tokens_used": 100, "model": "gpt-4", "success": True}
 
 
 @pytest.fixture
@@ -75,10 +68,10 @@ def mock_image_generation_response():
     Mock文生图响应
     """
     return {
-        'image_url': 'https://example.com/generated/image.png',
-        'prompt_used': '测试提示词',
-        'model': 'stable-diffusion-v1.5',
-        'success': True
+        "image_url": "https://example.com/generated/image.png",
+        "prompt_used": "测试提示词",
+        "model": "stable-diffusion-v1.5",
+        "success": True,
     }
 
 
@@ -88,10 +81,10 @@ def mock_video_generation_response():
     Mock图生视频响应
     """
     return {
-        'video_url': 'https://example.com/generated/video.mp4',
-        'duration': 5.0,
-        'model': 'runway-gen2',
-        'success': True
+        "video_url": "https://example.com/generated/video.mp4",
+        "duration": 5.0,
+        "model": "runway-gen2",
+        "success": True,
     }
 
 
@@ -108,10 +101,10 @@ def multiple_test_projects(db):
     projects = []
     for i in range(3):
         project = Project.objects.create(
-            name=f'测试项目{i}',
-            description=f'这是第{i}个测试项目',
-            story_idea=f'故事创意{i}',
-            video_style=f'风格{i}'
+            name=f"测试项目{i}",
+            description=f"这是第{i}个测试项目",
+            story_idea=f"故事创意{i}",
+            video_style=f"风格{i}",
         )
         projects.append(project)
 
@@ -125,17 +118,14 @@ def sample_prompt_template(db):
     """
     from apps.prompts.models import PromptTemplate
 
-    template_set = PromptTemplate.objects.create(
-        name='测试模板集',
-        description='用于测试的模板集'
-    )
+    template_set = PromptTemplate.objects.create(name="测试模板集", description="用于测试的模板集")
 
     template = PromptTemplate.objects.create(
         template_set=template_set,
-        stage='rewrite',
-        name='测试文案改写模板',
-        template_content='这是{{ variable }}测试模板',
-        variables=['variable']
+        stage="rewrite",
+        name="测试文案改写模板",
+        template_content="这是{{ variable }}测试模板",
+        variables=["variable"],
     )
 
     return template

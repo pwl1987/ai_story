@@ -25,7 +25,6 @@ class ComfyUIClient(BaseText2ImageClient):
     支持自定义工作流、实时进度监听、批量生成
     """
 
-
     def __init__(self, api_url: str, api_key: str, model_name: str, **kwargs):
         """
         初始化 ComfyUI 客户端
@@ -46,12 +45,12 @@ class ComfyUIClient(BaseText2ImageClient):
 
         # 解析服务器地址
         self.server_address = self._parse_server_address(api_url)
-        self.checkpoint_name = kwargs.get('checkpoint_name', model_name)
-        self.workflow_template = kwargs.get('workflow_template', {})
-        self.timeout = kwargs.get('timeout', 300)
-        self.save_images = kwargs.get('save_images', True)
-        self.output_dir = kwargs.get('output_dir', 'storage/image')
-        self.video_output_dir = kwargs.get('video_output_dir', 'storage/video')
+        self.checkpoint_name = kwargs.get("checkpoint_name", model_name)
+        self.workflow_template = kwargs.get("workflow_template", {})
+        self.timeout = kwargs.get("timeout", 300)
+        self.save_images = kwargs.get("save_images", True)
+        self.output_dir = kwargs.get("output_dir", "storage/image")
+        self.video_output_dir = kwargs.get("video_output_dir", "storage/video")
         self.client_id = str(uuid.uuid4())
 
     def _parse_server_address(self, api_url: str) -> str:
@@ -65,9 +64,9 @@ class ComfyUIClient(BaseText2ImageClient):
             str: 服务器地址 (例如: 127.0.0.1:8188)
         """
         # 移除协议前缀
-        address = api_url.replace('http://', '').replace('https://', '')
+        address = api_url.replace("http://", "").replace("https://", "")
         # 移除尾部斜杠
-        address = address.rstrip('/')
+        address = address.rstrip("/")
         return address
 
     def _prepare_workflow(
@@ -108,11 +107,7 @@ class ComfyUIClient(BaseText2ImageClient):
             Exception: 提交失败
         """
         url = f"http://{self.server_address}/prompt"
-        payload = {
-            "prompt": prompt,
-            "client_id": self.client_id,
-            "prompt_id": prompt_id
-        }
+        payload = {"prompt": prompt, "client_id": self.client_id, "prompt_id": prompt_id}
 
         response = requests.post(url, json=payload, timeout=self.timeout)
         if response.status_code != 200:
@@ -147,11 +142,7 @@ class ComfyUIClient(BaseText2ImageClient):
         Returns:
             bytes: 图片数据
         """
-        params = {
-            "filename": filename,
-            "subfolder": subfolder,
-            "type": folder_type
-        }
+        params = {"filename": filename, "subfolder": subfolder, "type": folder_type}
         url = f"http://{self.server_address}/view"
         response = requests.get(url, params=params, timeout=self.timeout)
         if response.status_code != 200:
@@ -165,7 +156,7 @@ class ComfyUIClient(BaseText2ImageClient):
         folder_type: str,
         output_path: Optional[str] = None,
         progress_callback: Optional[Callable[[int, int], None]] = None,
-        chunk_size: int = 8192
+        chunk_size: int = 8192,
     ) -> bytes:
         """
         流式下载生成的视频文件
@@ -184,11 +175,7 @@ class ComfyUIClient(BaseText2ImageClient):
         Raises:
             Exception: 下载失败时抛出异常
         """
-        params = {
-            "filename": filename,
-            "subfolder": subfolder,
-            "type": folder_type
-        }
+        params = {"filename": filename, "subfolder": subfolder, "type": folder_type}
         url = f"http://{self.server_address}/view"
 
         # 使用流式请求
@@ -198,14 +185,14 @@ class ComfyUIClient(BaseText2ImageClient):
             raise Exception(f"下载视频失败: HTTP {response.status_code}")
 
         # 获取文件总大小
-        total_size = int(response.headers.get('content-length', 0))
+        total_size = int(response.headers.get("content-length", 0))
         downloaded_size = 0
 
         # 如果提供了输出路径,流式写入文件
         if output_path:
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-            with open(output_path, 'wb') as f:
+            with open(output_path, "wb") as f:
                 for chunk in response.iter_content(chunk_size=chunk_size):
                     if chunk:  # 过滤掉保持连接的空块
                         f.write(chunk)
@@ -215,7 +202,7 @@ class ComfyUIClient(BaseText2ImageClient):
                         if progress_callback:
                             progress_callback(downloaded_size, total_size)
 
-            return b''  # 已写入文件,返回空字节
+            return b""  # 已写入文件,返回空字节
 
         # 否则,流式读取到内存
         else:
@@ -229,14 +216,14 @@ class ComfyUIClient(BaseText2ImageClient):
                     if progress_callback:
                         progress_callback(downloaded_size, total_size)
 
-            return b''.join(chunks)
+            return b"".join(chunks)
 
     def _get_images_sync(
         self,
         ws: websocket.WebSocket,
         prompt: Dict[str, Any],
         prompt_id: str,
-        progress_callback: Optional[Callable[[float], None]] = None
+        progress_callback: Optional[Callable[[float], None]] = None,
     ) -> Dict[str, list]:
         """
         通过 WebSocket 监听进度并获取结果 (同步版本)
@@ -255,7 +242,7 @@ class ComfyUIClient(BaseText2ImageClient):
 
         if progress_callback:
             progress_callback(current_progress)
-        null_queue= []
+        null_queue = []
         while True:
             try:
                 out = ws.recv()
@@ -264,22 +251,22 @@ class ComfyUIClient(BaseText2ImageClient):
 
             if isinstance(out, str):
                 message = json.loads(out)
-                print(message['type'])
-                if message['type'] == 'progress':
+                print(message["type"])
+                if message["type"] == "progress":
                     null_queue = []
                     # 处理进度信息
-                    if 'data' in message:
-                        progress_data = message['data']
-                        if 'value' in progress_data and 'max' in progress_data:
-                            progress_percent = (progress_data['value'] / progress_data['max']) * 70
+                    if "data" in message:
+                        progress_data = message["data"]
+                        if "value" in progress_data and "max" in progress_data:
+                            progress_percent = (progress_data["value"] / progress_data["max"]) * 70
                             current_progress = 20 + progress_percent
                             if progress_callback:
                                 progress_callback(min(90, current_progress))
 
-                elif message['type'] == 'executing':
+                elif message["type"] == "executing":
                     null_queue = []
-                    data = message['data']
-                    if data['node'] is not None:
+                    data = message["data"]
+                    if data["node"] is not None:
                         # 节点开始执行
                         current_progress = max(current_progress, 30)
                         if progress_callback:
@@ -304,7 +291,7 @@ class ComfyUIClient(BaseText2ImageClient):
         width: int = 512,
         height: int = 512,
         steps: int = 20,
-        **kwargs
+        **kwargs,
     ) -> dict:
         """
         生成图片
@@ -331,10 +318,10 @@ class ComfyUIClient(BaseText2ImageClient):
 
         try:
             # 提取参数
-            cfg = kwargs.get('cfg', 7.0)
-            kwargs.get('seed')
-            num_images = kwargs.get('num_images', 1)
-            progress_callback = kwargs.get('progress_callback')
+            cfg = kwargs.get("cfg", 7.0)
+            kwargs.get("seed")
+            num_images = kwargs.get("num_images", 1)
+            progress_callback = kwargs.get("progress_callback")
 
             # 准备工作流
             workflow = self._prepare_workflow(
@@ -356,12 +343,7 @@ class ComfyUIClient(BaseText2ImageClient):
 
             try:
                 ws.connect(ws_url)
-                self._get_images_sync(
-                    ws,
-                    workflow,
-                    prompt_id,
-                    progress_callback
-                )
+                self._get_images_sync(ws, workflow, prompt_id, progress_callback)
 
             finally:
                 ws.close()
@@ -373,26 +355,21 @@ class ComfyUIClient(BaseText2ImageClient):
             history = self._get_history(prompt_id)
 
             if prompt_id not in history:
-                return {
-                    'success': False,
-                    'error': f'任务 {prompt_id} 未找到历史记录'
-                }
+                return {"success": False, "error": f"任务 {prompt_id} 未找到历史记录"}
 
             task_history = history[prompt_id]
 
             # 提取图片
             image_urls = []
 
-            for node_id in task_history.get('outputs', {}):
-                node_output = task_history['outputs'][node_id]
+            for node_id in task_history.get("outputs", {}):
+                node_output = task_history["outputs"][node_id]
 
-                if 'images' in node_output:
-                    for idx, image_info in enumerate(node_output['images']):
+                if "images" in node_output:
+                    for idx, image_info in enumerate(node_output["images"]):
                         # 下载图片
                         image_data = self._get_image(
-                            image_info['filename'],
-                            image_info['subfolder'],
-                            image_info['type']
+                            image_info["filename"], image_info["subfolder"], image_info["type"]
                         )
 
                         # 保存图片 (如果启用)
@@ -405,13 +382,12 @@ class ComfyUIClient(BaseText2ImageClient):
 
                             # 将PIL图片转换为字节
                             img_bytes = BytesIO()
-                            image.save(img_bytes, format='PNG')
+                            image.save(img_bytes, format="PNG")
                             img_bytes.seek(0)
 
                             # 使用日期分层存储保存文件
                             _full_path, relative_path = image_storage.save_file(
-                                filename=filename,
-                                content=img_bytes.getvalue()
+                                filename=filename, content=img_bytes.getvalue()
                             )
 
                             # 构建 URL (使用相对路径)
@@ -429,31 +405,26 @@ class ComfyUIClient(BaseText2ImageClient):
             latency_ms = int((time.time() - start_time) * 1000)
 
             return {
-                'success': True,
-                'data': image_urls,
-                'metadata': {
-                    'latency_ms': latency_ms,
-                    'model': self.checkpoint_name,
-                    'prompt_id': prompt_id,
-                    'num_images': num_images,
-                    'width': width,
-                    'height': height,
-                    'steps': steps,
-                    'cfg': cfg,
-                }
+                "success": True,
+                "data": image_urls,
+                "metadata": {
+                    "latency_ms": latency_ms,
+                    "model": self.checkpoint_name,
+                    "prompt_id": prompt_id,
+                    "num_images": num_images,
+                    "width": width,
+                    "height": height,
+                    "steps": steps,
+                    "cfg": cfg,
+                },
             }
 
         except requests.Timeout:
-            return {
-                'success': False,
-                'error': f'请求超时 (超过 {self.timeout} 秒)'
-            }
+            return {"success": False, "error": f"请求超时 (超过 {self.timeout} 秒)"}
         except Exception as e:
             print(f"生成图片失败: {e!s}")
-            return {
-                'success': False,
-                'error': f'生成图片失败: {e!s}'
-            }
+            return {"success": False, "error": f"生成图片失败: {e!s}"}
+
     def _generate_video(
         self,
         prompt: str,
@@ -461,7 +432,7 @@ class ComfyUIClient(BaseText2ImageClient):
         width: int = 512,
         height: int = 512,
         steps: int = 20,
-        **kwargs
+        **kwargs,
     ) -> dict:
         """
         生成图片
@@ -488,10 +459,10 @@ class ComfyUIClient(BaseText2ImageClient):
 
         try:
             # 提取参数
-            cfg = kwargs.get('cfg', 7.0)
-            kwargs.get('seed')
-            num_images = kwargs.get('num_images', 1)
-            progress_callback = kwargs.get('progress_callback')
+            cfg = kwargs.get("cfg", 7.0)
+            kwargs.get("seed")
+            num_images = kwargs.get("num_images", 1)
+            progress_callback = kwargs.get("progress_callback")
 
             # 准备工作流
             workflow = self._prepare_workflow(
@@ -513,12 +484,7 @@ class ComfyUIClient(BaseText2ImageClient):
 
             try:
                 ws.connect(ws_url)
-                self._get_images_sync(
-                    ws,
-                    workflow,
-                    prompt_id,
-                    progress_callback
-                )
+                self._get_images_sync(ws, workflow, prompt_id, progress_callback)
 
             finally:
                 ws.close()
@@ -530,21 +496,18 @@ class ComfyUIClient(BaseText2ImageClient):
             history = self._get_history(prompt_id)
 
             if prompt_id not in history:
-                return {
-                    'success': False,
-                    'error': f'任务 {prompt_id} 未找到历史记录'
-                }
+                return {"success": False, "error": f"任务 {prompt_id} 未找到历史记录"}
 
             task_history = history[prompt_id]
 
             # 提取图片
             image_urls = []
 
-            for node_id in task_history.get('outputs', {}):
-                node_output = task_history['outputs'][node_id]
+            for node_id in task_history.get("outputs", {}):
+                node_output = task_history["outputs"][node_id]
 
-                if 'gifs' in node_output:
-                    for idx, image_info in enumerate(node_output['gifs']):
+                if "gifs" in node_output:
+                    for idx, image_info in enumerate(node_output["gifs"]):
                         # 保存视频 (如果启用)
                         if self.save_images:
                             # 使用日期分层存储
@@ -552,8 +515,7 @@ class ComfyUIClient(BaseText2ImageClient):
 
                             # 获取唯一的文件路径
                             full_path, relative_path = video_storage.get_unique_filepath(
-                                filename=filename,
-                                create_dirs=True
+                                filename=filename, create_dirs=True
                             )
 
                             # 定义下载进度回调
@@ -564,11 +526,11 @@ class ComfyUIClient(BaseText2ImageClient):
 
                             # 流式下载并直接写入文件 (使用完整路径)
                             self._get_video(
-                                image_info['filename'],
-                                image_info['subfolder'],
-                                image_info['type'],
+                                image_info["filename"],
+                                image_info["subfolder"],
+                                image_info["type"],
                                 output_path=str(full_path),
-                                progress_callback=download_progress
+                                progress_callback=download_progress,
                             )
 
                             # 构建 URL (使用相对路径)
@@ -586,31 +548,26 @@ class ComfyUIClient(BaseText2ImageClient):
             latency_ms = int((time.time() - start_time) * 1000)
 
             return {
-                'success': True,
-                'data': image_urls,
-                'metadata': {
-                    'latency_ms': latency_ms,
-                    'model': self.checkpoint_name,
-                    'prompt_id': prompt_id,
-                    'num_images': num_images,
-                    'width': width,
-                    'height': height,
-                    'steps': steps,
-                    'cfg': cfg,
-                }
+                "success": True,
+                "data": image_urls,
+                "metadata": {
+                    "latency_ms": latency_ms,
+                    "model": self.checkpoint_name,
+                    "prompt_id": prompt_id,
+                    "num_images": num_images,
+                    "width": width,
+                    "height": height,
+                    "steps": steps,
+                    "cfg": cfg,
+                },
             }
 
         except requests.Timeout:
-            return {
-                'success': False,
-                'error': f'请求超时 (超过 {self.timeout} 秒)'
-            }
+            return {"success": False, "error": f"请求超时 (超过 {self.timeout} 秒)"}
         except Exception as e:
             print(f"生成图片失败: {e!s}")
-            return {
-                'success': False,
-                'error': f'生成图片失败: {e!s}'
-            }
+            return {"success": False, "error": f"生成图片失败: {e!s}"}
+
     def validate_config(self) -> bool:
         """
         验证配置

@@ -7,8 +7,8 @@ from .progress_history import ProgressHistoryQuery, ProgressHistoryRecorder
 from .workflow import cancel_project_tasks, resume_project_pipeline
 
 __all__ = [
-    'ProgressHistoryQuery',
-    'ProgressHistoryRecorder',
-    'cancel_project_tasks',
-    'resume_project_pipeline',
+    "ProgressHistoryQuery",
+    "ProgressHistoryRecorder",
+    "cancel_project_tasks",
+    "resume_project_pipeline",
 ]

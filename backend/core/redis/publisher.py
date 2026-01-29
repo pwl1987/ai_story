@@ -51,7 +51,7 @@ class RedisStreamPublisher:
         """
         try:
             # 从Django settings获取Redis Pub/Sub专用配置
-            redis_url = getattr(settings, 'REDIS_PUBSUB_URL', 'redis://localhost:6379/2')
+            redis_url = getattr(settings, "REDIS_PUBSUB_URL", "redis://localhost:6379/2")
 
             # 解析Redis URL
             return redis.from_url(
@@ -60,7 +60,7 @@ class RedisStreamPublisher:
                 socket_connect_timeout=5,
                 socket_timeout=5,
                 retry_on_timeout=True,
-                health_check_interval=30
+                health_check_interval=30,
             )
         except Exception as e:
             logger.error(f"Redis连接失败: {e!s}")
@@ -78,8 +78,8 @@ class RedisStreamPublisher:
         """
         try:
             # 添加时间戳
-            if 'timestamp' not in message:
-                message['timestamp'] = time.time()
+            if "timestamp" not in message:
+                message["timestamp"] = time.time()
 
             # 序列化为JSON
             message_json = json.dumps(message, ensure_ascii=False)
@@ -119,10 +119,10 @@ class RedisStreamPublisher:
         Returns:
             bool: 是否记录成功
         """
-        message_type = message.get('type')
+        message_type = message.get("type")
 
         # 仅记录关键消息类型
-        if message_type not in ['stage_update', 'done', 'error', 'progress']:
+        if message_type not in ["stage_update", "done", "error", "progress"]:
             return True
 
         try:
@@ -130,36 +130,36 @@ class RedisStreamPublisher:
             from apps.projects.services import ProgressHistoryRecorder
 
             # 映射消息类型到历史记录类型
-            if message_type == 'stage_update':
+            if message_type == "stage_update":
                 ProgressHistoryRecorder.record_stage_update(
                     project_id=self.project_id,
                     stage=self.stage_name,
-                    status=message.get('status', 'pending'),
-                    progress=message.get('progress', 0),
-                    message=message.get('message', '')
+                    status=message.get("status", "pending"),
+                    progress=message.get("progress", 0),
+                    message=message.get("message", ""),
                 )
-            elif message_type == 'done':
+            elif message_type == "done":
                 ProgressHistoryRecorder.record_done(
                     project_id=self.project_id,
                     stage=self.stage_name,
-                    result=message.get('full_text', ''),
-                    metadata=message.get('metadata')
+                    result=message.get("full_text", ""),
+                    metadata=message.get("metadata"),
                 )
-            elif message_type == 'error':
+            elif message_type == "error":
                 ProgressHistoryRecorder.record_error(
                     project_id=self.project_id,
                     stage=self.stage_name,
-                    error=message.get('error', ''),
-                    retry_count=message.get('retry_count', 0)
+                    error=message.get("error", ""),
+                    retry_count=message.get("retry_count", 0),
                 )
-            elif message_type == 'progress':
+            elif message_type == "progress":
                 # 批量进度消息,也记录为stage_update
                 ProgressHistoryRecorder.record_stage_update(
                     project_id=self.project_id,
                     stage=self.stage_name,
-                    status='processing',
-                    progress=message.get('progress', 0),
-                    message=f"处理进度: {message.get('current', 0)}/{message.get('total', 0)}"
+                    status="processing",
+                    progress=message.get("progress", 0),
+                    message=f"处理进度: {message.get('current', 0)}/{message.get('total', 0)}",
                 )
 
             return True
@@ -181,19 +181,16 @@ class RedisStreamPublisher:
             bool: 是否发布成功
         """
         message = {
-            'type': 'token',
-            'content': content,
-            'full_text': full_text,
-            'stage': self.stage_name,
-            'project_id': self.project_id
+            "type": "token",
+            "content": content,
+            "full_text": full_text,
+            "stage": self.stage_name,
+            "project_id": self.project_id,
         }
         return self.publish(message)
 
     def publish_stage_update(
-        self,
-        status: str,
-        progress: Optional[int] = None,
-        message: Optional[str] = None
+        self, status: str, progress: Optional[int] = None, message: Optional[str] = None
     ) -> bool:
         """
         发布阶段状态更新消息
@@ -207,17 +204,17 @@ class RedisStreamPublisher:
             bool: 是否发布成功
         """
         msg = {
-            'type': 'stage_update',
-            'stage': self.stage_name,
-            'status': status,
-            'project_id': self.project_id
+            "type": "stage_update",
+            "stage": self.stage_name,
+            "status": status,
+            "project_id": self.project_id,
         }
 
         if progress is not None:
-            msg['progress'] = progress
+            msg["progress"] = progress
 
         if message:
-            msg['message'] = message
+            msg["message"] = message
 
         return self.publish(msg)
 
@@ -233,14 +230,14 @@ class RedisStreamPublisher:
             bool: 是否发布成功
         """
         message = {
-            'type': 'done',
-            'stage': self.stage_name,
-            'project_id': self.project_id,
-            'full_text': full_text
+            "type": "done",
+            "stage": self.stage_name,
+            "project_id": self.project_id,
+            "full_text": full_text,
         }
 
         if metadata:
-            message['metadata'] = metadata
+            message["metadata"] = metadata
 
         return self.publish(message)
 
@@ -256,20 +253,15 @@ class RedisStreamPublisher:
             bool: 是否发布成功
         """
         message = {
-            'type': 'error',
-            'stage': self.stage_name,
-            'project_id': self.project_id,
-            'error': error,
-            'retry_count': retry_count
+            "type": "error",
+            "stage": self.stage_name,
+            "project_id": self.project_id,
+            "error": error,
+            "retry_count": retry_count,
         }
         return self.publish(message)
 
-    def publish_progress(
-        self,
-        current: int,
-        total: int,
-        item_name: str = ""
-    ) -> bool:
+    def publish_progress(self, current: int, total: int, item_name: str = "") -> bool:
         """
         发布进度消息 (用于批量处理场景)
 
@@ -284,16 +276,16 @@ class RedisStreamPublisher:
         progress = int((current / total) * 100) if total > 0 else 0
 
         message = {
-            'type': 'progress',
-            'stage': self.stage_name,
-            'project_id': self.project_id,
-            'current': current,
-            'total': total,
-            'progress': progress
+            "type": "progress",
+            "stage": self.stage_name,
+            "project_id": self.project_id,
+            "current": current,
+            "total": total,
+            "progress": progress,
         }
 
         if item_name:
-            message['item_name'] = item_name
+            message["item_name"] = item_name
 
         return self.publish(message)
 

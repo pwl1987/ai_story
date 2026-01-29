@@ -20,11 +20,11 @@ class ProjectWorkflowService:
 
     # 阶段执行顺序
     STAGE_ORDER = [
-        'rewrite',
-        'storyboard',
-        'image_generation',
-        'camera_movement',
-        'video_generation'
+        "rewrite",
+        "storyboard",
+        "image_generation",
+        "camera_movement",
+        "video_generation",
     ]
 
     @staticmethod
@@ -53,7 +53,9 @@ class ProjectWorkflowService:
 
     @staticmethod
     @transaction.atomic
-    def start_stage(project_id: str, stage_type: str, input_data: Dict[str, Any] = None) -> ProjectStage:
+    def start_stage(
+        project_id: str, stage_type: str, input_data: Dict[str, Any] = None
+    ) -> ProjectStage:
         """
         开始执行阶段
 
@@ -70,38 +72,34 @@ class ProjectWorkflowService:
         """
         try:
             stage = ProjectStage.objects.select_for_update().get(
-                project_id=project_id,
-                stage_type=stage_type
+                project_id=project_id, stage_type=stage_type
             )
         except ProjectStage.DoesNotExist:
             raise ValueError(f"阶段 {stage_type} 不存在")
 
         # 检查阶段状态
-        if stage.status == 'processing':
+        if stage.status == "processing":
             raise ValueError(f"阶段 {stage_type} 正在处理中")
 
         # 检查前置阶段是否完成
         ProjectWorkflowService._check_prerequisites(project_id, stage_type)
 
         # 更新阶段状态
-        stage.status = 'processing'
+        stage.status = "processing"
         stage.started_at = timezone.now()
         if input_data:
             stage.input_data = input_data
         stage.save()
 
         # 更新项目状态为处理中
-        Project.objects.filter(id=project_id).update(status='processing')
+        Project.objects.filter(id=project_id).update(status="processing")
 
         return stage
 
     @staticmethod
     @transaction.atomic
     def complete_stage(
-        project_id: str,
-        stage_type: str,
-        output_data: Dict[str, Any],
-        auto_next: bool = False
+        project_id: str, stage_type: str, output_data: Dict[str, Any], auto_next: bool = False
     ) -> Dict[str, Any]:
         """
         完成阶段执行
@@ -117,52 +115,50 @@ class ProjectWorkflowService:
         """
         try:
             stage = ProjectStage.objects.select_for_update().get(
-                project_id=project_id,
-                stage_type=stage_type
+                project_id=project_id, stage_type=stage_type
             )
         except ProjectStage.DoesNotExist:
             raise ValueError(f"阶段 {stage_type} 不存在")
 
         # 更新阶段状态
-        stage.status = 'completed'
+        stage.status = "completed"
         stage.output_data = output_data
         stage.completed_at = timezone.now()
-        stage.error_message = ''
+        stage.error_message = ""
         stage.save()
 
         # 检查是否所有阶段都完成
         project = Project.objects.get(id=project_id)
-        all_completed = project.stages.filter(status='completed').count() == len(ProjectWorkflowService.STAGE_ORDER)
+        all_completed = project.stages.filter(status="completed").count() == len(
+            ProjectWorkflowService.STAGE_ORDER
+        )
 
         result = {
-            'stage': stage,
-            'completed': True,
-            'next_stage': None,
+            "stage": stage,
+            "completed": True,
+            "next_stage": None,
         }
 
         if all_completed:
             # 所有阶段完成,更新项目状态
-            project.status = 'completed'
+            project.status = "completed"
             project.completed_at = timezone.now()
             project.save()
-            result['project_completed'] = True
+            result["project_completed"] = True
         else:
             # 获取下一阶段
             next_stage_type = ProjectWorkflowService.get_next_stage(stage_type)
             if next_stage_type and auto_next:
                 # 自动开始下一阶段
                 next_stage = ProjectWorkflowService.start_stage(project_id, next_stage_type)
-                result['next_stage'] = next_stage
+                result["next_stage"] = next_stage
 
         return result
 
     @staticmethod
     @transaction.atomic
     def fail_stage(
-        project_id: str,
-        stage_type: str,
-        error_message: str,
-        auto_retry: bool = True
+        project_id: str, stage_type: str, error_message: str, auto_retry: bool = True
     ) -> Dict[str, Any]:
         """
         标记阶段失败
@@ -178,8 +174,7 @@ class ProjectWorkflowService:
         """
         try:
             stage = ProjectStage.objects.select_for_update().get(
-                project_id=project_id,
-                stage_type=stage_type
+                project_id=project_id, stage_type=stage_type
             )
         except ProjectStage.DoesNotExist:
             raise ValueError(f"阶段 {stage_type} 不存在")
@@ -189,23 +184,23 @@ class ProjectWorkflowService:
         stage.completed_at = timezone.now()
 
         result = {
-            'stage': stage,
-            'failed': True,
-            'will_retry': False,
+            "stage": stage,
+            "failed": True,
+            "will_retry": False,
         }
 
         # 检查是否可以重试
         if auto_retry and stage.retry_count < stage.max_retries:
             stage.retry_count += 1
-            stage.status = 'processing'
+            stage.status = "processing"
             stage.started_at = timezone.now()
-            result['will_retry'] = True
-            result['retry_count'] = stage.retry_count
+            result["will_retry"] = True
+            result["retry_count"] = stage.retry_count
         else:
-            stage.status = 'failed'
+            stage.status = "failed"
             # 更新项目状态为失败
-            Project.objects.filter(id=project_id).update(status='failed')
-            result['max_retries_reached'] = True
+            Project.objects.filter(id=project_id).update(status="failed")
+            result["max_retries_reached"] = True
 
         stage.save()
         return result
@@ -232,10 +227,9 @@ class ProjectWorkflowService:
             prev_stage_type = ProjectWorkflowService.STAGE_ORDER[i]
             try:
                 prev_stage = ProjectStage.objects.get(
-                    project_id=project_id,
-                    stage_type=prev_stage_type
+                    project_id=project_id, stage_type=prev_stage_type
                 )
-                if prev_stage.status != 'completed':
+                if prev_stage.status != "completed":
                     raise ValueError(
                         f"前置阶段 {prev_stage.get_stage_type_display()} 未完成,状态: {prev_stage.get_status_display()}"
                     )
@@ -264,28 +258,24 @@ class ProjectWorkflowService:
         for i in range(current_index, len(ProjectWorkflowService.STAGE_ORDER)):
             stage_to_reset = ProjectWorkflowService.STAGE_ORDER[i]
             updated = ProjectStage.objects.filter(
-                project_id=project_id,
-                stage_type=stage_to_reset
+                project_id=project_id, stage_type=stage_to_reset
             ).update(
-                status='pending',
+                status="pending",
                 output_data={},
-                error_message='',
+                error_message="",
                 retry_count=0,
                 started_at=None,
-                completed_at=None
+                completed_at=None,
             )
             reset_count += updated
 
         # 更新项目状态
-        Project.objects.filter(id=project_id).update(
-            status='draft',
-            completed_at=None
-        )
+        Project.objects.filter(id=project_id).update(status="draft", completed_at=None)
 
         return {
-            'rolled_back_to': stage_type,
-            'reset_stages_count': reset_count,
-            'project_status': 'draft',
+            "rolled_back_to": stage_type,
+            "reset_stages_count": reset_count,
+            "project_status": "draft",
         }
 
     @staticmethod
@@ -299,55 +289,56 @@ class ProjectWorkflowService:
         Returns:
             进度信息字典
         """
-        stages = ProjectStage.objects.filter(project_id=project_id).order_by('created_at')
+        stages = ProjectStage.objects.filter(project_id=project_id).order_by("created_at")
 
         stage_info = []
         for stage in stages:
             info = {
-                'stage_type': stage.stage_type,
-                'stage_name': stage.get_stage_type_display(),
-                'status': stage.status,
-                'status_display': stage.get_status_display(),
-                'retry_count': stage.retry_count,
-                'started_at': stage.started_at,
-                'completed_at': stage.completed_at,
-                'error_message': stage.error_message,
+                "stage_type": stage.stage_type,
+                "stage_name": stage.get_stage_type_display(),
+                "status": stage.status,
+                "status_display": stage.get_status_display(),
+                "retry_count": stage.retry_count,
+                "started_at": stage.started_at,
+                "completed_at": stage.completed_at,
+                "error_message": stage.error_message,
             }
             stage_info.append(info)
 
         total_stages = len(ProjectWorkflowService.STAGE_ORDER)
-        completed_stages = stages.filter(status='completed').count()
-        failed_stages = stages.filter(status='failed').count()
-        processing_stages = stages.filter(status='processing').count()
+        completed_stages = stages.filter(status="completed").count()
+        failed_stages = stages.filter(status="failed").count()
+        processing_stages = stages.filter(status="processing").count()
 
         return {
-            'stages': stage_info,
-            'total_stages': total_stages,
-            'completed_stages': completed_stages,
-            'failed_stages': failed_stages,
-            'processing_stages': processing_stages,
-            'progress_percentage': round((completed_stages / total_stages) * 100, 2) if total_stages > 0 else 0,
-            'current_stage': ProjectWorkflowService._get_current_stage(stages),
+            "stages": stage_info,
+            "total_stages": total_stages,
+            "completed_stages": completed_stages,
+            "failed_stages": failed_stages,
+            "processing_stages": processing_stages,
+            "progress_percentage": round((completed_stages / total_stages) * 100, 2)
+            if total_stages > 0
+            else 0,
+            "current_stage": ProjectWorkflowService._get_current_stage(stages),
         }
 
     @staticmethod
     def _get_current_stage(stages) -> Optional[Dict[str, str]]:
         """获取当前正在处理的阶段"""
-        processing_stage = stages.filter(status='processing').first()
+        processing_stage = stages.filter(status="processing").first()
         if processing_stage:
             return {
-                'stage_type': processing_stage.stage_type,
-                'stage_name': processing_stage.get_stage_type_display(),
+                "stage_type": processing_stage.stage_type,
+                "stage_name": processing_stage.get_stage_type_display(),
             }
 
         # 如果没有正在处理的,返回下一个待处理的
         for stage_type in ProjectWorkflowService.STAGE_ORDER:
             stage = stages.filter(stage_type=stage_type).first()
-            if stage and stage.status == 'pending':
+            if stage and stage.status == "pending":
                 return {
-                    'stage_type': stage.stage_type,
-                    'stage_name': stage.get_stage_type_display(),
+                    "stage_type": stage.stage_type,
+                    "stage_name": stage.get_stage_type_display(),
                 }
 
         return None
-

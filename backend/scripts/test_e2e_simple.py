@@ -2,27 +2,28 @@
 简化的端到端测试
 直接测试execute_full_pipeline任务，跳过认证
 """
+
 import os
 import sys
 
 import django
 
-sys.path.insert(0, '.')
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
+sys.path.insert(0, ".")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
 django.setup()
 
 
 from apps.projects.models import Project
 from apps.projects.tasks import execute_full_pipeline
 
-print("="*60)
+print("=" * 60)
 print("端到端工作流测试（简化版）")
-print("="*60)
+print("=" * 60)
 
 # 1. 获取测试项目
 print("\n1. 获取测试项目...")
 try:
-    project = Project.objects.get(name='E2E Test Project')
+    project = Project.objects.get(name="E2E Test Project")
     print(f"✓ 找到项目: {project.name}")
     print(f"  ID: {project.id}")
     print(f"  状态: {project.status}")
@@ -37,14 +38,14 @@ try:
     # 同步调用任务（用于测试）
     result = execute_full_pipeline(
         project_id=str(project.id),
-        user_id=None  # 不需要用户ID
+        user_id=None,  # 不需要用户ID
     )
 
     print("\n任务结果:")
     print(f"  success: {result.get('success')}")
     print(f"  project_id: {result.get('project_id')}")
 
-    if result.get('success'):
+    if result.get("success"):
         print("\n✓ 工作流完成！")
 
         # 3. 验证项目状态
@@ -56,16 +57,16 @@ try:
         # 显示各阶段状态
         print("\n  阶段详情:")
         for stage in project.stages.all():
-            symbol = "✓" if stage.status == 'completed' else "✗"
+            symbol = "✓" if stage.status == "completed" else "✗"
             print(f"    {symbol} {stage.stage_type}: {stage.status}")
 
         # 验证完成
-        if project.status == 'completed':
-            all_completed = all(s.status == 'completed' for s in project.stages.all())
+        if project.status == "completed":
+            all_completed = all(s.status == "completed" for s in project.stages.all())
             if all_completed:
-                print("\n" + "="*60)
+                print("\n" + "=" * 60)
                 print("✓ 端到端测试通过！")
-                print("="*60)
+                print("=" * 60)
                 sys.exit(0)
             else:
                 print("\n⚠ 部分阶段未完成")
@@ -79,6 +80,7 @@ try:
 except Exception as e:
     print(f"\n✗ 测试失败: {e}")
     import traceback
+
     traceback.print_exc()
 
 sys.exit(1)

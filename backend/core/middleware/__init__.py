@@ -6,4 +6,4 @@ Core中间件模块
 
 from .api_error_logging import APIErrorLoggingMiddleware
 
-__all__ = ['APIErrorLoggingMiddleware']
+__all__ = ["APIErrorLoggingMiddleware"]

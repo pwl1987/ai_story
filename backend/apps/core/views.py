@@ -75,18 +75,20 @@ def health_check(request: HttpRequest) -> JsonResponse:
     if response_time_ms > 200 and overall_status == "healthy":
         overall_status = "degraded"
 
-    return JsonResponse({
-        "status": overall_status,
-        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "checks": {
-            "database": db_status,
-            "redis": redis_status,
-            "celery": celery_status,
-            "cache": cache_status,
-        },
-        "response_time_ms": response_time_ms,
-        "unhealthy_checks": unhealthy_checks if unhealthy_checks else [],
-    })
+    return JsonResponse(
+        {
+            "status": overall_status,
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "checks": {
+                "database": db_status,
+                "redis": redis_status,
+                "celery": celery_status,
+                "cache": cache_status,
+            },
+            "response_time_ms": response_time_ms,
+            "unhealthy_checks": unhealthy_checks if unhealthy_checks else [],
+        }
+    )
 
 
 def _check_database() -> dict:
@@ -139,8 +141,8 @@ def _check_redis() -> dict:
 
         # 获取Redis信息
         info = conn.info()
-        connected_clients = info.get('connected_clients', 0)
-        used_memory_human = info.get('used_memory_human', 'N/A')
+        connected_clients = info.get("connected_clients", 0)
+        used_memory_human = info.get("used_memory_human", "N/A")
 
         return {
             "status": "healthy" if latency_ms < 50 else "degraded",
@@ -166,15 +168,13 @@ def _check_celery() -> dict:
             # 有活跃的worker
             worker_count = len(stats)
             total_threads = sum(
-                worker_stats.get('pool', {}).get('max-concurrency', 0)
+                worker_stats.get("pool", {}).get("max-concurrency", 0)
                 for worker_stats in stats.values()
             )
 
             # 检查是否有正在执行的任务
             active = inspect.active()
-            active_tasks = sum(
-                len(tasks) for tasks in (active or {}).values()
-            )
+            active_tasks = sum(len(tasks) for tasks in (active or {}).values())
 
             return {
                 "status": "healthy",
@@ -211,23 +211,20 @@ def metrics(request: HttpRequest) -> HttpResponse:
     # HTTP请求计数（示例）
     metrics.append("# HELP http_requests_total Total HTTP requests")
     metrics.append("# TYPE http_requests_total counter")
-    metrics.append("http_requests_total{method=\"GET\",endpoint=\"/health/\"} 1.0")
+    metrics.append('http_requests_total{method="GET",endpoint="/health/"} 1.0')
 
     # 响应时间
     metrics.append("# HELP http_request_duration_seconds HTTP request duration")
     metrics.append("# TYPE http_request_duration_seconds histogram")
-    metrics.append("http_request_duration_seconds_bucket{le=\"0.1\"} 100.0")
-    metrics.append("http_request_duration_seconds_bucket{le=\"0.5\"} 200.0")
-    metrics.append("http_request_duration_seconds_bucket{le=\"1.0\"} 300.0")
-    metrics.append("http_request_duration_seconds_bucket{le=\"+Inf\"} 300.0")
+    metrics.append('http_request_duration_seconds_bucket{le="0.1"} 100.0')
+    metrics.append('http_request_duration_seconds_bucket{le="0.5"} 200.0')
+    metrics.append('http_request_duration_seconds_bucket{le="1.0"} 300.0')
+    metrics.append('http_request_duration_seconds_bucket{le="+Inf"} 300.0')
 
     # 数据库连接池
     metrics.append("# HELP db_connections Database connections")
     metrics.append("# TYPE db_connections gauge")
-    metrics.append("db_connections{state=\"idle\"} 5.0")
-    metrics.append("db_connections{state=\"active\"} 2.0")
+    metrics.append('db_connections{state="idle"} 5.0')
+    metrics.append('db_connections{state="active"} 2.0')
 
-    return HttpResponse(
-        "\n".join(metrics),
-        content_type="text/plain; version=0.0.4; charset=utf-8"
-    )
+    return HttpResponse("\n".join(metrics), content_type="text/plain; version=0.0.4; charset=utf-8")

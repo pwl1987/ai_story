@@ -13,6 +13,7 @@ import requests
 
 class TaskStatus(Enum):
     """任务状态枚举"""
+
     INITIALIZING = "Initializing"
     QUEUED = "Queued"
     RUNNING = "Running"
@@ -28,7 +29,7 @@ class VideoGenerator:
     BASE_URL = "https://openai.qiniu.com"
     BASE_URL_BACKUP = "https://api.qnaigc.com"
 
-    def __init__(self, api_url:str ,api_token: str, model: str):
+    def __init__(self, api_url: str, api_token: str, model: str):
         """初始化视频生成客户端
 
         Args:
@@ -38,10 +39,7 @@ class VideoGenerator:
         self.api_token = api_token
         self.base_url = api_url
         self.model = model
-        self.headers = {
-            "Authorization": f"Bearer {api_token}",
-            "Content-Type": "application/json"
-        }
+        self.headers = {"Authorization": f"Bearer {api_token}", "Content-Type": "application/json"}
 
     def create_video_task(
         self,
@@ -57,7 +55,7 @@ class VideoGenerator:
         resolution: Optional[str] = None,
         seed: Optional[int] = None,
         negative_prompt: Optional[str] = None,
-        person_generation: str = "allow_adult"
+        person_generation: str = "allow_adult",
     ) -> str:
         """创建视频生成任务
 
@@ -98,7 +96,7 @@ class VideoGenerator:
             "durationSeconds": duration_seconds,
             "sampleCount": sample_count,
             "aspectRatio": aspect_ratio,
-            "personGeneration": person_generation
+            "personGeneration": person_generation,
         }
 
         # 添加可选参数
@@ -121,14 +119,14 @@ class VideoGenerator:
             "height": 1280,
             "model": model,
             "prompt": prompt,
-            "filePaths": [image_uri.get("url")]
+            "filePaths": [image_uri.get("url")],
         }
         try:
             response = requests.post(url, json=payload, headers=self.headers)
             response.raise_for_status()
             result = response.json()
             print(result)
-            return result["data"] # [{"url": "xx"}]
+            return result["data"]  # [{"url": "xx"}]
         except requests.exceptions.RequestException as e:
             raise Exception(f"创建视频任务失败: {e!s}")
 
@@ -155,7 +153,7 @@ class VideoGenerator:
         task_id: str,
         poll_interval: int = 5,
         max_wait_time: int = 600,
-        callback: Optional[callable] = None
+        callback: Optional[callable] = None,
     ) -> Dict[str, Any]:
         """轮询等待任务完成
 
@@ -194,11 +192,7 @@ class VideoGenerator:
             time.sleep(poll_interval)
 
     def generate_video_sync(
-        self,
-        prompt: str,
-        poll_interval: int = 5,
-        max_wait_time: int = 600,
-        **kwargs
+        self, prompt: str, poll_interval: int = 5, max_wait_time: int = 600, **kwargs
     ) -> List[str]:
         """同步生成视频(提交任务并等待完成)
 
@@ -226,7 +220,7 @@ class VideoGenerator:
             task_id,
             poll_interval=poll_interval,
             max_wait_time=max_wait_time,
-            callback=status_callback
+            callback=status_callback,
         )
 
         # 提取视频链接
@@ -256,11 +250,11 @@ def main():
             duration_seconds=8,
             sample_count=1,
             aspect_ratio="16:9",
-            generate_audio=True
+            generate_audio=True,
         )
 
         for i, url in enumerate(video_urls):
-            print(f"视频 {i+1}: {url}")
+            print(f"视频 {i + 1}: {url}")
 
     except Exception as e:
         print(f"✗ 错误: {e}")
@@ -276,11 +270,11 @@ def main():
             image_uri="http://example.com/example.jpeg",
             model="veo-3.0-fast-generate-preview",
             duration_seconds=8,
-            sample_count=1
+            sample_count=1,
         )
 
         for i, url in enumerate(video_urls):
-            print(f"视频 {i+1}: {url}")
+            print(f"视频 {i + 1}: {url}")
 
     except Exception as e:
         print(f"✗ 错误: {e}")
@@ -293,8 +287,7 @@ def main():
     try:
         # 创建任务
         task_id = generator.create_video_task(
-            prompt="一朵花在延时摄影中绽放",
-            model="veo-3.0-fast-generate-preview"
+            prompt="一朵花在延时摄影中绽放", model="veo-3.0-fast-generate-preview"
         )
         print(f"任务ID: {task_id}")
 

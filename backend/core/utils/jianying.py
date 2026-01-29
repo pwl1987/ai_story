@@ -12,9 +12,10 @@ tutorial_asset_dir = r"D:\coding\ai_story\storage\audio"
 subtitle_path = r"D:\coding\ai_story\storage\subtitle"  # 字幕文件目录（可选）
 
 # 支持的视频文件格式
-SUPPORTED_VIDEO_FORMATS = ('.mp4', '.mov', '.avi', '.mkv', '.flv', '.wmv')
+SUPPORTED_VIDEO_FORMATS = (".mp4", ".mov", ".avi", ".mkv", ".flv", ".wmv")
 # 支持的字幕文件格式（可选，与视频同名）
-SUPPORTED_SUBTITLE_FORMATS = ('.txt', '.srt')
+SUPPORTED_SUBTITLE_FORMATS = (".txt", ".srt")
+
 
 # ---------------------- 函数：获取视频对应的字幕内容 ----------------------
 def get_video_subtitle(video_file, subtitle_dir=None):
@@ -26,6 +27,7 @@ def get_video_subtitle(video_file, subtitle_dir=None):
 
     # 3. 返回默认字幕
     return "我是宝宝我还不会说话但是我和你们说，我是宝宝我还不会说话但是我和你们说，我是宝宝我还不会说话但是我和你们说"
+
 
 # ---------------------- 获取视频文件并排序 ----------------------
 # 获取视频目录下的所有视频文件（按文件名排序）
@@ -46,12 +48,16 @@ if not video_files:
 script = draft_folder.create_draft("多视频拼接+对应字幕2", 1080, 1920, allow_replace=True)
 
 # 添加音频、视频和文本轨道（文本轨道可以多个，这里共用一个）
-script.add_track(draft.TrackType.audio).add_track(draft.TrackType.video).add_track(draft.TrackType.text)
+script.add_track(draft.TrackType.audio).add_track(draft.TrackType.video).add_track(
+    draft.TrackType.text
+)
 
 # ---------------------- 音频部分（保持原有设置）----------------------
-audio_segment = draft.AudioSegment(os.path.join(tutorial_asset_dir, 'audio.mp3'),
-                                   trange("0s", "5s"),  # 音频时长5s，可根据需要调整
-                                   volume=0.6)
+audio_segment = draft.AudioSegment(
+    os.path.join(tutorial_asset_dir, "audio.mp3"),
+    trange("0s", "5s"),  # 音频时长5s，可根据需要调整
+    volume=0.6,
+)
 audio_segment.add_fade("1s", "0s")
 script.add_segment(audio_segment)
 
@@ -88,14 +94,14 @@ for i, video_file in enumerate(video_files):
         timerange,  # 字幕时长与当前视频完全一致
         font=draft.FontType.抖音美好体,
         style=draft.TextStyle(
-            color=(1,0.74901962280273438,0.090196080505847931),  # 黄色
+            color=(1, 0.74901962280273438, 0.090196080505847931),  # 黄色
             size=15,
             align=1,
-            auto_wrapping=True
+            auto_wrapping=True,
         ),
         clip_settings=draft.ClipSettings(
             transform_y=-0.73,  # 位置在屏幕下方
-        )
+        ),
     )
 
     # 为字幕添加入场和出场动画

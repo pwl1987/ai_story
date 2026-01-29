@@ -38,14 +38,10 @@ logger = logging.getLogger(__name__)
     acks_late=True,
     reject_on_worker_lost=True,
     soft_time_limit=600,  # 10分钟软超时
-    time_limit=900  # 15分钟硬超时
+    time_limit=900,  # 15分钟硬超时
 )
 def execute_llm_stage(
-    self,
-    project_id: str,
-    stage_name: str,
-    input_data: Dict[str, Any],
-    user_id: int
+    self, project_id: str, stage_name: str, input_data: Dict[str, Any], user_id: int
 ) -> Dict[str, Any]:
     """
     执行LLM阶段任务 (文案改写/分镜生成/运镜生成)
@@ -75,15 +71,13 @@ def execute_llm_stage(
         stage = ProjectStage.objects.get(project=project, stage_type=stage_name)
 
         # 更新阶段状态
-        stage.status = 'processing'
+        stage.status = "processing"
         stage.started_at = timezone.now()
         stage.save()
 
         # 发布开始消息
         publisher.publish_stage_update(
-            status='processing',
-            progress=0,
-            message=f'开始执行{stage.get_stage_type_display()}'
+            status="processing", progress=0, message=f"开始执行{stage.get_stage_type_display()}"
         )
 
         # 创建处理器
@@ -92,76 +86,64 @@ def execute_llm_stage(
         # 执行流式处理
         full_text = ""
 
-        for chunk in processor.process_stream(
-            project_id=project_id,
-            input_data=input_data
-        ):
-            chunk_type = chunk.get('type')
+        for chunk in processor.process_stream(project_id=project_id, input_data=input_data):
+            chunk_type = chunk.get("type")
 
-            if chunk_type == 'token':
+            if chunk_type == "token":
                 # 发布token消息
-                content = chunk.get('content', '')
-                full_text = chunk.get('full_text', full_text)
+                content = chunk.get("content", "")
+                full_text = chunk.get("full_text", full_text)
                 publisher.publish_token(content, full_text)
 
-            elif chunk_type == 'stage_update':
+            elif chunk_type == "stage_update":
                 # 发布阶段更新
                 publisher.publish_stage_update(
-                    status=chunk.get('status', 'processing'),
-                    progress=chunk.get('progress'),
-                    message=chunk.get('message')
+                    status=chunk.get("status", "processing"),
+                    progress=chunk.get("progress"),
+                    message=chunk.get("message"),
                 )
 
-            elif chunk_type == 'done':
+            elif chunk_type == "done":
                 # 处理完成
-                full_text = chunk.get('full_text', full_text)
-                metadata = chunk.get('metadata', {})
+                full_text = chunk.get("full_text", full_text)
+                metadata = chunk.get("metadata", {})
 
                 # 更新阶段状态
                 ProjectStage.objects.filter(id=stage.id).update(
-                    completed_at=timezone.now(),
-                    status='completed'
+                    completed_at=timezone.now(), status="completed"
                 )
                 # 发布完成消息
                 publisher.publish_done(full_text, metadata)
 
-            elif chunk_type == 'error':
+            elif chunk_type == "error":
                 # 处理错误
-                error_msg = chunk.get('error', '未知错误')
+                error_msg = chunk.get("error", "未知错误")
                 raise Exception(error_msg)
 
         logger.info(f"LLM阶段任务完成: {stage_name}, 项目: {project_id}")
 
-        return {
-            'success': True,
-            'task_id': task_id,
-            'channel': channel,
-            'result': full_text
-        }
+        return {"success": True, "task_id": task_id, "channel": channel, "result": full_text}
 
     except Project.DoesNotExist:
-        error_msg = f'项目不存在: {project_id}'
+        error_msg = f"项目不存在: {project_id}"
         logger.error(error_msg)
         publisher.publish_error(error_msg)
-        return {'success': False, 'error': error_msg}
+        return {"success": False, "error": error_msg}
 
     except ProjectStage.DoesNotExist:
-        error_msg = f'阶段不存在: {stage_name}'
+        error_msg = f"阶段不存在: {stage_name}"
         logger.error(error_msg)
         publisher.publish_error(error_msg)
-        return {'success': False, 'error': error_msg}
+        return {"success": False, "error": error_msg}
 
     except Exception as e:
-        error_msg = f'任务执行失败: {e!s}'
+        error_msg = f"任务执行失败: {e!s}"
         logger.exception(error_msg)
 
         # 更新阶段状态
         try:
-            stage = ProjectStage.objects.get(
-                project_id=project_id,
-                stage_type=stage_name
-            )
-            stage.status = 'failed'
+            stage = ProjectStage.objects.get(project_id=project_id, stage_type=stage_name)
+            stage.status = "failed"
             stage.error_message = error_msg
             stage.retry_count += 1
             stage.save()
@@ -176,7 +158,7 @@ def execute_llm_stage(
             logger.info(f"任务将在60秒后重试 (第{self.request.retries + 1}次)")
             raise self.retry(exc=e, countdown=60)
 
-        return {'success': False, 'error': error_msg}
+        return {"success": False, "error": error_msg}
 
     finally:
         publisher.close()
@@ -189,13 +171,10 @@ def execute_llm_stage(
     acks_late=True,
     reject_on_worker_lost=True,
     soft_time_limit=600,
-    time_limit=900
+    time_limit=900,
 )
 def execute_text2image_stage(
-    self,
-    project_id: str,
-    storyboard_ids: list = None,
-    user_id: int = None
+    self, project_id: str, storyboard_ids: list = None, user_id: int = None
 ) -> Dict[str, Any]:
     """
     执行文生图阶段任务
@@ -210,7 +189,7 @@ def execute_text2image_stage(
         Dict包含: success, task_id, channel, result
     """
     task_id = self.request.id
-    stage_name = 'image_generation'
+    stage_name = "image_generation"
     channel = f"ai_story:project:{project_id}:stage:{stage_name}"
 
     logger.info(f"开始执行文生图任务, 项目: {project_id}, 任务ID: {task_id}")
@@ -223,79 +202,64 @@ def execute_text2image_stage(
         stage = ProjectStage.objects.get(project=project, stage_type=stage_name)
 
         # 更新阶段状态
-        stage.status = 'processing'
+        stage.status = "processing"
         stage.started_at = timezone.now()
         stage.save()
 
         # 发布开始消息
-        publisher.publish_stage_update(
-            status='processing',
-            progress=0,
-            message='开始生成图片'
-        )
+        publisher.publish_stage_update(status="processing", progress=0, message="开始生成图片")
 
         # 创建处理器
         processor = Text2ImageStageProcessor()
 
         # 执行流式处理
-        for chunk in processor.process_stream(
-            project_id=project_id,
-            storyboard_ids=storyboard_ids
-        ):
-            chunk_type = chunk.get('type')
+        for chunk in processor.process_stream(project_id=project_id, storyboard_ids=storyboard_ids):
+            chunk_type = chunk.get("type")
 
-            if chunk_type == 'progress':
+            if chunk_type == "progress":
                 # 发布进度消息
                 publisher.publish_progress(
-                    current=chunk.get('current', 0),
-                    total=chunk.get('total', 0),
-                    item_name=chunk.get('item_name', ''),
+                    current=chunk.get("current", 0),
+                    total=chunk.get("total", 0),
+                    item_name=chunk.get("item_name", ""),
                 )
 
-            elif chunk_type == 'stage_update':
+            elif chunk_type == "stage_update":
                 # 发布阶段更新
                 publisher.publish_stage_update(
-                    status=chunk.get('status', 'processing'),
-                    progress=chunk.get('progress'),
-                    message=chunk.get('message')
+                    status=chunk.get("status", "processing"),
+                    progress=chunk.get("progress"),
+                    message=chunk.get("message"),
                 )
 
-            elif chunk_type == 'done':
+            elif chunk_type == "done":
                 # 处理完成
-                metadata = chunk.get('metadata', {})
+                metadata = chunk.get("metadata", {})
 
                 # 更新阶段状态
                 ProjectStage.objects.filter(id=stage.id).update(
-                    status='completed',
-                    completed_at=timezone.now()
+                    status="completed", completed_at=timezone.now()
                 )
                 # 发布完成消息
                 publisher.publish_done(metadata=metadata)
 
-            elif chunk_type == 'error':
+            elif chunk_type == "error":
                 # 处理错误
-                error_msg = chunk.get('error', '未知错误')
+                error_msg = chunk.get("error", "未知错误")
                 raise Exception(error_msg)
 
         logger.info(f"文生图任务完成, 项目: {project_id}")
 
-        return {
-            'success': True,
-            'task_id': task_id,
-            'channel': channel
-        }
+        return {"success": True, "task_id": task_id, "channel": channel}
 
     except Exception as e:
-        error_msg = f'文生图任务失败: {e!s}'
+        error_msg = f"文生图任务失败: {e!s}"
         logger.exception(error_msg)
 
         # 更新阶段状态
         try:
-            stage = ProjectStage.objects.get(
-                project_id=project_id,
-                stage_type=stage_name
-            )
-            stage.status = 'failed'
+            stage = ProjectStage.objects.get(project_id=project_id, stage_type=stage_name)
+            stage.status = "failed"
             stage.error_message = error_msg
             stage.retry_count += 1
             stage.save()
@@ -309,7 +273,7 @@ def execute_text2image_stage(
         if self.request.retries < self.max_retries:
             raise self.retry(exc=e, countdown=60)
 
-        return {'success': False, 'error': error_msg}
+        return {"success": False, "error": error_msg}
 
     finally:
         publisher.close()
@@ -322,13 +286,10 @@ def execute_text2image_stage(
     acks_late=True,
     reject_on_worker_lost=True,
     soft_time_limit=1200,  # 20分钟软超时 (视频生成较慢)
-    time_limit=1500  # 25分钟硬超时
+    time_limit=1500,  # 25分钟硬超时
 )
 def execute_image2video_stage(
-    self,
-    project_id: str,
-    storyboard_ids: list = None,
-    user_id: int = None
+    self, project_id: str, storyboard_ids: list = None, user_id: int = None
 ) -> Dict[str, Any]:
     """
     执行图生视频阶段任务
@@ -343,7 +304,7 @@ def execute_image2video_stage(
         Dict包含: success, task_id, channel, result
     """
     task_id = self.request.id
-    stage_name = 'video_generation'
+    stage_name = "video_generation"
     channel = f"ai_story:project:{project_id}:stage:{stage_name}"
 
     logger.info(f"开始执行图生视频任务, 项目: {project_id}, 任务ID: {task_id}")
@@ -356,73 +317,59 @@ def execute_image2video_stage(
         stage = ProjectStage.objects.get(project=project, stage_type=stage_name)
 
         # 更新阶段状态
-        stage.status = 'processing'
+        stage.status = "processing"
         stage.started_at = timezone.now()
         stage.save()
 
         # 发布开始消息
-        publisher.publish_stage_update(
-            status='processing',
-            progress=0,
-            message='开始生成视频'
-        )
+        publisher.publish_stage_update(status="processing", progress=0, message="开始生成视频")
 
         # 创建处理器
         processor = Image2VideoStageProcessor()
 
         # 执行流式处理
-        for chunk in processor.process_stream(
-            project_id=project_id,
-            storyboard_ids=storyboard_ids
-        ):
-            chunk_type = chunk.get('type')
+        for chunk in processor.process_stream(project_id=project_id, storyboard_ids=storyboard_ids):
+            chunk_type = chunk.get("type")
 
-            if chunk_type == 'progress':
+            if chunk_type == "progress":
                 # 发布进度消息
                 publisher.publish_progress(
-                    current=chunk.get('current', 0),
-                    total=chunk.get('total', 0),
-                    item_name=chunk.get('item_name', '')
+                    current=chunk.get("current", 0),
+                    total=chunk.get("total", 0),
+                    item_name=chunk.get("item_name", ""),
                 )
 
-            elif chunk_type == 'stage_update':
+            elif chunk_type == "stage_update":
                 # 发布阶段更新
                 publisher.publish_stage_update(
-                    status=chunk.get('status', 'processing'),
-                    progress=chunk.get('progress'),
-                    message=chunk.get('message')
+                    status=chunk.get("status", "processing"),
+                    progress=chunk.get("progress"),
+                    message=chunk.get("message"),
                 )
 
-            elif chunk_type == 'done':
+            elif chunk_type == "done":
                 # 处理完成
-                metadata = chunk.get('metadata', {})
+                metadata = chunk.get("metadata", {})
                 # 发布完成消息
                 publisher.publish_done(metadata=metadata)
 
-            elif chunk_type == 'error':
+            elif chunk_type == "error":
                 # 处理错误
-                error_msg = chunk.get('error', '未知错误')
+                error_msg = chunk.get("error", "未知错误")
                 raise Exception(error_msg)
 
         logger.info(f"图生视频任务完成, 项目: {project_id}")
 
-        return {
-            'success': True,
-            'task_id': task_id,
-            'channel': channel
-        }
+        return {"success": True, "task_id": task_id, "channel": channel}
 
     except Exception as e:
-        error_msg = f'图生视频任务失败: {e!s}'
+        error_msg = f"图生视频任务失败: {e!s}"
         logger.exception(error_msg)
 
         # 更新阶段状态
         try:
-            stage = ProjectStage.objects.get(
-                project_id=project_id,
-                stage_type=stage_name
-            )
-            stage.status = 'failed'
+            stage = ProjectStage.objects.get(project_id=project_id, stage_type=stage_name)
+            stage.status = "failed"
             stage.error_message = error_msg
             stage.retry_count += 1
             stage.save()
@@ -436,7 +383,7 @@ def execute_image2video_stage(
         if self.request.retries < self.max_retries:
             raise self.retry(exc=e, countdown=60)
 
-        return {'success': False, 'error': error_msg}
+        return {"success": False, "error": error_msg}
 
     finally:
         publisher.close()
@@ -449,14 +396,10 @@ def execute_image2video_stage(
     acks_late=True,
     reject_on_worker_lost=True,
     soft_time_limit=300,  # 5分钟软超时
-    time_limit=600  # 10分钟硬超时
+    time_limit=600,  # 10分钟硬超时
 )
 def generate_jianying_draft(
-    self,
-    project_id: str,
-    user_id: int = None,
-    background_music: str = None,
-    **options
+    self, project_id: str, user_id: int = None, background_music: str = None, **options
 ) -> Dict[str, Any]:
     """
     生成剪映草稿任务
@@ -480,37 +423,33 @@ def generate_jianying_draft(
 
     logger.info(f"开始生成剪映草稿, 项目: {project_id}, 任务ID: {task_id}")
 
-
     try:
         # 获取项目
         project = Project.objects.get(id=project_id)
         # 检查视频生成阶段是否完成
         video_stage = ProjectStage.objects.filter(
-            project=project,
-            stage_type='video_generation',
-            status='completed'
+            project=project, stage_type="video_generation", status="completed"
         ).first()
 
         if not video_stage:
-            raise ValueError('视频生成阶段未完成，无法生成剪映草稿')
+            raise ValueError("视频生成阶段未完成，无法生成剪映草稿")
 
         # 获取场景数据
-        scenes = video_stage.output_data.get('human_text', {}).get('scenes', [])
+        scenes = video_stage.output_data.get("human_text", {}).get("scenes", [])
 
         if not scenes:
-            raise ValueError('没有找到视频场景数据')
+            raise ValueError("没有找到视频场景数据")
 
         # 过滤出有视频的场景
-        valid_scenes = [s for s in scenes if s.get('video_urls')]
+        valid_scenes = [s for s in scenes if s.get("video_urls")]
 
         if not valid_scenes:
-            raise ValueError('没有找到已生成的视频')
+            raise ValueError("没有找到已生成的视频")
 
         logger.info(f"找到 {len(valid_scenes)} 个有效视频场景")
 
-
         # 创建剪映草稿生成器
-        draft_folder_path = options.pop('draft_folder_path', None)
+        draft_folder_path = options.pop("draft_folder_path", None)
         generator = JianyingDraftGenerator(draft_folder_path=draft_folder_path)
 
         # 生成草稿
@@ -518,35 +457,29 @@ def generate_jianying_draft(
             project_name=f"{project.name}_{project.id}",
             scenes=valid_scenes,
             background_music=background_music,
-            **options
+            **options,
         )
 
         logger.info(f"剪映草稿生成成功: {draft_path}")
 
         # 更新项目的剪映草稿路径
         project.jianying_draft_path = draft_path
-        project.save(update_fields=['jianying_draft_path'])
+        project.save(update_fields=["jianying_draft_path"])
 
-
-        return {
-            'success': True,
-            'task_id': task_id,
-            'channel': channel,
-            'draft_path': draft_path
-        }
+        return {"success": True, "task_id": task_id, "channel": channel, "draft_path": draft_path}
 
     except Project.DoesNotExist:
-        error_msg = f'项目不存在: {project_id}'
+        error_msg = f"项目不存在: {project_id}"
         logger.error(error_msg)
-        return {'success': False, 'error': error_msg}
+        return {"success": False, "error": error_msg}
 
     except ValueError as e:
         error_msg = str(e)
-        logger.error(f'参数错误: {error_msg}')
-        return {'success': False, 'error': error_msg}
+        logger.error(f"参数错误: {error_msg}")
+        return {"success": False, "error": error_msg}
 
     except Exception as e:
-        error_msg = f'生成剪映草稿失败: {e!s}'
+        error_msg = f"生成剪映草稿失败: {e!s}"
         logger.exception(error_msg)
 
         # 发布错误消息
@@ -556,7 +489,7 @@ def generate_jianying_draft(
             logger.info(f"任务将在60秒后重试 (第{self.request.retries + 1}次)")
             raise self.retry(exc=e, countdown=60)
 
-        return {'success': False, 'error': error_msg}
+        return {"success": False, "error": error_msg}
 
     finally:
         pass
@@ -570,13 +503,9 @@ def generate_jianying_draft(
     reject_on_worker_lost=True,
     soft_time_limit=1800,  # 30分钟软超时（完整工作流）
     time_limit=2100,  # 35分钟硬超时
-    queue='llm'  # 指定队列，确保Worker能处理
+    queue="llm",  # 指定队列，确保Worker能处理
 )
-def execute_full_pipeline(
-    self,
-    project_id: str,
-    user_id: int = None
-) -> Dict[str, Any]:
+def execute_full_pipeline(self, project_id: str, user_id: int = None) -> Dict[str, Any]:
     """
     执行完整的项目工作流
     Story 5.4新增: 使用ProjectPipeline统一编排5个阶段
@@ -601,7 +530,7 @@ def execute_full_pipeline(
     logger.info(f"开始执行完整工作流, 项目: {project_id}, 任务ID: {task_id}")
 
     # 初始化Redis发布器
-    publisher = RedisStreamPublisher(project_id, 'pipeline')
+    publisher = RedisStreamPublisher(project_id, "pipeline")
 
     try:
         # 获取项目
@@ -610,24 +539,24 @@ def execute_full_pipeline(
             project = Project.objects.get(id=project_id, user_id=user_id)
 
         # 更新项目状态
-        project.status = 'processing'
+        project.status = "processing"
         project.save()
 
         # 发布开始消息
         publisher.publish_stage_update(
-            status='processing',
-            progress=0,
-            message='开始执行AI视频生成工作流'
+            status="processing", progress=0, message="开始执行AI视频生成工作流"
         )
 
         # 创建Pipeline（Story 5.4: 统一编排）
-        pipeline = ProjectPipeline([
-            RewriteStageAdapter(),
-            StoryboardStageAdapter(),
-            ImageGenerationStageAdapter(),
-            CameraMovementStageAdapter(),
-            VideoGenerationStageAdapter(),
-        ])
+        pipeline = ProjectPipeline(
+            [
+                RewriteStageAdapter(),
+                StoryboardStageAdapter(),
+                ImageGenerationStageAdapter(),
+                CameraMovementStageAdapter(),
+                VideoGenerationStageAdapter(),
+            ]
+        )
 
         # 执行工作流
         # 使用asyncio.run在线程池中运行异步Pipeline，避免ORM上下文问题
@@ -652,62 +581,59 @@ def execute_full_pipeline(
         completed_stages = len([k for k in context.results if context.results[k]])
 
         logger.info(
-            f"Pipeline执行完成, 项目: {project_id}, "
-            f"完成阶段: {completed_stages}/{total_stages}"
+            f"Pipeline执行完成, 项目: {project_id}, 完成阶段: {completed_stages}/{total_stages}"
         )
 
         # 更新项目状态
         if completed_stages == total_stages:
-            project.status = 'completed'
+            project.status = "completed"
             project.completed_at = timezone.now()
             project.save()
 
             # 发布完成消息
             publisher.publish_stage_update(
-                status='completed',
-                progress=100,
-                message='AI视频生成工作流完成！'
+                status="completed", progress=100, message="AI视频生成工作流完成！"
             )
 
             return {
-                'success': True,
-                'project_id': project_id,
-                'task_id': task_id,
-                'results': context.results,
-                'completed_stages': completed_stages,
-                'total_stages': total_stages
+                "success": True,
+                "project_id": project_id,
+                "task_id": task_id,
+                "results": context.results,
+                "completed_stages": completed_stages,
+                "total_stages": total_stages,
             }
         else:
             # 部分阶段失败
-            project.status = 'failed'
+            project.status = "failed"
             project.save()
 
-            publisher.publish_error('部分阶段执行失败')
+            publisher.publish_error("部分阶段执行失败")
 
             return {
-                'success': False,
-                'project_id': project_id,
-                'task_id': task_id,
-                'error': '部分阶段执行失败',
-                'results': context.results,
-                'completed_stages': completed_stages,
-                'total_stages': total_stages
+                "success": False,
+                "project_id": project_id,
+                "task_id": task_id,
+                "error": "部分阶段执行失败",
+                "results": context.results,
+                "completed_stages": completed_stages,
+                "total_stages": total_stages,
             }
 
     except Project.DoesNotExist:
-        error_msg = f'项目不存在: {project_id}'
+        error_msg = f"项目不存在: {project_id}"
         logger.error(error_msg)
         publisher.publish_error(error_msg)
-        return {'success': False, 'error': error_msg}
+        return {"success": False, "error": error_msg}
 
     except Exception as e:
-        error_msg = f'工作流执行失败: {e!s}'
+        error_msg = f"工作流执行失败: {e!s}"
         logger.exception(error_msg)
 
         # 更新项目状态
         try:
             project = Project.objects.get(id=project_id)
-            project.status = 'failed'
+            project.status = "failed"
             project.save()
         except Exception:
             pass
@@ -720,7 +646,7 @@ def execute_full_pipeline(
             logger.info(f"工作流将在120秒后重试 (第{self.request.retries + 1}次)")
             raise self.retry(exc=e, countdown=120)
 
-        return {'success': False, 'error': error_msg}
+        return {"success": False, "error": error_msg}
 
     finally:
         publisher.close()
@@ -733,14 +659,10 @@ def execute_full_pipeline(
     acks_late=True,
     reject_on_worker_lost=True,
     soft_time_limit=600,
-    time_limit=900
+    time_limit=900,
 )
 def execute_single_stage(
-    self,
-    project_id: str,
-    stage_name: str,
-    input_data: Dict[str, Any] = None,
-    user_id: int = None
+    self, project_id: str, stage_name: str, input_data: Dict[str, Any] = None, user_id: int = None
 ) -> Dict[str, Any]:
     """
     执行单个阶段（向后兼容方法）
@@ -758,27 +680,21 @@ def execute_single_stage(
     """
     task_id = self.request.id
 
-    logger.info(
-        f"执行单个阶段: {stage_name}, "
-        f"项目: {project_id}, 任务ID: {task_id}"
-    )
+    logger.info(f"执行单个阶段: {stage_name}, 项目: {project_id}, 任务ID: {task_id}")
 
     try:
         # 创建Pipeline
         adapters = {
-            'rewrite': RewriteStageAdapter(),
-            'storyboard': StoryboardStageAdapter(),
-            'image_generation': ImageGenerationStageAdapter(),
-            'camera_movement': CameraMovementStageAdapter(),
-            'video_generation': VideoGenerationStageAdapter(),
+            "rewrite": RewriteStageAdapter(),
+            "storyboard": StoryboardStageAdapter(),
+            "image_generation": ImageGenerationStageAdapter(),
+            "camera_movement": CameraMovementStageAdapter(),
+            "video_generation": VideoGenerationStageAdapter(),
         }
 
         adapter = adapters.get(stage_name)
         if not adapter:
-            return {
-                'success': False,
-                'error': f'不支持的阶段: {stage_name}'
-            }
+            return {"success": False, "error": f"不支持的阶段: {stage_name}"}
 
         # 创建Pipeline并执行单个阶段
         pipeline = ProjectPipeline([adapter])
@@ -786,13 +702,9 @@ def execute_single_stage(
 
         # 返回结果
         result = context.get_result(stage_name)
-        return {
-            'success': bool(result),
-            'result': result,
-            'task_id': task_id
-        }
+        return {"success": bool(result), "result": result, "task_id": task_id}
 
     except Exception as e:
-        error_msg = f'执行阶段失败: {e!s}'
+        error_msg = f"执行阶段失败: {e!s}"
         logger.exception(error_msg)
-        return {'success': False, 'error': error_msg}
+        return {"success": False, "error": error_msg}

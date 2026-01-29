@@ -37,10 +37,7 @@ class DateBasedFileStorage:
         self.base_dir = Path(base_dir)
 
     def get_unique_filepath(
-        self,
-        filename: str,
-        date: datetime = None,
-        create_dirs: bool = True
+        self, filename: str, date: datetime = None, create_dirs: bool = True
     ) -> Tuple[Path, str]:
         """
         获取唯一的文件保存路径
@@ -68,7 +65,7 @@ class DateBasedFileStorage:
             date = datetime.now()
 
         # 创建日期目录 (格式: YYYY-MM-DD)
-        date_str = date.strftime('%Y-%m-%d')
+        date_str = date.strftime("%Y-%m-%d")
         date_dir = self.base_dir / date_str
 
         # 如果需要，创建目录
@@ -76,44 +73,39 @@ class DateBasedFileStorage:
             date_dir.mkdir(parents=True, exist_ok=True)
 
         # 分离文件名和扩展名
-        name_parts = filename.rsplit('.', 1)
+        name_parts = filename.rsplit(".", 1)
         if len(name_parts) == 2:
             base_name, extension = name_parts
-            extension = f'.{extension}'
+            extension = f".{extension}"
         else:
             base_name = filename
-            extension = ''
+            extension = ""
 
         # 检查文件是否存在，如果存在则添加后缀
         counter = 0
         while True:
             if counter == 0:
                 # 第一次尝试使用原始文件名
-                new_filename = f'{base_name}{extension}'
+                new_filename = f"{base_name}{extension}"
             else:
                 # 添加后缀 _1, _2, _3...
-                new_filename = f'{base_name}_{counter}{extension}'
+                new_filename = f"{base_name}_{counter}{extension}"
 
             full_path = date_dir / new_filename
 
             # 如果文件不存在，返回这个路径
             if not full_path.exists():
                 # 计算相对路径 (相对于base_dir)
-                relative_path = f'{date_str}/{new_filename}'
+                relative_path = f"{date_str}/{new_filename}"
                 return full_path, relative_path
 
             counter += 1
 
             # 安全检查：防止无限循环 (超过1000个重复文件就报错)
             if counter > 1000:
-                raise ValueError(f'文件名重复次数过多: {filename}')
+                raise ValueError(f"文件名重复次数过多: {filename}")
 
-    def save_file(
-        self,
-        filename: str,
-        content: bytes,
-        date: datetime = None
-    ) -> Tuple[Path, str]:
+    def save_file(self, filename: str, content: bytes, date: datetime = None) -> Tuple[Path, str]:
         """
         保存文件到日期目录
 
@@ -127,9 +119,7 @@ class DateBasedFileStorage:
         """
         # 获取唯一文件路径
         full_path, relative_path = self.get_unique_filepath(
-            filename=filename,
-            date=date,
-            create_dirs=True
+            filename=filename, date=date, create_dirs=True
         )
 
         # 写入文件
@@ -150,7 +140,7 @@ class DateBasedFileStorage:
         if date is None:
             date = datetime.now()
 
-        date_str = date.strftime('%Y-%m-%d')
+        date_str = date.strftime("%Y-%m-%d")
         return self.base_dir / date_str
 
     def ensure_date_dir_exists(self, date: datetime = None) -> Path:
@@ -169,5 +159,5 @@ class DateBasedFileStorage:
 
 
 # 全局实例（可直接导入使用）
-image_storage = DateBasedFileStorage('storage/image')
-video_storage = DateBasedFileStorage('storage/video')
+image_storage = DateBasedFileStorage("storage/image")
+video_storage = DateBasedFileStorage("storage/video")

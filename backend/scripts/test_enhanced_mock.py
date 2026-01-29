@@ -2,6 +2,7 @@
 测试Enhanced Mock客户端集成
 验证factory.py正确创建Enhanced Mock客户端
 """
+
 import asyncio
 import os
 import sys
@@ -12,7 +13,7 @@ backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.base')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.base")
 
 import django
 
@@ -25,12 +26,10 @@ from core.ai_client.factory import create_ai_client
 
 # 使用sync_to_async包装ORM查询
 get_llm_providers = sync_to_async(
-    lambda: list(ModelProvider.objects.filter(provider_type='llm')),
-    thread_sensitive=False
+    lambda: list(ModelProvider.objects.filter(provider_type="llm")), thread_sensitive=False
 )
 get_t2i_providers = sync_to_async(
-    lambda: list(ModelProvider.objects.filter(provider_type='text2image')),
-    thread_sensitive=False
+    lambda: list(ModelProvider.objects.filter(provider_type="text2image")), thread_sensitive=False
 )
 
 
@@ -41,8 +40,8 @@ async def test_standard_mock():
     print("=" * 60)
 
     # 设置环境变量
-    os.environ['ENABLE_MOCK_AI'] = 'true'
-    os.environ['USE_ENHANCED_MOCK'] = 'false'
+    os.environ["ENABLE_MOCK_AI"] = "true"
+    os.environ["USE_ENHANCED_MOCK"] = "false"
 
     # 获取一个LLM Provider
     providers = await get_llm_providers()
@@ -80,11 +79,11 @@ async def test_enhanced_mock_default():
     print("测试2: Enhanced Mock客户端（默认延迟0.5s）")
     print("=" * 60)
 
-    os.environ['ENABLE_MOCK_AI'] = 'true'
-    os.environ['USE_ENHANCED_MOCK'] = 'true'
-    os.environ['MOCK_DELAY'] = '0.5'
+    os.environ["ENABLE_MOCK_AI"] = "true"
+    os.environ["USE_ENHANCED_MOCK"] = "true"
+    os.environ["MOCK_DELAY"] = "0.5"
 
-    provider = ModelProvider.objects.filter(provider_type='llm').first()
+    provider = ModelProvider.objects.filter(provider_type="llm").first()
     if not provider:
         print("❌ 没有找到LLM Provider")
         return False
@@ -95,7 +94,7 @@ async def test_enhanced_mock_default():
     client = create_ai_client(provider)
     print(f"✓ 创建客户端: {client.__class__.__name__}")
 
-    if 'Enhanced' not in client.__class__.__name__:
+    if "Enhanced" not in client.__class__.__name__:
         print("❌ 未使用Enhanced Mock客户端")
         return False
 
@@ -122,11 +121,11 @@ async def test_enhanced_mock_custom_delay():
     print("测试3: Enhanced Mock客户端（自定义延迟2.0s）")
     print("=" * 60)
 
-    os.environ['ENABLE_MOCK_AI'] = 'true'
-    os.environ['USE_ENHANCED_MOCK'] = 'true'
-    os.environ['MOCK_DELAY'] = '2.0'
+    os.environ["ENABLE_MOCK_AI"] = "true"
+    os.environ["USE_ENHANCED_MOCK"] = "true"
+    os.environ["MOCK_DELAY"] = "2.0"
 
-    provider = ModelProvider.objects.filter(provider_type='llm').first()
+    provider = ModelProvider.objects.filter(provider_type="llm").first()
     if not provider:
         print("❌ 没有找到LLM Provider")
         return False
@@ -156,12 +155,12 @@ async def test_enhanced_mock_error_simulation():
     print("测试4: Enhanced Mock错误模拟")
     print("=" * 60)
 
-    os.environ['ENABLE_MOCK_AI'] = 'true'
-    os.environ['USE_ENHANCED_MOCK'] = 'true'
-    os.environ['MOCK_DELAY'] = '0.1'  # 使用短延迟加速测试
-    os.environ['MOCK_ERROR'] = 'timeout'
+    os.environ["ENABLE_MOCK_AI"] = "true"
+    os.environ["USE_ENHANCED_MOCK"] = "true"
+    os.environ["MOCK_DELAY"] = "0.1"  # 使用短延迟加速测试
+    os.environ["MOCK_ERROR"] = "timeout"
 
-    provider = ModelProvider.objects.filter(provider_type='llm').first()
+    provider = ModelProvider.objects.filter(provider_type="llm").first()
     if not provider:
         print("❌ 没有找到LLM Provider")
         return False
@@ -190,12 +189,12 @@ async def test_enhanced_mock_logging():
     print("测试5: Enhanced Mock日志记录")
     print("=" * 60)
 
-    os.environ['ENABLE_MOCK_AI'] = 'true'
-    os.environ['USE_ENHANCED_MOCK'] = 'true'
-    os.environ['MOCK_DELAY'] = '0.1'
-    del os.environ['MOCK_ERROR']  # 移除错误设置
+    os.environ["ENABLE_MOCK_AI"] = "true"
+    os.environ["USE_ENHANCED_MOCK"] = "true"
+    os.environ["MOCK_DELAY"] = "0.1"
+    del os.environ["MOCK_ERROR"]  # 移除错误设置
 
-    provider = ModelProvider.objects.filter(provider_type='llm').first()
+    provider = ModelProvider.objects.filter(provider_type="llm").first()
     if not provider:
         print("❌ 没有找到LLM Provider")
         return False
@@ -205,7 +204,7 @@ async def test_enhanced_mock_logging():
     print(f"✓ 创建客户端: {client.__class__.__name__}")
 
     # 检查是否有enable_logging属性
-    if not hasattr(client, 'enable_logging'):
+    if not hasattr(client, "enable_logging"):
         print("⚠️ 客户端没有enable_logging属性")
         return True  # 这不是错误，只是标准Mock没有这个属性
 
@@ -214,7 +213,7 @@ async def test_enhanced_mock_logging():
 
     # 执行多个请求
     for i in range(3):
-        await client.generate(prompt=f"测试{i+1}")
+        await client.generate(prompt=f"测试{i + 1}")
 
     # 查看日志
     logs = client.get_request_log()
@@ -241,9 +240,9 @@ async def test_text2image_enhanced_mock():
     print("测试6: Text2Image Enhanced Mock")
     print("=" * 60)
 
-    os.environ['ENABLE_MOCK_AI'] = 'true'
-    os.environ['USE_ENHANCED_MOCK'] = 'true'
-    os.environ['MOCK_DELAY'] = '0.3'
+    os.environ["ENABLE_MOCK_AI"] = "true"
+    os.environ["USE_ENHANCED_MOCK"] = "true"
+    os.environ["MOCK_DELAY"] = "0.3"
 
     # 获取一个Text2Image Provider
     providers = await get_t2i_providers()
@@ -353,5 +352,5 @@ async def main():
         return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     exit(asyncio.run(main()))

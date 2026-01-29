@@ -64,10 +64,10 @@ class ProjectProgressHistoryViewSet(viewsets.ViewSet):
         project = get_object_or_404(Project, id=project_id)
 
         # 获取查询参数
-        stage = request.query_params.get('stage')
-        message_type = request.query_params.get('message_type')
-        limit = int(request.query_params.get('limit', 100))
-        offset = int(request.query_params.get('offset', 0))
+        stage = request.query_params.get("stage")
+        message_type = request.query_params.get("message_type")
+        limit = int(request.query_params.get("limit", 100))
+        offset = int(request.query_params.get("offset", 0))
 
         # 限制最大返回数量
         limit = min(limit, 1000)
@@ -79,45 +79,46 @@ class ProjectProgressHistoryViewSet(viewsets.ViewSet):
                 stage=stage,
                 message_type=message_type,
                 limit=limit,
-                offset=offset
+                offset=offset,
             )
 
             # 序列化
             history_data = [
                 {
-                    'id': str(h.id),
-                    'stage': h.stage,
-                    'message_type': h.message_type,
-                    'progress': h.progress,
-                    'status': h.status,
-                    'message': h.message,
-                    'metadata': h.metadata,
-                    'timestamp': h.timestamp.isoformat()
+                    "id": str(h.id),
+                    "stage": h.stage,
+                    "message_type": h.message_type,
+                    "progress": h.progress,
+                    "status": h.status,
+                    "message": h.message,
+                    "metadata": h.metadata,
+                    "timestamp": h.timestamp.isoformat(),
                 }
                 for h in history
             ]
 
-            return Response({
-                'project_id': str(project.id),
-                'project_name': project.name,
-                'history': history_data,
-                'total': len(history_data),
-                'filters': {
-                    'stage': stage,
-                    'message_type': message_type,
-                    'limit': limit,
-                    'offset': offset
+            return Response(
+                {
+                    "project_id": str(project.id),
+                    "project_name": project.name,
+                    "history": history_data,
+                    "total": len(history_data),
+                    "filters": {
+                        "stage": stage,
+                        "message_type": message_type,
+                        "limit": limit,
+                        "offset": offset,
+                    },
                 }
-            })
+            )
 
         except Exception as e:
             logger.error(f"查询历史失败: {e!s}")
             return Response(
-                {'error': f'查询失败: {e!s}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": f"查询失败: {e!s}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @action(detail=False, methods=['get'], url_path='latest')
+    @action(detail=False, methods=["get"], url_path="latest")
     def latest(self, request, project_id=None):
         """
         获取最新进度信息
@@ -150,39 +151,39 @@ class ProjectProgressHistoryViewSet(viewsets.ViewSet):
         project = get_object_or_404(Project, id=project_id)
 
         # 获取查询参数
-        stage = request.query_params.get('stage')
+        stage = request.query_params.get("stage")
 
         try:
             # 查询最新进度
-            latest = ProgressHistoryQuery.get_latest_progress(
-                project_id=project_id,
-                stage=stage
-            )
+            latest = ProgressHistoryQuery.get_latest_progress(project_id=project_id, stage=stage)
 
             if stage:
                 # 单个阶段的最新进度
-                return Response({
-                    'project_id': str(project.id),
-                    'project_name': project.name,
-                    'stage': stage,
-                    'latest_progress': latest
-                })
+                return Response(
+                    {
+                        "project_id": str(project.id),
+                        "project_name": project.name,
+                        "stage": stage,
+                        "latest_progress": latest,
+                    }
+                )
             else:
                 # 所有阶段的最新进度
-                return Response({
-                    'project_id': str(project.id),
-                    'project_name': project.name,
-                    'latest_progress': latest
-                })
+                return Response(
+                    {
+                        "project_id": str(project.id),
+                        "project_name": project.name,
+                        "latest_progress": latest,
+                    }
+                )
 
         except Exception as e:
             logger.error(f"查询最新进度失败: {e!s}")
             return Response(
-                {'error': f'查询失败: {e!s}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": f"查询失败: {e!s}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @action(detail=False, methods=['get'], url_path='stats')
+    @action(detail=False, methods=["get"], url_path="stats")
     def stats(self, request, project_id=None):
         """
         获取历史统计信息
@@ -214,29 +215,21 @@ class ProjectProgressHistoryViewSet(viewsets.ViewSet):
         project = get_object_or_404(Project, id=project_id)
 
         # 获取查询参数
-        stage = request.query_params.get('stage')
+        stage = request.query_params.get("stage")
 
         try:
             # 查询统计信息
-            stats = ProgressHistoryQuery.get_history_stats(
-                project_id=project_id,
-                stage=stage
-            )
+            stats = ProgressHistoryQuery.get_history_stats(project_id=project_id, stage=stage)
 
-            return Response({
-                'project_id': str(project.id),
-                'project_name': project.name,
-                **stats
-            })
+            return Response({"project_id": str(project.id), "project_name": project.name, **stats})
 
         except Exception as e:
             logger.error(f"查询统计信息失败: {e!s}")
             return Response(
-                {'error': f'查询失败: {e!s}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": f"查询失败: {e!s}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @action(detail=False, methods=['delete'], url_path='cleanup')
+    @action(detail=False, methods=["delete"], url_path="cleanup")
     def cleanup(self, request, project_id=None):
         """
         清理旧的历史记录
@@ -259,9 +252,9 @@ class ProjectProgressHistoryViewSet(viewsets.ViewSet):
         project = get_object_or_404(Project, id=project_id)
 
         # 获取查询参数
-        stage = request.query_params.get('stage')
-        keep_recent = int(request.query_params.get('keep_recent', 1000))
-        days_old = int(request.query_params.get('days_old', 30))
+        stage = request.query_params.get("stage")
+        keep_recent = int(request.query_params.get("keep_recent", 1000))
+        days_old = int(request.query_params.get("days_old", 30))
 
         # 限制参数范围
         keep_recent = min(max(keep_recent, 100), 10000)
@@ -270,27 +263,21 @@ class ProjectProgressHistoryViewSet(viewsets.ViewSet):
         try:
             # 清理旧记录
             deleted_count = ProgressHistoryQuery.cleanup_old_history(
-                project_id=project_id,
-                stage=stage,
-                keep_recent=keep_recent,
-                days_old=days_old
+                project_id=project_id, stage=stage, keep_recent=keep_recent, days_old=days_old
             )
 
-            return Response({
-                'project_id': str(project.id),
-                'project_name': project.name,
-                'deleted_count': deleted_count,
-                'message': f'已清理{deleted_count}条旧记录',
-                'filters': {
-                    'stage': stage,
-                    'keep_recent': keep_recent,
-                    'days_old': days_old
+            return Response(
+                {
+                    "project_id": str(project.id),
+                    "project_name": project.name,
+                    "deleted_count": deleted_count,
+                    "message": f"已清理{deleted_count}条旧记录",
+                    "filters": {"stage": stage, "keep_recent": keep_recent, "days_old": days_old},
                 }
-            })
+            )
 
         except Exception as e:
             logger.error(f"清理旧记录失败: {e!s}")
             return Response(
-                {'error': f'清理失败: {e!s}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": f"清理失败: {e!s}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

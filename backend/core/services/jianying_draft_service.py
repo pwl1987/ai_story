@@ -30,10 +30,10 @@ class JianyingDraftGenerator:
     """
 
     # 支持的视频格式
-    SUPPORTED_VIDEO_FORMATS = ('.mp4', '.mov', '.avi', '.mkv', '.flv', '.wmv')
+    SUPPORTED_VIDEO_FORMATS = (".mp4", ".mov", ".avi", ".mkv", ".flv", ".wmv")
 
     # 支持的字幕格式
-    SUPPORTED_SUBTITLE_FORMATS = ('.txt', '.srt')
+    SUPPORTED_SUBTITLE_FORMATS = (".txt", ".srt")
 
     def __init__(self, draft_folder_path: str = None):
         """
@@ -48,8 +48,8 @@ class JianyingDraftGenerator:
             # 从Django配置读取，如果没有则使用默认路径
             self.draft_folder_path = getattr(
                 settings,
-                'JIANYING_DRAFT_FOLDER',
-                os.path.expanduser('~/Documents/JianyingPro Drafts')
+                "JIANYING_DRAFT_FOLDER",
+                os.path.expanduser("~/Documents/JianyingPro Drafts"),
             )
 
         # 确保目录存在
@@ -69,7 +69,7 @@ class JianyingDraftGenerator:
         width: int = 1080,
         height: int = 1920,
         allow_replace: bool = True,
-        **options
+        **options,
     ) -> str:
         """
         生成剪映草稿
@@ -125,10 +125,7 @@ class JianyingDraftGenerator:
         try:
             # 创建剪映草稿
             script = self.draft_folder.create_draft(
-                project_name,
-                width,
-                height,
-                allow_replace=allow_replace
+                project_name, width, height, allow_replace=allow_replace
             )
 
             # 添加轨道：音频、视频、文本
@@ -155,24 +152,19 @@ class JianyingDraftGenerator:
             logger.error(f"生成剪映草稿失败: {e!s}", exc_info=True)
             raise Exception(f"生成剪映草稿失败: {e!s}")
 
-    def _add_background_music(
-        self,
-        script,
-        music_file: str,
-        options: Dict[str, Any]
-    ):
+    def _add_background_music(self, script, music_file: str, options: Dict[str, Any]):
         """添加背景音乐"""
         try:
             # 获取音乐时长（这里简化处理，实际应该获取总视频时长）
-            music_volume = options.get('music_volume', 0.6)
-            fade_in = options.get('music_fade_in', '1s')
-            fade_out = options.get('music_fade_out', '0s')
+            music_volume = options.get("music_volume", 0.6)
+            fade_in = options.get("music_fade_in", "1s")
+            fade_out = options.get("music_fade_out", "0s")
 
             # 创建音频片段
             audio_segment = draft.AudioSegment(
                 music_file,
                 trange("0s", "5s"),  # 音频时长，实际应根据总视频时长调整
-                volume=music_volume
+                volume=music_volume,
             )
 
             # 添加淡入淡出效果
@@ -188,20 +180,16 @@ class JianyingDraftGenerator:
             # 背景音乐失败不影响主流程，只记录警告
 
     def _add_video_segments(
-        self,
-        script,
-        video_files: List[str],
-        subtitles: List[str],
-        options: Dict[str, Any]
+        self, script, video_files: List[str], subtitles: List[str], options: Dict[str, Any]
     ):
         """添加视频片段和字幕"""
         # 获取配置参数
-        add_intro = options.get('add_intro_animation', True)
-        intro_type = options.get('intro_type', IntroType.斜切)
-        subtitle_font = options.get('subtitle_font', draft.FontType.抖音美好体)
-        subtitle_color = options.get('subtitle_color', (1, 0.749, 0.09))
-        subtitle_size = options.get('subtitle_size', 15)
-        subtitle_position_y = options.get('subtitle_position_y', -0.73)
+        add_intro = options.get("add_intro_animation", True)
+        intro_type = options.get("intro_type", IntroType.斜切)
+        subtitle_font = options.get("subtitle_font", draft.FontType.抖音美好体)
+        subtitle_color = options.get("subtitle_color", (1, 0.749, 0.09))
+        subtitle_size = options.get("subtitle_size", 15)
+        subtitle_position_y = options.get("subtitle_position_y", -0.73)
 
         current_start_time = tim("0s")
 
@@ -224,7 +212,9 @@ class JianyingDraftGenerator:
                 # 添加视频片段到轨道
                 script.add_segment(video_segment)
 
-                logger.debug(f"已添加视频片段 {i+1}/{len(video_files)}: {os.path.basename(video_file)}")
+                logger.debug(
+                    f"已添加视频片段 {i + 1}/{len(video_files)}: {os.path.basename(video_file)}"
+                )
 
                 # 添加字幕（如果有）
                 if subtitle_text:
@@ -235,26 +225,17 @@ class JianyingDraftGenerator:
                         subtitle_font,
                         subtitle_color,
                         subtitle_size,
-                        subtitle_position_y
+                        subtitle_position_y,
                     )
 
                 # 更新变量，为下一个视频做准备
                 current_start_time = timerange.end
 
             except Exception as e:
-                logger.error(f"添加视频片段 {i+1} 失败: {e!s}")
+                logger.error(f"添加视频片段 {i + 1} 失败: {e!s}")
                 raise
 
-    def _add_subtitle(
-        self,
-        script,
-        text: str,
-        timerange,
-        font,
-        color,
-        size,
-        position_y
-    ):
+    def _add_subtitle(self, script, text: str, timerange, font, color, size, position_y):
         """添加字幕"""
         try:
             # 创建字幕片段
@@ -266,11 +247,11 @@ class JianyingDraftGenerator:
                     color=color,
                     size=size,
                     align=1,  # 居中对齐
-                    auto_wrapping=True
+                    auto_wrapping=True,
                 ),
                 clip_settings=draft.ClipSettings(
                     transform_y=position_y,  # 位置在屏幕下方
-                )
+                ),
             )
 
             # 添加字幕片段到文本轨道
@@ -287,7 +268,7 @@ class JianyingDraftGenerator:
         project_name: str,
         scenes: List[Dict[str, Any]],
         background_music: str = None,
-        **options
+        **options,
     ) -> str:
         """
         从项目场景数据生成剪映草稿
@@ -309,7 +290,7 @@ class JianyingDraftGenerator:
 
         for scene in scenes:
             # 获取视频路径（优先使用本地路径）
-            video_urls = scene.get('video_urls', [])
+            video_urls = scene.get("video_urls", [])
             if not video_urls:
                 logger.warning(f"场景 {scene.get('scene_number', '?')} 没有视频URL，跳过")
                 continue
@@ -319,15 +300,15 @@ class JianyingDraftGenerator:
 
             # 如果是URL，需要先下载到本地（这里简化处理，假设已经是本地路径）
             if isinstance(video_url, dict):
-                video_path = video_url.get('url', '')
+                video_path = video_url.get("url", "")
             else:
                 video_path = video_url
 
             # 转换为本地绝对路径
             if not os.path.isabs(video_path):
                 # 假设视频存储在 STORAGE_ROOT/video 目录
-                storage_root = getattr(settings, 'STORAGE_ROOT', '')
-                video_dir = Path(storage_root) / 'video'
+                storage_root = getattr(settings, "STORAGE_ROOT", "")
+                video_dir = Path(storage_root) / "video"
                 path_list = video_path.split("/")[-2:]
                 video_path = str(Path(video_dir, *path_list))
 
@@ -338,7 +319,7 @@ class JianyingDraftGenerator:
             video_files.append(video_path)
 
             # 获取字幕文本
-            subtitle = scene.get('narration', '')
+            subtitle = scene.get("narration", "")
             subtitles.append(subtitle)
 
         if not video_files:
@@ -352,5 +333,5 @@ class JianyingDraftGenerator:
             video_files=video_files,
             subtitles=subtitles,
             background_music=background_music,
-            **options
+            **options,
         )

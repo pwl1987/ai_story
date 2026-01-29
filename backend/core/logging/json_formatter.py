@@ -25,7 +25,7 @@ class SensitiveDataFilter(logging.Filter):
         re.compile(r'("secret"\s*:\s*")([^"]+)"', re.IGNORECASE),
         re.compile(r'("token"\s*:\s*")([^"]+)"', re.IGNORECASE),
         re.compile(r'("authorization"\s*:\s*")([^"]+)"', re.IGNORECASE),
-        re.compile(r'(Bearer\s+)[A-Za-z0-9\-._~+/]+=*', re.IGNORECASE),
+        re.compile(r"(Bearer\s+)[A-Za-z0-9\-._~+/]+=*", re.IGNORECASE),
     ]
 
     def filter(self, record: logging.LogRecord) -> bool:
@@ -38,13 +38,12 @@ class SensitiveDataFilter(logging.Filter):
         Returns:
             bool: 始终返回True(不阻止日志记录)
         """
-        if hasattr(record, 'msg') and isinstance(record.msg, str):
+        if hasattr(record, "msg") and isinstance(record.msg, str):
             record.msg = self._sanitize(record.msg)
 
-        if hasattr(record, 'args') and record.args:
+        if hasattr(record, "args") and record.args:
             record.args = tuple(
-                self._sanitize(str(arg)) if isinstance(arg, str) else arg
-                for arg in record.args
+                self._sanitize(str(arg)) if isinstance(arg, str) else arg for arg in record.args
             )
 
         return True
@@ -60,7 +59,7 @@ class SensitiveDataFilter(logging.Filter):
             str: 脱敏后的文本
         """
         for pattern in self.SENSITIVE_PATTERNS:
-            text = pattern.sub(r'\1***', text)
+            text = pattern.sub(r"\1***", text)
         return text
 
 
@@ -87,13 +86,13 @@ class JSONFormatter(json.JsonFormatter):
             **kwargs: 关键字参数
         """
         # 设置默认格式字符串,包含所有基础字段
-        fmt = '%(asctime)s %(levelname)s %(name)s %(message)s %(process)d %(thread)d'
-        kwargs.setdefault('fmt', fmt)
+        fmt = "%(asctime)s %(levelname)s %(name)s %(message)s %(process)d %(thread)d"
+        kwargs.setdefault("fmt", fmt)
         super().__init__(*args, **kwargs)
 
-    def add_fields(self, log_record: Dict[str, Any],
-                   record: logging.LogRecord,
-                   message_dict: Dict[str, Any]) -> None:
+    def add_fields(
+        self, log_record: Dict[str, Any], record: logging.LogRecord, message_dict: Dict[str, Any]
+    ) -> None:
         """
         添加自定义字段到日志记录
 
@@ -106,39 +105,39 @@ class JSONFormatter(json.JsonFormatter):
         super().add_fields(log_record, record, message_dict)
 
         # 重命名字段以符合我们的命名规范
-        if 'asctime' in log_record:
-            log_record['timestamp'] = log_record.pop('asctime')
-        if 'levelname' in log_record:
-            log_record['level'] = log_record.pop('levelname')
-        if 'name' in log_record:
-            log_record['logger'] = log_record.pop('name')
-        if 'process' in log_record:
-            log_record['process_id'] = log_record.pop('process')
-        if 'thread' in log_record:
-            log_record['thread_id'] = log_record.pop('thread')
+        if "asctime" in log_record:
+            log_record["timestamp"] = log_record.pop("asctime")
+        if "levelname" in log_record:
+            log_record["level"] = log_record.pop("levelname")
+        if "name" in log_record:
+            log_record["logger"] = log_record.pop("name")
+        if "process" in log_record:
+            log_record["process_id"] = log_record.pop("process")
+        if "thread" in log_record:
+            log_record["thread_id"] = log_record.pop("thread")
 
         # 添加额外的标准字段
-        log_record['module'] = record.module
-        log_record['function'] = record.funcName
-        log_record['line'] = record.lineno
-        log_record['thread_name'] = record.threadName
+        log_record["module"] = record.module
+        log_record["function"] = record.funcName
+        log_record["line"] = record.lineno
+        log_record["thread_name"] = record.threadName
 
         # 添加异常信息(如果有)
         if record.exc_info:
-            log_record['exception'] = self.formatException(record.exc_info)
+            log_record["exception"] = self.formatException(record.exc_info)
             if record.exc_info and record.exc_info[0]:
-                log_record['exception_type'] = record.exc_info[0].__name__
+                log_record["exception_type"] = record.exc_info[0].__name__
 
         # 添加请求ID(如果有)
-        if hasattr(record, 'request_id'):
-            log_record['request_id'] = record.request_id
+        if hasattr(record, "request_id"):
+            log_record["request_id"] = record.request_id
 
         # 添加用户ID(如果有)
-        if hasattr(record, 'user_id'):
-            log_record['user_id'] = record.user_id
+        if hasattr(record, "user_id"):
+            log_record["user_id"] = record.user_id
 
         # 添加额外字段(如果有)
-        if hasattr(record, 'extra_fields'):
+        if hasattr(record, "extra_fields"):
             log_record.update(record.extra_fields)
 
 
@@ -162,29 +161,30 @@ class RequestContextFilter(logging.Filter):
         """
         # 尝试从线程本地存储获取请求对象
         try:
-
             # 获取当前请求(如果存在)
-            request = getattr(record, 'request', None)
+            request = getattr(record, "request", None)
             if request is None:
                 # 尝试从线程本地存储获取
                 import threading
-                local_storage = getattr(threading.current_thread(), 'request', None)
+
+                local_storage = getattr(threading.current_thread(), "request", None)
                 if local_storage:
                     request = local_storage
 
             if request:
                 # 添加请求ID
-                request_id = getattr(request, 'request_id', None)
+                request_id = getattr(request, "request_id", None)
                 if request_id:
                     record.request_id = request_id
                 else:
                     # 生成UUID作为请求ID
                     import uuid
+
                     record.request_id = str(uuid.uuid4())
 
                 # 添加用户ID
-                user = getattr(request, 'user', None)
-                if user and hasattr(user, 'id'):
+                user = getattr(request, "user", None)
+                if user and hasattr(user, "id"):
                     record.user_id = user.id
 
         except Exception:

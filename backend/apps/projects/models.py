@@ -18,52 +18,49 @@ class Project(models.Model):
     """
 
     STATUS_CHOICES = [
-        ('draft', '草稿'),
-        ('processing', '处理中'),
-        ('completed', '已完成'),
-        ('failed', '失败'),
-        ('paused', '已暂停'),
+        ("draft", "草稿"),
+        ("processing", "处理中"),
+        ("completed", "已完成"),
+        ("failed", "失败"),
+        ("paused", "已暂停"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField('项目名称', max_length=255)
-    description = models.TextField('项目描述', blank=True)
+    name = models.CharField("项目名称", max_length=255)
+    description = models.TextField("项目描述", blank=True)
 
     # 业务字段
-    original_topic = models.TextField('原始主题')
-    status = models.CharField('状态', max_length=20, choices=STATUS_CHOICES, default='draft')
-    jianying_draft_path = models.CharField('剪映草稿路径', max_length=500, blank=True, default='')
+    original_topic = models.TextField("原始主题")
+    status = models.CharField("状态", max_length=20, choices=STATUS_CHOICES, default="draft")
+    jianying_draft_path = models.CharField("剪映草稿路径", max_length=500, blank=True, default="")
 
     # 关联配置
     prompt_template_set = models.ForeignKey(
-        'prompts.PromptTemplateSet',
+        "prompts.PromptTemplateSet",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name='提示词集',
-        related_name='projects'
+        verbose_name="提示词集",
+        related_name="projects",
     )
 
     # 所有者
     user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name='创建者',
-        related_name='projects'
+        User, on_delete=models.CASCADE, verbose_name="创建者", related_name="projects"
     )
 
     # 时间戳
-    created_at = models.DateTimeField('创建时间', auto_now_add=True)
-    updated_at = models.DateTimeField('更新时间', auto_now=True)
-    completed_at = models.DateTimeField('完成时间', null=True, blank=True)
+    created_at = models.DateTimeField("创建时间", auto_now_add=True)
+    updated_at = models.DateTimeField("更新时间", auto_now=True)
+    completed_at = models.DateTimeField("完成时间", null=True, blank=True)
 
     class Meta:
-        db_table = 'projects'
-        verbose_name = '项目'
-        verbose_name_plural = '项目'
-        ordering = ['-created_at']
+        db_table = "projects"
+        verbose_name = "项目"
+        verbose_name_plural = "项目"
+        ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=['user', 'status', '-created_at']),
+            models.Index(fields=["user", "status", "-created_at"]),
         ]
 
     def __str__(self):
@@ -77,54 +74,51 @@ class ProjectStage(models.Model):
     """
 
     STAGE_TYPES = [
-        ('rewrite', '文案改写'),
-        ('storyboard', '分镜生成'),
-        ('image_generation', '文生图'),
-        ('camera_movement', '运镜生成'),
-        ('video_generation', '图生视频'),
+        ("rewrite", "文案改写"),
+        ("storyboard", "分镜生成"),
+        ("image_generation", "文生图"),
+        ("camera_movement", "运镜生成"),
+        ("video_generation", "图生视频"),
     ]
 
     STATUS_CHOICES = [
-        ('pending', '待处理'),
-        ('processing', '处理中'),
-        ('completed', '已完成'),
-        ('failed', '失败'),
+        ("pending", "待处理"),
+        ("processing", "处理中"),
+        ("completed", "已完成"),
+        ("failed", "失败"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     project = models.ForeignKey(
-        Project,
-        on_delete=models.CASCADE,
-        related_name='stages',
-        verbose_name='项目'
+        Project, on_delete=models.CASCADE, related_name="stages", verbose_name="项目"
     )
 
-    stage_type = models.CharField('阶段类型', max_length=20, choices=STAGE_TYPES)
-    status = models.CharField('状态', max_length=20, choices=STATUS_CHOICES, default='pending')
+    stage_type = models.CharField("阶段类型", max_length=20, choices=STAGE_TYPES)
+    status = models.CharField("状态", max_length=20, choices=STATUS_CHOICES, default="pending")
 
     # 数据字段
-    input_data = models.JSONField('输入数据', default=dict, blank=True)
-    output_data = models.JSONField('输出数据', default=dict, blank=True)
+    input_data = models.JSONField("输入数据", default=dict, blank=True)
+    output_data = models.JSONField("输出数据", default=dict, blank=True)
 
     # 重试机制
-    retry_count = models.IntegerField('重试次数', default=0)
-    max_retries = models.IntegerField('最大重试次数', default=3)
-    error_message = models.TextField('错误信息', blank=True)
+    retry_count = models.IntegerField("重试次数", default=0)
+    max_retries = models.IntegerField("最大重试次数", default=3)
+    error_message = models.TextField("错误信息", blank=True)
 
     # 时间戳
-    started_at = models.DateTimeField('开始时间', null=True, blank=True)
-    completed_at = models.DateTimeField('完成时间', null=True, blank=True)
-    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    started_at = models.DateTimeField("开始时间", null=True, blank=True)
+    completed_at = models.DateTimeField("完成时间", null=True, blank=True)
+    created_at = models.DateTimeField("创建时间", auto_now_add=True)
 
     class Meta:
-        db_table = 'project_stages'
-        verbose_name = '项目阶段'
-        verbose_name_plural = '项目阶段'
-        unique_together = [('project', 'stage_type')]
-        ordering = ['created_at']
+        db_table = "project_stages"
+        verbose_name = "项目阶段"
+        verbose_name_plural = "项目阶段"
+        unique_together = [("project", "stage_type")]
+        ordering = ["created_at"]
 
     def __str__(self):
-        return f'{self.project.name} - {self.get_stage_type_display()}'
+        return f"{self.project.name} - {self.get_stage_type_display()}"
 
 
 class ProjectProgressHistory(models.Model):
@@ -135,53 +129,55 @@ class ProjectProgressHistory(models.Model):
     """
 
     MESSAGE_TYPES = [
-        ('token', 'Token消息'),
-        ('stage_update', '阶段更新'),
-        ('progress', '批量进度'),
-        ('done', '完成'),
-        ('error', '错误'),
-        ('connected', '连接成功'),
+        ("token", "Token消息"),
+        ("stage_update", "阶段更新"),
+        ("progress", "批量进度"),
+        ("done", "完成"),
+        ("error", "错误"),
+        ("connected", "连接成功"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     project = models.ForeignKey(
         Project,
         on_delete=models.CASCADE,
-        related_name='progress_history',
-        verbose_name='项目',
-        db_index=True
+        related_name="progress_history",
+        verbose_name="项目",
+        db_index=True,
     )
 
     # 阶段信息
-    stage = models.CharField('阶段名称', max_length=50, db_index=True)
-    message_type = models.CharField('消息类型', max_length=20, choices=MESSAGE_TYPES, default='stage_update')
+    stage = models.CharField("阶段名称", max_length=50, db_index=True)
+    message_type = models.CharField(
+        "消息类型", max_length=20, choices=MESSAGE_TYPES, default="stage_update"
+    )
 
     # 进度数据
-    progress = models.IntegerField('进度百分比', default=0, help_text='0-100')
-    status = models.CharField('状态', max_length=20, default='pending')
-    message = models.TextField('消息内容', blank=True)
+    progress = models.IntegerField("进度百分比", default=0, help_text="0-100")
+    status = models.CharField("状态", max_length=20, default="pending")
+    message = models.TextField("消息内容", blank=True)
 
     # 元数据(JSON格式,存储额外的上下文信息)
-    metadata = models.JSONField('元数据', default=dict, blank=True)
+    metadata = models.JSONField("元数据", default=dict, blank=True)
 
     # 时间戳
-    timestamp = models.DateTimeField('时间戳', auto_now_add=True, db_index=True)
+    timestamp = models.DateTimeField("时间戳", auto_now_add=True, db_index=True)
 
     class Meta:
-        db_table = 'project_progress_history'
-        verbose_name = '项目进度历史'
-        verbose_name_plural = '项目进度历史'
-        ordering = ['-timestamp']
+        db_table = "project_progress_history"
+        verbose_name = "项目进度历史"
+        verbose_name_plural = "项目进度历史"
+        ordering = ["-timestamp"]
         indexes = [
-            models.Index(fields=['project', '-timestamp']),
-            models.Index(fields=['project', 'stage', '-timestamp']),
-            models.Index(fields=['stage', '-timestamp']),
+            models.Index(fields=["project", "-timestamp"]),
+            models.Index(fields=["project", "stage", "-timestamp"]),
+            models.Index(fields=["stage", "-timestamp"]),
         ]
         # 每个项目每个阶段保留最近1000条记录
         # 通过定期清理任务维护
 
     def __str__(self):
-        return f'{self.project.name} - {self.stage} - {self.progress}% - {self.timestamp}'
+        return f"{self.project.name} - {self.stage} - {self.progress}% - {self.timestamp}"
 
 
 class ProjectModelConfig(models.Model):
@@ -191,71 +187,62 @@ class ProjectModelConfig(models.Model):
     """
 
     LOAD_BALANCE_STRATEGIES = [
-        ('round_robin', '轮询'),
-        ('random', '随机'),
-        ('weighted', '权重随机'),
-        ('least_loaded', '最少负载'),
+        ("round_robin", "轮询"),
+        ("random", "随机"),
+        ("weighted", "权重随机"),
+        ("least_loaded", "最少负载"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     project = models.OneToOneField(
-        Project,
-        on_delete=models.CASCADE,
-        related_name='model_config',
-        verbose_name='项目'
+        Project, on_delete=models.CASCADE, related_name="model_config", verbose_name="项目"
     )
 
     # 负载均衡策略
     load_balance_strategy = models.CharField(
-        '负载均衡策略',
-        max_length=20,
-        choices=LOAD_BALANCE_STRATEGIES,
-        default='weighted'
+        "负载均衡策略", max_length=20, choices=LOAD_BALANCE_STRATEGIES, default="weighted"
     )
 
     # 模型关联 - 使用ManyToMany支持多模型配置
     rewrite_providers = models.ManyToManyField(
-        'models.ModelProvider',
-        related_name='rewrite_configs',
-        verbose_name='文案改写模型',
-        blank=True
+        "models.ModelProvider",
+        related_name="rewrite_configs",
+        verbose_name="文案改写模型",
+        blank=True,
     )
 
     storyboard_providers = models.ManyToManyField(
-        'models.ModelProvider',
-        related_name='storyboard_configs',
-        verbose_name='分镜生成模型',
-        blank=True
+        "models.ModelProvider",
+        related_name="storyboard_configs",
+        verbose_name="分镜生成模型",
+        blank=True,
     )
 
     image_providers = models.ManyToManyField(
-        'models.ModelProvider',
-        related_name='image_configs',
-        verbose_name='文生图模型',
-        blank=True
+        "models.ModelProvider", related_name="image_configs", verbose_name="文生图模型", blank=True
     )
 
     camera_providers = models.ManyToManyField(
-        'models.ModelProvider',
-        related_name='camera_configs',
-        verbose_name='运镜生成模型',
-        blank=True
+        "models.ModelProvider",
+        related_name="camera_configs",
+        verbose_name="运镜生成模型",
+        blank=True,
     )
 
     video_providers = models.ManyToManyField(
-        'models.ModelProvider',
-        related_name='video_configs',
-        verbose_name='图生视频模型',
-        blank=True
+        "models.ModelProvider",
+        related_name="video_configs",
+        verbose_name="图生视频模型",
+        blank=True,
     )
 
-    created_at = models.DateTimeField('创建时间', auto_now_add=True)
-    updated_at = models.DateTimeField('更新时间', auto_now=True)
+    created_at = models.DateTimeField("创建时间", auto_now_add=True)
+    updated_at = models.DateTimeField("更新时间", auto_now=True)
 
     class Meta:
-        db_table = 'project_model_configs'
-        verbose_name = '项目模型配置'
-        verbose_name_plural = '项目模型配置'
+        db_table = "project_model_configs"
+        verbose_name = "项目模型配置"
+        verbose_name_plural = "项目模型配置"
 
     def __str__(self):
-        return f'{self.project.name} - 模型配置'
+        return f"{self.project.name} - 模型配置"

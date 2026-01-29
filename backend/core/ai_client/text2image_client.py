@@ -25,7 +25,7 @@ class Text2ImageClient(BaseText2ImageClient):
         width: int = 1024,
         height: int = 1024,
         steps: int = 20,
-        **kwargs
+        **kwargs,
     ) -> AIResponse:
         """
         生成图片
@@ -44,21 +44,18 @@ class Text2ImageClient(BaseText2ImageClient):
         start_time = time.time()
 
         # 构建请求头
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}"
-        }
+        headers = {"Content-Type": "application/json", "Authorization": f"Bearer {self.api_key}"}
 
         # 从kwargs获取ratio和resolution，或使用默认值
-        ratio = kwargs.get('ratio', '1:1')
-        resolution = kwargs.get('resolution', '2k')
+        ratio = kwargs.get("ratio", "1:1")
+        resolution = kwargs.get("resolution", "2k")
 
         # 构建请求体
         payload = {
             "model": self.model_name,
             "prompt": prompt,
             "ratio": ratio,
-            "resolution": resolution
+            "resolution": resolution,
         }
 
         # 添加可选参数
@@ -66,20 +63,17 @@ class Text2ImageClient(BaseText2ImageClient):
             payload["negative_prompt"] = negative_prompt
 
         # 添加其他可选参数
-        if 'sample_strength' in kwargs:
-            payload["sample_strength"] = kwargs['sample_strength']
-        if 'response_format' in kwargs:
-            payload["response_format"] = kwargs['response_format']
+        if "sample_strength" in kwargs:
+            payload["sample_strength"] = kwargs["sample_strength"]
+        if "response_format" in kwargs:
+            payload["response_format"] = kwargs["response_format"]
 
         try:
-            timeout = self.config.get('timeout', 60)
+            timeout = self.config.get("timeout", 60)
 
             # 发送POST请求
             response = requests.post(
-                self.api_url,
-                headers=headers,
-                data=json.dumps(payload),
-                timeout=timeout
+                self.api_url, headers=headers, data=json.dumps(payload), timeout=timeout
             )
 
             # 检查响应状态
@@ -89,39 +83,30 @@ class Text2ImageClient(BaseText2ImageClient):
             result = response.json()
             latency_ms = int((time.time() - start_time) * 1000)
 
-            if 'data' not in result or not result['data']:
-                return AIResponse(
-                    success=False,
-                    error='响应格式错误: 缺少data字段或data为空'
-                )
+            if "data" not in result or not result["data"]:
+                return AIResponse(success=False, error="响应格式错误: 缺少data字段或data为空")
 
             # 提取图片URL列表
-            image_urls = [item.get('url', '') for item in result['data']]
+            image_urls = [item.get("url", "") for item in result["data"]]
 
             return AIResponse(
                 success=True,
                 data={
-                    'urls': image_urls,
-                    'images': result['data']  # 包含完整的图片信息
+                    "urls": image_urls,
+                    "images": result["data"],  # 包含完整的图片信息
                 },
                 metadata={
-                    'latency_ms': latency_ms,
-                    'model': self.model_name,
-                    'ratio': ratio,
-                    'resolution': resolution
-                }
+                    "latency_ms": latency_ms,
+                    "model": self.model_name,
+                    "ratio": ratio,
+                    "resolution": resolution,
+                },
             )
 
         except requests.exceptions.RequestException as e:
-            return AIResponse(
-                success=False,
-                error=f'网络请求错误: {e!s}'
-            )
+            return AIResponse(success=False, error=f"网络请求错误: {e!s}")
         except Exception as e:
-            return AIResponse(
-                success=False,
-                error=f'未知错误: {e!s}'
-            )
+            return AIResponse(success=False, error=f"未知错误: {e!s}")
 
     def validate_config(self) -> bool:
         """验证配置"""
@@ -142,7 +127,7 @@ def generate_image(
     resolution="2k",
     negative_prompt=None,
     sample_strength=None,
-    response_format=None
+    response_format=None,
 ):
     """
     调用图像生成API（向后兼容的函数接口）
@@ -162,18 +147,10 @@ def generate_image(
         dict: 接口响应数据
     """
     # 构建请求头
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {session_id}"
-    }
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {session_id}"}
 
     # 构建请求体
-    payload = {
-        "model": model,
-        "prompt": prompt,
-        "ratio": ratio,
-        "resolution": resolution
-    }
+    payload = {"model": model, "prompt": prompt, "ratio": ratio, "resolution": resolution}
 
     # 添加可选参数
     if negative_prompt is not None:
@@ -185,11 +162,7 @@ def generate_image(
 
     try:
         # 发送POST请求
-        response = requests.post(
-            api_url,
-            headers=headers,
-            data=json.dumps(payload)
-        )
+        response = requests.post(api_url, headers=headers, data=json.dumps(payload))
 
         # 检查响应状态
         response.raise_for_status()

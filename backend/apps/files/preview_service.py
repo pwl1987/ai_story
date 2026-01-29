@@ -23,7 +23,7 @@ class FilePreviewService:
     def __init__(self):
         """初始化预览服务"""
         self.thumbnail_size = (200, 200)  # 缩略图大小
-        self.preview_root = Path(settings.STORAGE_ROOT) / 'previews'
+        self.preview_root = Path(settings.STORAGE_ROOT) / "previews"
         self.preview_root.mkdir(parents=True, exist_ok=True)
 
     def generate_thumbnail(self, file_path, size=None):
@@ -42,7 +42,7 @@ class FilePreviewService:
             full_path = Path(settings.STORAGE_ROOT) / file_path
 
             if not full_path.exists():
-                raise FileNotFoundError(f'文件不存在: {file_path}')
+                raise FileNotFoundError(f"文件不存在: {file_path}")
 
             # 打开图片并生成缩略图
             with Image.open(full_path) as img:
@@ -53,13 +53,13 @@ class FilePreviewService:
                 preview_path = self.preview_root / preview_filename
 
                 # 保存缩略图
-                img.save(preview_path, 'JPEG', quality=85)
+                img.save(preview_path, "JPEG", quality=85)
 
                 # 返回相对路径
                 return f"previews/{preview_filename}"
 
         except Exception as e:
-            raise Exception(f'生成缩略图失败: {e!s}')
+            raise Exception(f"生成缩略图失败: {e!s}")
 
     def extract_video_frame(self, file_path, time_offset=0):
         """
@@ -76,7 +76,7 @@ class FilePreviewService:
             full_path = Path(settings.STORAGE_ROOT) / file_path
 
             if not full_path.exists():
-                raise FileNotFoundError(f'文件不存在: {file_path}')
+                raise FileNotFoundError(f"文件不存在: {file_path}")
 
             # 打开视频
             video = cv2.VideoCapture(str(full_path))
@@ -89,7 +89,7 @@ class FilePreviewService:
             video.release()
 
             if not success:
-                raise Exception('无法读取视频帧')
+                raise Exception("无法读取视频帧")
 
             # 保存预览图
             preview_filename = f"preview_{full_path.stem}.jpg"
@@ -103,7 +103,7 @@ class FilePreviewService:
             # 如果没有cv2，返回None
             return None
         except Exception as e:
-            raise Exception(f'提取视频帧失败: {e!s}')
+            raise Exception(f"提取视频帧失败: {e!s}")
 
     def generate_pdf_preview(self, file_path, page=0):
         """
@@ -120,19 +120,19 @@ class FilePreviewService:
             full_path = Path(settings.STORAGE_ROOT) / file_path
 
             if not full_path.exists():
-                raise FileNotFoundError(f'文件不存在: {file_path}')
+                raise FileNotFoundError(f"文件不存在: {file_path}")
 
             # 转换指定页为图片
             images = convert_from_path(str(full_path), first_page=page + 1, last_page=page + 2)
 
             if not images:
-                raise Exception('无法转换PDF')
+                raise Exception("无法转换PDF")
 
             # 保存预览图
             preview_filename = f"preview_{full_path.stem}_page{page}.jpg"
             preview_path = self.preview_root / preview_filename
 
-            images[0].save(preview_path, 'JPEG', quality=85)
+            images[0].save(preview_path, "JPEG", quality=85)
 
             return f"previews/{preview_filename}"
 
@@ -140,7 +140,7 @@ class FilePreviewService:
             # 如果没有pdf2image，返回None
             return None
         except Exception as e:
-            raise Exception(f'生成PDF预览失败: {e!s}')
+            raise Exception(f"生成PDF预览失败: {e!s}")
 
     def get_preview(self, file_type, file_path):
         """
@@ -151,13 +151,13 @@ class FilePreviewService:
         :return: 预览图路径或None
         """
         try:
-            if file_type == 'image':
+            if file_type == "image":
                 return self.generate_thumbnail(file_path)
-            elif file_type == 'video':
+            elif file_type == "video":
                 return self.extract_video_frame(file_path)
-            elif file_type == 'document':
+            elif file_type == "document":
                 # 检查是否为PDF
-                if file_path.lower().endswith('.pdf'):
+                if file_path.lower().endswith(".pdf"):
                     return self.generate_pdf_preview(file_path)
                 else:
                     # 其他文档类型返回None

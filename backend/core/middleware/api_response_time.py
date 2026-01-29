@@ -23,29 +23,28 @@ from django.http import HttpRequest, HttpResponse
 
 from core.middleware.api_error_logging import APIErrorLoggingMiddleware
 
-logger = logging.getLogger('apps.api')
+logger = logging.getLogger("apps.api")
 
 # 慢请求阈值（毫秒）- 从settings读取，便于运维调整
-SLOW_REQUEST_THRESHOLD_MS = getattr(settings, 'SLOW_REQUEST_THRESHOLD_MS', 500)
+SLOW_REQUEST_THRESHOLD_MS = getattr(settings, "SLOW_REQUEST_THRESHOLD_MS", 500)
 
 # Epic 2.5: Prometheus metrics
 try:
     from prometheus_client import Counter, Histogram
+
     PROMETHEUS_ENABLED = True
 
     # HTTP请求总数
     http_requests_total = Counter(
-        'http_requests_total',
-        'Total HTTP requests',
-        ['method', 'endpoint', 'status']
+        "http_requests_total", "Total HTTP requests", ["method", "endpoint", "status"]
     )
 
     # HTTP请求响应时间（直方图）
     http_request_duration_seconds = Histogram(
-        'http_request_duration_seconds',
-        'HTTP request duration seconds',
-        ['method', 'endpoint'],
-        buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0)
+        "http_request_duration_seconds",
+        "HTTP request duration seconds",
+        ["method", "endpoint"],
+        buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),
     )
 except ImportError:
     # prometheus_client未安装，禁用Prometheus
@@ -93,12 +92,13 @@ class APIResponseTimeMiddleware(APIErrorLoggingMiddleware):
         self._log_response_time(request, response, elapsed_ms, had_error=False)
 
         # 添加响应时间到响应头（可选，用于调试）
-        response['X-Response-Time-ms'] = f'{elapsed_ms:.2f}ms'
+        response["X-Response-Time-ms"] = f"{elapsed_ms:.2f}ms"
 
         return response
 
-    def _log_response_time(self, request: HttpRequest, response,
-                          elapsed_ms: float, had_error: bool = False) -> None:
+    def _log_response_time(
+        self, request: HttpRequest, response, elapsed_ms: float, had_error: bool = False
+    ) -> None:
         """
         记录响应时间（结构化日志 + Prometheus metrics）
 
@@ -115,19 +115,16 @@ class APIResponseTimeMiddleware(APIErrorLoggingMiddleware):
             try:
                 endpoint = self._extract_endpoint(request)
                 # 处理response为None的情况（异常时）
-                status = getattr(response, 'status_code', 0) if response else 0
+                status = getattr(response, "status_code", 0) if response else 0
 
                 # 记录请求总数
                 http_requests_total.labels(
-                    method=request.method,
-                    endpoint=endpoint,
-                    status=status
+                    method=request.method, endpoint=endpoint, status=status
                 ).inc()
 
                 # 记录响应时间（秒）
                 http_request_duration_seconds.labels(
-                    method=request.method,
-                    endpoint=endpoint
+                    method=request.method, endpoint=endpoint
                 ).observe(elapsed_ms / 1000)
             except Exception as e:
                 logger.warning(f"Failed to record Prometheus metrics: {e}")
@@ -140,24 +137,24 @@ class APIResponseTimeMiddleware(APIErrorLoggingMiddleware):
 
         # 构建日志上下文
         context = {
-            'request_id': getattr(request, 'request_id', 'unknown'),
-            'method': request.method,
-            'path': request.path,
-            'response_time_ms': round(elapsed_ms, 2),
-            'is_slow_request': elapsed_ms > SLOW_REQUEST_THRESHOLD_MS,
-            'had_error': had_error,
+            "request_id": getattr(request, "request_id", "unknown"),
+            "method": request.method,
+            "path": request.path,
+            "response_time_ms": round(elapsed_ms, 2),
+            "is_slow_request": elapsed_ms > SLOW_REQUEST_THRESHOLD_MS,
+            "had_error": had_error,
         }
 
         # 添加用户ID（如果可用）
         user_id = self._get_user_id(request)
         if user_id is not None:
-            context['user_id'] = user_id
+            context["user_id"] = user_id
 
         # 记录日志
         logger.log(
             log_level,
             f"API Request: {request.method} {request.path} - {elapsed_ms:.2f}ms",
-            extra={'extra_fields': context}
+            extra={"extra_fields": context},
         )
 
     def _extract_endpoint(self, request: HttpRequest) -> str:
@@ -171,28 +168,28 @@ class APIResponseTimeMiddleware(APIErrorLoggingMiddleware):
             str: endpoint名称
         """
         # 尝试从resolve match中获取
-        if hasattr(request, 'resolver_match'):
+        if hasattr(request, "resolver_match"):
             try:
                 match = request.resolver_match
-                if hasattr(match, 'url_name'):
-                    return match.url_name or 'unknown'
-                elif hasattr(match, 'route'):
-                    return match.route or 'unknown'
+                if hasattr(match, "url_name"):
+                    return match.url_name or "unknown"
+                elif hasattr(match, "route"):
+                    return match.route or "unknown"
             except Exception:
                 pass
 
         # 回退到请求路径
         path = request.path
-        if '?' in path:
-            path = path.split('?')[0]
-        path = path.rstrip('/') or '/'
+        if "?" in path:
+            path = path.split("?")[0]
+        path = path.rstrip("/") or "/"
 
         # 转换为有效的metric label
-        path = path.replace('/', '_').replace('-', '_')
-        if path.startswith('_'):
-            path = 'root' + path
+        path = path.replace("/", "_").replace("-", "_")
+        if path.startswith("_"):
+            path = "root" + path
 
-        return path if path else 'unknown'
+        return path if path else "unknown"
 
     def _get_user_id(self, request: HttpRequest) -> Any:
         """
@@ -205,7 +202,7 @@ class APIResponseTimeMiddleware(APIErrorLoggingMiddleware):
             Any: 用户ID
         """
         try:
-            if hasattr(request, 'user') and request.user.is_authenticated:
+            if hasattr(request, "user") and request.user.is_authenticated:
                 return request.user.id
         except Exception:
             pass
@@ -254,7 +251,7 @@ class APIResponseTimeMiddlewareStandalone:
         self._log_response_time(request, response, elapsed_ms)
 
         # 添加响应时间到响应头
-        response['X-Response-Time-ms'] = f'{elapsed_ms:.2f}ms'
+        response["X-Response-Time-ms"] = f"{elapsed_ms:.2f}ms"
 
         return response
 
@@ -275,16 +272,16 @@ class APIResponseTimeMiddlewareStandalone:
 
         # 构建日志上下文
         context = {
-            'request_id': getattr(request, 'request_id', 'unknown'),
-            'method': request.method,
-            'path': request.path,
-            'response_time_ms': round(elapsed_ms, 2),
-            'is_slow_request': elapsed_ms > SLOW_REQUEST_THRESHOLD_MS,
+            "request_id": getattr(request, "request_id", "unknown"),
+            "method": request.method,
+            "path": request.path,
+            "response_time_ms": round(elapsed_ms, 2),
+            "is_slow_request": elapsed_ms > SLOW_REQUEST_THRESHOLD_MS,
         }
 
         # 记录日志
         logger.log(
             log_level,
             f"API Request: {request.method} {request.path} - {elapsed_ms:.2f}ms",
-            extra={'extra_fields': context}
+            extra={"extra_fields": context},
         )

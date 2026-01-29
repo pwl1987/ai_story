@@ -24,12 +24,7 @@ class MockImage2VideoClient(Image2VideoClient):
     ]
 
     async def _generate_video(
-        self,
-        image_url: str,
-        camera_movement: Dict[str, Any],
-        duration: float,
-        fps: int,
-        **kwargs
+        self, image_url: str, camera_movement: Dict[str, Any], duration: float, fps: int, **kwargs
     ) -> AIResponse:
         """
         生成模拟的视频响应（异步版本）
@@ -51,9 +46,9 @@ class MockImage2VideoClient(Image2VideoClient):
         await asyncio.sleep(delay)
 
         # 从kwargs获取参数
-        width = kwargs.get('width', 1280)
-        height = kwargs.get('height', 720)
-        model = kwargs.get('model', self.model_name)
+        width = kwargs.get("width", 1280)
+        height = kwargs.get("height", 720)
+        model = kwargs.get("model", self.model_name)
 
         # 根据图片URL哈希选择视频（保证相同图片返回相同视频）
         image_hash = hash(image_url) % len(self.MOCK_VIDEO_URLS)
@@ -68,7 +63,7 @@ class MockImage2VideoClient(Image2VideoClient):
             "fps": fps,
             "format": "mp4",
             "file_size": 1024 * 1024,  # 模拟1MB文件大小
-            "camera_movement": camera_movement
+            "camera_movement": camera_movement,
         }
 
         end_time = asyncio.get_event_loop().time()
@@ -77,17 +72,17 @@ class MockImage2VideoClient(Image2VideoClient):
         return AIResponse(
             success=True,
             data={
-                'url': video_url,
-                'video': video_data,
-                'videos': [video_data]  # 兼容多视频格式
+                "url": video_url,
+                "video": video_data,
+                "videos": [video_data],  # 兼容多视频格式
             },
             metadata={
-                'latency_ms': latency_ms,
-                'model': model,
-                'duration': duration,
-                'fps': fps,
-                'is_mock': True
-            }
+                "latency_ms": latency_ms,
+                "model": model,
+                "duration": duration,
+                "fps": fps,
+                "is_mock": True,
+            },
         )
 
     async def validate_config(self) -> bool:

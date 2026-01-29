@@ -46,4 +46,4 @@ class CameraMovementProcessor(LLMStageProcessor):
 
     def __init__(self):
         """初始化运镜生成处理器"""
-        super().__init__(stage_type='camera_movement')
+        super().__init__(stage_type="camera_movement")

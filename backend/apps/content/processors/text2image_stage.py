@@ -40,8 +40,8 @@ class Text2ImageStageProcessor(StageProcessor):
 
     def __init__(self):
         """初始化处理器"""
-        super().__init__('image_generation')
-        self.stage_type = 'image_generation'
+        super().__init__("image_generation")
+        self.stage_type = "image_generation"
         self.max_concurrent = 3  # 最大并发生成数
 
     def validate(self, context: PipelineContext) -> bool:
@@ -59,9 +59,7 @@ class Text2ImageStageProcessor(StageProcessor):
 
             # 检查storyboard阶段是否完成
             storyboard_stage = ProjectStage.objects.filter(
-                project=project,
-                stage_type='storyboard',
-                status='completed'
+                project=project, stage_type="storyboard", status="completed"
             ).first()
 
             if not storyboard_stage:
@@ -91,16 +89,12 @@ class Text2ImageStageProcessor(StageProcessor):
             return False
 
     def process(
-        self,
-        project_id: str,
-        storyboard_ids: List[str] = None
+        self, project_id: str, storyboard_ids: List[str] = None
     ) -> Generator[Dict[str, Any], None, None]:
         pass
 
     def process_stream(
-        self,
-        project_id: str,
-        storyboard_ids: List[str] = None
+        self, project_id: str, storyboard_ids: List[str] = None
     ) -> Generator[Dict[str, Any], None, None]:
         """
         流式执行文生图生成
@@ -118,23 +112,22 @@ class Text2ImageStageProcessor(StageProcessor):
             # 获取项目和阶段
             project = Project.objects.get(id=project_id)
             stage, _created = ProjectStage.objects.get_or_create(
-                project=project,
-                stage_type=self.stage_type
+                project=project, stage_type=self.stage_type
             )
 
             # 更新阶段状态
-            stage.status = 'processing'
+            stage.status = "processing"
             stage.started_at = timezone.now()
             stage.save()
 
             yield {
-                'type': 'stage_update',
-                'stage': {
-                    'id': str(stage.id),
-                    'status': 'processing',
-                    'stage_type': self.stage_type,
-                    'started_at': stage.started_at.isoformat()
-                }
+                "type": "stage_update",
+                "stage": {
+                    "id": str(stage.id),
+                    "status": "processing",
+                    "stage_type": self.stage_type,
+                    "started_at": stage.started_at.isoformat(),
+                },
             }
 
             # 获取分镜列表
@@ -146,24 +139,15 @@ class Text2ImageStageProcessor(StageProcessor):
                     storyboards = stage.output_data.get("human_text", {}).get("scenes", [])
             except Exception as e:
                 logger.error(f"获取分镜数据失败: {e!s}", exc_info=True)
-                yield {
-                    'type': 'error',
-                    'error': f'获取分镜数据失败: {e!s}'
-                }
+                yield {"type": "error", "error": f"获取分镜数据失败: {e!s}"}
                 raise e
 
             if not storyboards:
-                yield {
-                    'type': 'error',
-                    'error': '没有找到分镜数据'
-                }
+                yield {"type": "error", "error": "没有找到分镜数据"}
                 return
 
             total = len(storyboards)
-            yield {
-                'type': 'info',
-                'message': f'开始生成图片，共 {total} 个分镜...'
-            }
+            yield {"type": "info", "message": f"开始生成图片，共 {total} 个分镜..."}
 
             # 获取AI客户端配置
             provider = self._get_text2image_provider(project)
@@ -176,18 +160,16 @@ class Text2ImageStageProcessor(StageProcessor):
                 try:
                     # 进度更新
                     yield {
-                        'type': 'progress',
-                        'current': index,
-                        'total': total,
-                        'message': f'正在生成第 {index}/{total} 张图片...',
-                        'storyboard': storyboard
+                        "type": "progress",
+                        "current": index,
+                        "total": total,
+                        "message": f"正在生成第 {index}/{total} 张图片...",
+                        "storyboard": storyboard,
                     }
 
                     # 生成图片
                     result = self._generate_single_image(
-                        project=project,
-                        storyboard=storyboard,
-                        provider=provider
+                        project=project, storyboard=storyboard, provider=provider
                     )
                     # todo mock
                     # result = [{"url": "https://picsum.photos/200/300"}]
@@ -196,53 +178,50 @@ class Text2ImageStageProcessor(StageProcessor):
 
                         # 保存结果到当前阶段和video_generation阶段
                         self._save_result(
-                            project=project,
-                            stage=stage,
-                            storyboard=storyboard,
-                            result=result
+                            project=project, stage=stage, storyboard=storyboard, result=result
                         )
 
                         # 图片生成成功
                         yield {
-                            'type': 'image_generated',
-                            'storyboard_id': storyboard["scene_number"],
-                            'sequence_number': storyboard["scene_number"],
+                            "type": "image_generated",
+                            "storyboard_id": storyboard["scene_number"],
+                            "sequence_number": storyboard["scene_number"],
                         }
                     else:
                         failed_count += 1
                         yield {
-                            'type': 'warning',
-                            'message': f'分镜 {storyboard["scene_number"]} 图片生成失败'
+                            "type": "warning",
+                            "message": f"分镜 {storyboard['scene_number']} 图片生成失败",
                         }
 
                 except Exception as e:
                     failed_count += 1
                     logger.error(f"分镜 {index} 生成失败: {e!s}")
                     yield {
-                        'type': 'error',
-                        'error': f'分镜 {index} 生成失败: {e!s}',
-                        'storyboard_id': str(storyboard["scene_number"])
+                        "type": "error",
+                        "error": f"分镜 {index} 生成失败: {e!s}",
+                        "storyboard_id": str(storyboard["scene_number"]),
                     }
 
             # 保存最终结果
             success_count = len(generated_images)
             output_data = {
-                'total_storyboards': total,
-                'success_count': success_count,
-                'failed_count': failed_count,
-                'generated_image_ids': generated_images
+                "total_storyboards": total,
+                "success_count": success_count,
+                "failed_count": failed_count,
+                "generated_image_ids": generated_images,
             }
 
             yield {
-                'type': 'done',
-                'message': f'图片生成完成: 成功 {success_count}/{total}',
-                'data': output_data,
-                'stage': {
-                    'id': str(stage.id),
-                    'status': stage.status,
-                    'output_data': output_data,
-                    'completed_at': ''
-                }
+                "type": "done",
+                "message": f"图片生成完成: 成功 {success_count}/{total}",
+                "data": output_data,
+                "stage": {
+                    "id": str(stage.id),
+                    "status": stage.status,
+                    "output_data": output_data,
+                    "completed_at": "",
+                },
             }
 
         except Exception as e:
@@ -251,28 +230,22 @@ class Text2ImageStageProcessor(StageProcessor):
             # 更新阶段状态
             if stage:
                 try:
-                    stage.status = 'failed'
+                    stage.status = "failed"
                     stage.error_message = str(e)
                     stage.save()
                 except Exception:
                     pass
 
-            yield {
-                'type': 'error',
-                'error': str(e)
-            }
+            yield {"type": "error", "error": str(e)}
 
     def on_failure(self, context: PipelineContext, error: Exception):
         """失败处理"""
         try:
             project = Project.objects.get(id=context.project_id)
-            stage = ProjectStage.objects.filter(
-                project=project,
-                stage_type=self.stage_type
-            ).first()
+            stage = ProjectStage.objects.filter(project=project, stage_type=self.stage_type).first()
 
             if stage:
-                stage.status = 'failed'
+                stage.status = "failed"
                 stage.error_message = str(error)
                 stage.save()
 
@@ -282,11 +255,7 @@ class Text2ImageStageProcessor(StageProcessor):
     # ===== 私有辅助方法 =====
 
     def _save_result(
-        self,
-        project: Project,
-        stage: ProjectStage,
-        storyboard: dict,
-        result: List[Dict[str, Any]]
+        self, project: Project, stage: ProjectStage, storyboard: dict, result: List[Dict[str, Any]]
     ) -> None:
         """
         保存图片生成结果到当前阶段和video_generation阶段
@@ -304,24 +273,17 @@ class Text2ImageStageProcessor(StageProcessor):
             if each["scene_number"] == storyboard["scene_number"]:
                 each["urls"] = result
 
-        output_data = {
-            "human_text": {
-                "scenes": scenes
-            }
-        }
+        output_data = {"human_text": {"scenes": scenes}}
 
         # 使用 update() 方法确保数据库更新
-        ProjectStage.objects.filter(id=stage.id).update(
-            output_data=output_data
-        )
+        ProjectStage.objects.filter(id=stage.id).update(output_data=output_data)
         # 刷新本地对象
         stage.refresh_from_db()
 
         # 同步保存到图生视频阶段(video_generation)
         # 先读取现有数据，然后合并新的urls，避免覆盖其他字段
         video_stage = ProjectStage.objects.filter(
-            project=project,
-            stage_type="video_generation"
+            project=project, stage_type="video_generation"
         ).first()
 
         if video_stage:
@@ -359,14 +321,13 @@ class Text2ImageStageProcessor(StageProcessor):
 
             # 保存更新后的数据
             ProjectStage.objects.filter(id=video_stage.id).update(
-                input_data=updated_input,
-                output_data=updated_output
+                input_data=updated_input, output_data=updated_output
             )
 
     def _get_text2image_provider(self, project: Project) -> Optional[ModelProvider]:
         """获取文生图模型提供商"""
         # 1. 优先从项目模型配置获取
-        config = getattr(project, 'model_config', None)
+        config = getattr(project, "model_config", None)
 
         if config:
             providers = list(config.image_providers.all())
@@ -377,10 +338,7 @@ class Text2ImageStageProcessor(StageProcessor):
                 return providers[0]
 
         # 2. 获取系统默认提供商
-        provider = ModelProvider.objects.filter(
-            provider_type='text2image',
-            is_active=True
-        ).first()
+        provider = ModelProvider.objects.filter(provider_type="text2image", is_active=True).first()
 
         if not provider:
             raise Exception("未找到可用的文生图模型提供商，请在后台配置")
@@ -390,7 +348,7 @@ class Text2ImageStageProcessor(StageProcessor):
     def _get_prompt_template(self, project: Project):
         """获取提示词模板"""
         # 从项目的prompt_template_set中获取
-        template_set = getattr(project, 'prompt_template_set', None)
+        template_set = getattr(project, "prompt_template_set", None)
         from apps.prompts.models import PromptTemplate, PromptTemplateSet
 
         if not template_set:
@@ -400,11 +358,11 @@ class Text2ImageStageProcessor(StageProcessor):
         if not template_set:
             return None
         # 获取对应阶段的模板 - 使用select_related预加载model_provider
-        template = PromptTemplate.objects.select_related('model_provider').filter(
-            template_set=template_set,
-            stage_type=self.stage_type,
-            is_active=True
-        ).first()
+        template = (
+            PromptTemplate.objects.select_related("model_provider")
+            .filter(template_set=template_set, stage_type=self.stage_type, is_active=True)
+            .first()
+        )
 
         return template
 
@@ -417,10 +375,7 @@ class Text2ImageStageProcessor(StageProcessor):
 
         # 获取项目创建者的全局变量
         user = project.user
-        variables = GlobalVariable.get_variables_for_user(
-            user=user,
-            include_system=True
-        )
+        variables = GlobalVariable.get_variables_for_user(user=user, include_system=True)
 
         return variables
 
@@ -449,12 +404,12 @@ class Text2ImageStageProcessor(StageProcessor):
             template_vars = {
                 **global_vars,  # 全局变量（最低优先级）
                 "random_seed": random.randint(1, 1000000),
-                'project': {
-                    'name': project.name,
-                    'description': project.description,
-                    'original_topic': project.original_topic,
+                "project": {
+                    "name": project.name,
+                    "description": project.description,
+                    "original_topic": project.original_topic,
                 },
-                **storyboard  # 合并输入数据作为变量（最高优先级）
+                **storyboard,  # 合并输入数据作为变量（最高优先级）
             }
 
             # 渲染Jinja2模板
@@ -473,7 +428,7 @@ class Text2ImageStageProcessor(StageProcessor):
         storyboard: dict,
         provider: ModelProvider,
         ratio: str = "9:16",
-        resolution: str = "2k"
+        resolution: str = "2k",
     ) -> Optional[GeneratedImage]:
         """
         为单个分镜生成图片
@@ -497,10 +452,10 @@ class Text2ImageStageProcessor(StageProcessor):
             api_key = provider.api_key
             api_url = provider.api_url
             generation_params = {
-                'model': model_name,
-                'prompt': prompt,
-                'ratio': ratio,
-                'resolution': resolution
+                "model": model_name,
+                "prompt": prompt,
+                "ratio": ratio,
+                "resolution": resolution,
             }
             client = create_ai_client(provider)
             # 调用generate (同步函数)
@@ -510,7 +465,7 @@ class Text2ImageStageProcessor(StageProcessor):
                 model=model_name,
                 prompt=prompt,
                 ratio=ratio,
-                resolution=resolution
+                resolution=resolution,
             )
 
             if not response:
@@ -519,25 +474,27 @@ class Text2ImageStageProcessor(StageProcessor):
 
             # 解析响应
             # 假设响应格式: {"data": [{"url": "...", "width": 1920, "height": 1080}]}
-            if 'data' not in response or not response['data']:
+            if "data" not in response or not response["data"]:
                 logger.error(f"分镜 {storyboard.get('sequence_number')} 响应格式错误: {response}")
                 return None
             # [{"url": "http://"}]
-            image_data = response['data']
+            image_data = response["data"]
 
             return image_data
 
         except Exception as e:
-            logger.error(f"分镜 {storyboard.get('sequence_number')} 图片生成异常: {e!s}", exc_info=True)
+            logger.error(
+                f"分镜 {storyboard.get('sequence_number')} 图片生成异常: {e!s}", exc_info=True
+            )
 
             # 创建失败记录
             with contextlib.suppress(BaseException):
                 GeneratedImage.objects.create(
                     storyboard=storyboard,
-                    image_url='',
+                    image_url="",
                     generation_params=generation_params,
                     model_provider=provider,
-                    status='failed'
+                    status="failed",
                 )
 
             return None

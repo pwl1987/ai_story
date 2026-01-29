@@ -61,21 +61,18 @@ class PromptEvaluationService:
         # 查找评估专用的模型提供商
         # 使用sync_to_async_wrapper包装ORM调用（Django 3.2不支持原生异步ORM）
         provider = await sync_to_async_wrapper(
-            ModelProvider.objects.filter(
-                provider_type='llm',
-                is_active=True
-            ).first
+            ModelProvider.objects.filter(provider_type="llm", is_active=True).first
         )()
 
         if not provider:
-            raise ValueError('未找到可用的LLM模型提供商')
+            raise ValueError("未找到可用的LLM模型提供商")
 
         # 创建OpenAI客户端
         self.ai_client = OpenAIClient(
             api_key=provider.api_key,
             api_url=provider.api_url,
             model_name=provider.model_name,
-            config=provider.config
+            config=provider.config,
         )
 
         return self.ai_client
@@ -94,7 +91,7 @@ class PromptEvaluationService:
         evaluation_prompt = self.EVALUATION_PROMPT.format(
             stage_type=prompt_template.get_stage_type_display(),
             template_content=prompt_template.template_content,
-            variables=prompt_template.variables
+            variables=prompt_template.variables,
         )
 
         # 获取AI客户端
@@ -104,31 +101,27 @@ class PromptEvaluationService:
         response = await client.generate_text(
             prompt=evaluation_prompt,
             temperature=0.3,  # 降低温度以获得更一致的评估
-            response_format='json'
+            response_format="json",
         )
 
         if not response.success:
-            raise Exception(f'AI评估失败: {response.error}')
+            raise Exception(f"AI评估失败: {response.error}")
 
         # 解析评估结果
         evaluation_data = response.data
 
         # 验证和补充数据
         return {
-            'score': float(evaluation_data.get('score', 0)),
-            'clarity': float(evaluation_data.get('clarity', 0)),
-            'specificity': float(evaluation_data.get('specificity', 0)),
-            'creativity': float(evaluation_data.get('creativity', 0)),
-            'strengths': evaluation_data.get('strengths', []),
-            'weaknesses': evaluation_data.get('weaknesses', []),
-            'suggestions': evaluation_data.get('suggestions', [])
+            "score": float(evaluation_data.get("score", 0)),
+            "clarity": float(evaluation_data.get("clarity", 0)),
+            "specificity": float(evaluation_data.get("specificity", 0)),
+            "creativity": float(evaluation_data.get("creativity", 0)),
+            "strengths": evaluation_data.get("strengths", []),
+            "weaknesses": evaluation_data.get("weaknesses", []),
+            "suggestions": evaluation_data.get("suggestions", []),
         }
 
-    async def compare_prompts(
-        self,
-        prompt1,
-        prompt2
-    ) -> Dict[str, Any]:
+    async def compare_prompts(self, prompt1, prompt2) -> Dict[str, Any]:
         """
         对比两个提示词模板
 
@@ -145,19 +138,17 @@ class PromptEvaluationService:
 
         # 计算差异
         return {
-            'prompt1_score': eval1['score'],
-            'prompt2_score': eval2['score'],
-            'score_difference': eval2['score'] - eval1['score'],
-            'better_prompt': 'prompt2' if eval2['score'] > eval1['score'] else 'prompt1',
-            'prompt1_evaluation': eval1,
-            'prompt2_evaluation': eval2,
-            'recommendations': self._generate_comparison_recommendations(eval1, eval2)
+            "prompt1_score": eval1["score"],
+            "prompt2_score": eval2["score"],
+            "score_difference": eval2["score"] - eval1["score"],
+            "better_prompt": "prompt2" if eval2["score"] > eval1["score"] else "prompt1",
+            "prompt1_evaluation": eval1,
+            "prompt2_evaluation": eval2,
+            "recommendations": self._generate_comparison_recommendations(eval1, eval2),
         }
 
     def _generate_comparison_recommendations(
-        self,
-        eval1: Dict[str, Any],
-        eval2: Dict[str, Any]
+        self, eval1: Dict[str, Any], eval2: Dict[str, Any]
     ) -> List[str]:
         """
         生成对比建议
@@ -165,27 +156,24 @@ class PromptEvaluationService:
         recommendations = []
 
         # 对比各维度
-        if eval2['clarity'] > eval1['clarity']:
-            recommendations.append('第二个提示词在清晰度方面更优')
-        elif eval1['clarity'] > eval2['clarity']:
-            recommendations.append('第一个提示词在清晰度方面更优')
+        if eval2["clarity"] > eval1["clarity"]:
+            recommendations.append("第二个提示词在清晰度方面更优")
+        elif eval1["clarity"] > eval2["clarity"]:
+            recommendations.append("第一个提示词在清晰度方面更优")
 
-        if eval2['specificity'] > eval1['specificity']:
-            recommendations.append('第二个提示词在具体性方面更优')
-        elif eval1['specificity'] > eval2['specificity']:
-            recommendations.append('第一个提示词在具体性方面更优')
+        if eval2["specificity"] > eval1["specificity"]:
+            recommendations.append("第二个提示词在具体性方面更优")
+        elif eval1["specificity"] > eval2["specificity"]:
+            recommendations.append("第一个提示词在具体性方面更优")
 
-        if eval2['creativity'] > eval1['creativity']:
-            recommendations.append('第二个提示词在创造性方面更优')
-        elif eval1['creativity'] > eval2['creativity']:
-            recommendations.append('第一个提示词在创造性方面更优')
+        if eval2["creativity"] > eval1["creativity"]:
+            recommendations.append("第二个提示词在创造性方面更优")
+        elif eval1["creativity"] > eval2["creativity"]:
+            recommendations.append("第一个提示词在创造性方面更优")
 
         return recommendations
 
-    async def suggest_improvements(
-        self,
-        prompt_template
-    ) -> Dict[str, Any]:
+    async def suggest_improvements(self, prompt_template) -> Dict[str, Any]:
         """
         AI生成改进建议
 
@@ -220,12 +208,10 @@ class PromptEvaluationService:
 
         client = await self._get_ai_client()
         response = await client.generate_text(
-            prompt=improvement_prompt,
-            temperature=0.7,
-            response_format='json'
+            prompt=improvement_prompt, temperature=0.7, response_format="json"
         )
 
         if not response.success:
-            raise Exception(f'生成改进建议失败: {response.error}')
+            raise Exception(f"生成改进建议失败: {response.error}")
 
         return response.data

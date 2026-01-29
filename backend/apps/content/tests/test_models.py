@@ -39,7 +39,7 @@ class TestContentRewriteModel:
             project=project,
             original_text="原始文案",
             rewritten_text="改写后文案",
-            prompt_used="测试提示词"
+            prompt_used="测试提示词",
         )
 
         assert rewrite.id is not None
@@ -70,21 +70,18 @@ class TestContentRewriteModel:
 
     def test_rewrite_json_fields(self):
         """测试JSON字段"""
-        metadata = {
-            'model': 'gpt-4',
-            'temperature': 0.7,
-            'tokens_used': 500
-        }
+        metadata = {"model": "gpt-4", "temperature": 0.7, "tokens_used": 500}
 
         rewrite = ContentRewriteFactory(generation_metadata=metadata)
 
         assert rewrite.generation_metadata == metadata
-        assert rewrite.generation_metadata['tokens_used'] == 500
+        assert rewrite.generation_metadata["tokens_used"] == 500
 
     def test_rewrite_foreign_key_model_provider(self):
         """测试模型提供商外键"""
         # 创建带model_provider的rewrite
         from apps.models.tests.factories import ModelProviderFactory
+
         project = ProjectFactory()
         provider = ModelProviderFactory()
         rewrite = ContentRewriteFactory(project=project, model_provider=provider)
@@ -109,7 +106,7 @@ class TestStoryboardModel:
             sequence_number=1,
             scene_description="开场画面",
             narration_text="这是旁白",
-            image_prompt="画面提示"
+            image_prompt="画面提示",
         )
 
         assert storyboard.id is not None
@@ -178,13 +175,12 @@ class TestGeneratedImageModel:
         """测试创建最小生成图片"""
         storyboard = StoryboardFactory()
         image = GeneratedImage.objects.create(
-            storyboard=storyboard,
-            image_url="http://example.com/image.jpg"
+            storyboard=storyboard, image_url="http://example.com/image.jpg"
         )
 
         assert image.id is not None
         assert image.storyboard == storyboard
-        assert image.status == 'pending'
+        assert image.status == "pending"
 
     def test_create_generated_image_full(self):
         """测试创建完整生成图片"""
@@ -196,11 +192,8 @@ class TestGeneratedImageModel:
         """测试图片状态选择"""
         storyboard = StoryboardFactory()
 
-        for status in ['pending', 'processing', 'completed', 'failed']:
-            image = GeneratedImageFactory(
-                storyboard=storyboard,
-                status=status
-            )
+        for status in ["pending", "processing", "completed", "failed"]:
+            image = GeneratedImageFactory(storyboard=storyboard, status=status)
             assert image.status == status
 
     def test_image_retry_count(self):
@@ -218,11 +211,7 @@ class TestGeneratedImageModel:
 
     def test_image_file_properties(self):
         """测试文件属性"""
-        image = GeneratedImageFactory(
-            width=1024,
-            height=1024,
-            file_size=500000
-        )
+        image = GeneratedImageFactory(width=1024, height=1024, file_size=500000)
 
         assert image.width == 1024
         assert image.height == 1024
@@ -256,14 +245,12 @@ class TestCameraMovementModel:
         """测试创建最小运镜"""
         storyboard = StoryboardFactory()
         movement = CameraMovement.objects.create(
-            storyboard=storyboard,
-            movement_type='zoom_in',
-            prompt_used="测试提示词"
+            storyboard=storyboard, movement_type="zoom_in", prompt_used="测试提示词"
         )
 
         assert movement.id is not None
         assert movement.storyboard == storyboard
-        assert movement.movement_type == 'zoom_in'
+        assert movement.movement_type == "zoom_in"
 
     def test_create_camera_movement_full(self):
         """测试创建完整运镜"""
@@ -274,31 +261,31 @@ class TestCameraMovementModel:
     def test_movement_type_choices(self):
         """测试运镜类型选择"""
         movement_types = [
-            'static', 'zoom_in', 'zoom_out', 'pan_left',
-            'pan_right', 'tilt_up', 'tilt_down', 'dolly_in', 'dolly_out'
+            "static",
+            "zoom_in",
+            "zoom_out",
+            "pan_left",
+            "pan_right",
+            "tilt_up",
+            "tilt_down",
+            "dolly_in",
+            "dolly_out",
         ]
 
         for movement_type in movement_types:
             # 每个movement_type需要不同的storyboard（一对一关系）
             storyboard = StoryboardFactory()
-            movement = CameraMovementFactory(
-                storyboard=storyboard,
-                movement_type=movement_type
-            )
+            movement = CameraMovementFactory(storyboard=storyboard, movement_type=movement_type)
             assert movement.movement_type == movement_type
 
     def test_movement_json_params(self):
         """测试运镜参数JSON字段"""
-        params = {
-            'intensity': 0.8,
-            'duration': 3.0,
-            'smoothness': 0.9
-        }
+        params = {"intensity": 0.8, "duration": 3.0, "smoothness": 0.9}
 
         movement = CameraMovementFactory(movement_params=params)
 
         assert movement.movement_params == params
-        assert movement.movement_params['intensity'] == 0.8
+        assert movement.movement_params["intensity"] == 0.8
 
     def test_movement_one_to_one_relationship(self):
         """测试分镜与运镜的一对一关系"""
@@ -311,7 +298,7 @@ class TestCameraMovementModel:
 
     def test_movement_str_representation(self):
         """测试字符串表示"""
-        movement = CameraMovementFactory(movement_type='zoom_in')
+        movement = CameraMovementFactory(movement_type="zoom_in")
         expected = f"{movement.storyboard} - 推进"
         assert str(movement) == expected
 
@@ -329,6 +316,7 @@ class TestGeneratedVideoModel:
         # 先创建image和camera_movement（必需的外键）
         storyboard = StoryboardFactory()
         from apps.content.tests.factories import CameraMovementFactory, GeneratedImageFactory
+
         image = GeneratedImageFactory(storyboard=storyboard)
         movement = CameraMovementFactory(storyboard=storyboard)
 
@@ -336,12 +324,12 @@ class TestGeneratedVideoModel:
             storyboard=storyboard,
             image=image,
             camera_movement=movement,
-            video_url="http://example.com/video.mp4"
+            video_url="http://example.com/video.mp4",
         )
 
         assert video.id is not None
         assert video.storyboard == storyboard
-        assert video.status == 'pending'
+        assert video.status == "pending"
 
     def test_create_generated_video_full(self):
         """测试创建完整生成视频"""
@@ -353,21 +341,14 @@ class TestGeneratedVideoModel:
         """测试视频状态选择"""
         storyboard = StoryboardFactory()
 
-        for status in ['pending', 'processing', 'completed', 'failed']:
-            video = GeneratedVideoFactory(
-                storyboard=storyboard,
-                status=status
-            )
+        for status in ["pending", "processing", "completed", "failed"]:
+            video = GeneratedVideoFactory(storyboard=storyboard, status=status)
             assert video.status == status
 
     def test_video_properties(self):
         """测试视频属性"""
         video = GeneratedVideoFactory(
-            duration=5.0,
-            width=1080,
-            height=1920,
-            fps=24,
-            file_size=10000000
+            duration=5.0, width=1080, height=1920, fps=24, file_size=10000000
         )
 
         assert video.duration == 5.0
@@ -382,11 +363,7 @@ class TestGeneratedVideoModel:
         storyboard = StoryboardFactory()
         image = GeneratedImageFactory(storyboard=storyboard)
         movement = CameraMovementFactory(storyboard=storyboard)
-        video = GeneratedVideoFactory(
-            storyboard=storyboard,
-            image=image,
-            camera_movement=movement
-        )
+        video = GeneratedVideoFactory(storyboard=storyboard, image=image, camera_movement=movement)
 
         assert video.image is not None
         assert video.camera_movement is not None
@@ -400,12 +377,7 @@ class TestGeneratedVideoModel:
 
     def test_video_generation_params(self):
         """测试生成参数JSON字段"""
-        params = {
-            'duration': 3.0,
-            'fps': 24,
-            'quality': 'high',
-            'motion_scale': 1.0
-        }
+        params = {"duration": 3.0, "fps": 24, "quality": "high", "motion_scale": 1.0}
 
         video = GeneratedVideoFactory(generation_params=params)
 
@@ -473,11 +445,7 @@ class TestRelationships:
         storyboard = StoryboardFactory(project=project, sequence_number=1)
         image = GeneratedImageFactory(storyboard=storyboard)
         movement = CameraMovementFactory(storyboard=storyboard)
-        video = GeneratedVideoFactory(
-            storyboard=storyboard,
-            image=image,
-            camera_movement=movement
-        )
+        video = GeneratedVideoFactory(storyboard=storyboard, image=image, camera_movement=movement)
 
         # 验证完整链路
         assert video.storyboard.project == project

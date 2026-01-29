@@ -49,17 +49,17 @@ class MockAPIBaseView(APIView):
         """Return a normalized error payload."""
         return Response(
             {
-                'success': False,
-                'error': message,
-                'data': {},
-                'metadata': {},
+                "success": False,
+                "error": message,
+                "data": {},
+                "metadata": {},
             },
             status=status_code,
         )
 
     def _build_api_url(self, request) -> str:
         """Return the canonical base URL for the mock API."""
-        return request.build_absolute_uri('/api/mock').rstrip('/')
+        return request.build_absolute_uri("/api/mock").rstrip("/")
 
     @staticmethod
     def _get_int(value: Any, default: int) -> int:
@@ -80,7 +80,7 @@ class MockAPIBaseView(APIView):
         if isinstance(value, bool):
             return value
         if isinstance(value, str):
-            return value.lower() in {'1', 'true', 'yes', 'on'}
+            return value.lower() in {"1", "true", "yes", "on"}
         if isinstance(value, (int, float)):
             return bool(value)
         return default
@@ -93,8 +93,8 @@ class MockAPIBaseView(APIView):
         try:
             return super().perform_content_negotiation(request, force)
         except exceptions.NotAcceptable:
-            accept_header = request.META.get('HTTP_ACCEPT', '')
-            if 'text/event-stream' in accept_header:
+            accept_header = request.META.get("HTTP_ACCEPT", "")
+            if "text/event-stream" in accept_header:
                 renderer = self.renderer_classes[0]()
                 return (renderer, renderer.media_type)
             raise
@@ -104,16 +104,20 @@ class MockAPIRootView(MockAPIBaseView):
     """Expose meta information about all available mock endpoints."""
 
     def _build_payload(self, request):
-        base_url = request.build_absolute_uri(reverse('mock_api:root'))
+        base_url = request.build_absolute_uri(reverse("mock_api:root"))
         return Response(
             {
-                'service': 'AI Story Mock API',
-                'description': '模拟 LLM、文生图、图生视频能力的调试端点',
-                'base_url': base_url.rstrip('/'),
-                'endpoints': {
-                    'llm': request.build_absolute_uri(reverse('mock_api:llm_generate')),
-                    'text2image': request.build_absolute_uri(reverse('mock_api:text2image_generate')),
-                    'image2video': request.build_absolute_uri(reverse('mock_api:image2video_generate')),
+                "service": "AI Story Mock API",
+                "description": "模拟 LLM、文生图、图生视频能力的调试端点",
+                "base_url": base_url.rstrip("/"),
+                "endpoints": {
+                    "llm": request.build_absolute_uri(reverse("mock_api:llm_generate")),
+                    "text2image": request.build_absolute_uri(
+                        reverse("mock_api:text2image_generate")
+                    ),
+                    "image2video": request.build_absolute_uri(
+                        reverse("mock_api:image2video_generate")
+                    ),
                 },
             }
         )
@@ -130,16 +134,14 @@ class MockLLMGenerateView(MockAPIBaseView):
     """HTTP endpoint compatible with the mock LLM client."""
 
     def post(self, request):
-        prompt = (request.data.get('prompt') or "").strip()
+        prompt = (request.data.get("prompt") or "").strip()
 
-
-        max_tokens = self._get_int(request.data.get('max_tokens'), 500)
-        temperature = self._get_float(request.data.get('temperature'), 0.7)
-        model_name = request.data.get('model_name') or 'mock-llm-v1'
-        api_key = request.data.get('api_key') or 'mock-api-key-not-required'
-        stream = (
-            self._get_bool(request.data.get('stream'))
-            or self._get_bool(request.query_params.get('stream'))
+        max_tokens = self._get_int(request.data.get("max_tokens"), 500)
+        temperature = self._get_float(request.data.get("temperature"), 0.7)
+        model_name = request.data.get("model_name") or "mock-llm-v1"
+        api_key = request.data.get("api_key") or "mock-api-key-not-required"
+        stream = self._get_bool(request.data.get("stream")) or self._get_bool(
+            request.query_params.get("stream")
         )
 
         client = MockLLMClient(
@@ -191,22 +193,22 @@ class MockLLMGenerateView(MockAPIBaseView):
                     max_tokens=max_tokens,
                     temperature=temperature,
                 ):
-                    if chunk.get('type') == 'token':
+                    if chunk.get("type") == "token":
                         payload = self._build_stream_payload(
                             chunk_id,
                             created,
                             model_name,
-                            content=chunk.get('content', ''),
+                            content=chunk.get("content", ""),
                             finish_reason=None,
                         )
                         yield self._format_sse(payload)
-                    elif chunk.get('type') == 'done':
+                    elif chunk.get("type") == "done":
                         payload = self._build_stream_payload(
                             chunk_id,
                             created,
                             model_name,
                             content="",
-                            finish_reason=chunk.get('metadata', {}).get('finish_reason', 'stop'),
+                            finish_reason=chunk.get("metadata", {}).get("finish_reason", "stop"),
                         )
                         yield self._format_sse(payload)
                 yield b"data: [DONE]\n\n"
@@ -225,7 +227,7 @@ class MockLLMGenerateView(MockAPIBaseView):
 
         return StreamingHttpResponse(
             event_stream(),
-            content_type='text/event-stream; charset=utf-8',
+            content_type="text/event-stream; charset=utf-8",
         )
 
     @staticmethod
@@ -237,19 +239,19 @@ class MockLLMGenerateView(MockAPIBaseView):
         finish_reason: Optional[str],
         error: Optional[str] = None,
     ) -> Dict[str, Any]:
-        delta: Dict[str, Any] = {'content': content}
+        delta: Dict[str, Any] = {"content": content}
         if error:
-            delta['error'] = error
+            delta["error"] = error
         return {
-            'id': chunk_id,
-            'object': 'chat.completion.chunk',
-            'created': created,
-            'model': model_name,
-            'choices': [
+            "id": chunk_id,
+            "object": "chat.completion.chunk",
+            "created": created,
+            "model": model_name,
+            "choices": [
                 {
-                    'index': 0,
-                    'delta': delta,
-                    'finish_reason': finish_reason,
+                    "index": 0,
+                    "delta": delta,
+                    "finish_reason": finish_reason,
                 }
             ],
         }
@@ -264,19 +266,19 @@ class MockText2ImageGenerateView(MockAPIBaseView):
     """Expose the mock text-to-image behaviour over HTTP."""
 
     def post(self, request):
-        prompt = (request.data.get('prompt') or "").strip()
+        prompt = (request.data.get("prompt") or "").strip()
         if not prompt:
             return self._error_response("prompt 字段不能为空")
 
-        width = self._get_int(request.data.get('width'), 1024)
-        height = self._get_int(request.data.get('height'), 1024)
-        steps = self._get_int(request.data.get('steps'), 20)
-        sample_count = self._get_int(request.data.get('sample_count'), 1)
-        ratio = request.data.get('ratio') or '1:1'
-        resolution = request.data.get('resolution') or '2k'
-        negative_prompt = request.data.get('negative_prompt') or ''
-        model_name = request.data.get('model_name') or 'mock-text2image-v1'
-        api_key = request.data.get('api_key') or 'mock-api-key-not-required'
+        width = self._get_int(request.data.get("width"), 1024)
+        height = self._get_int(request.data.get("height"), 1024)
+        steps = self._get_int(request.data.get("steps"), 20)
+        sample_count = self._get_int(request.data.get("sample_count"), 1)
+        ratio = request.data.get("ratio") or "1:1"
+        resolution = request.data.get("resolution") or "2k"
+        negative_prompt = request.data.get("negative_prompt") or ""
+        model_name = request.data.get("model_name") or "mock-text2image-v1"
+        api_key = request.data.get("api_key") or "mock-api-key-not-required"
 
         client = MockText2ImageClient(
             api_url=self._build_api_url(request),
@@ -309,20 +311,20 @@ class MockImage2VideoGenerateView(MockAPIBaseView):
     """Expose the mock image-to-video behaviour over HTTP."""
 
     def post(self, request):
-        image_url = (request.data.get('image_url') or "").strip()
+        image_url = (request.data.get("image_url") or "").strip()
         if not image_url:
             return self._error_response("image_url 字段不能为空")
 
-        camera_movement = request.data.get('camera_movement')
+        camera_movement = request.data.get("camera_movement")
         if not isinstance(camera_movement, dict):
             camera_movement = deepcopy(DEFAULT_CAMERA_MOVEMENT)
 
-        duration = self._get_float(request.data.get('duration'), 3.0)
-        fps = self._get_int(request.data.get('fps'), 24)
-        width = self._get_int(request.data.get('width'), 1280)
-        height = self._get_int(request.data.get('height'), 720)
-        model_name = request.data.get('model_name') or 'mock-image2video-v1'
-        api_key = request.data.get('api_key') or 'mock-api-key-not-required'
+        duration = self._get_float(request.data.get("duration"), 3.0)
+        fps = self._get_int(request.data.get("fps"), 24)
+        width = self._get_int(request.data.get("width"), 1280)
+        height = self._get_int(request.data.get("height"), 720)
+        model_name = request.data.get("model_name") or "mock-image2video-v1"
+        api_key = request.data.get("api_key") or "mock-api-key-not-required"
 
         client = MockImage2VideoClient(
             api_url=self._build_api_url(request),

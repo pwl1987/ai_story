@@ -30,6 +30,7 @@ sys.path.insert(0, str(project_root / "backend"))
 
 class Colors:
     """终端颜色"""
+
     GREEN = "\033[92m"
     RED = "\033[91m"
     YELLOW = "\033[93m"
@@ -207,7 +208,9 @@ class DeploymentE2ETest:
                 if response.status_code in [200, 404]:  # 404可接受（目录为空）
                     self.result.add_pass(f"静态文件服务 - {path}")
                 else:
-                    self.result.add_fail(f"静态文件服务 - {path}", f"状态码: {response.status_code}")
+                    self.result.add_fail(
+                        f"静态文件服务 - {path}", f"状态码: {response.status_code}"
+                    )
             except Exception as e:
                 self.result.add_fail(f"静态文件服务 - {path}", e)
 

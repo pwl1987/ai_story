@@ -21,6 +21,7 @@ class TestBasicSetup(TestCase):
         测试Django已正确配置
         """
         from django.conf import settings
+
         self.assertIsNotNone(settings)
         self.assertTrue(settings.configured)
 
@@ -29,6 +30,7 @@ class TestBasicSetup(TestCase):
         测试测试数据库可用
         """
         from django.db import connection
+
         cursor = connection.cursor()
         # 执行简单查询验证数据库连接
         cursor.execute("SELECT 1")
@@ -42,6 +44,7 @@ def test_pytest_installed():
     测试pytest已安装
     """
     import pytest
+
     assert pytest.__version__ is not None
 
 
@@ -54,8 +57,8 @@ def test_project_fixture(test_project):
     """
     from apps.projects.models import Project
 
-    assert test_project.name == '测试项目'
-    assert test_project.description == '这是一个测试项目'
+    assert test_project.name == "测试项目"
+    assert test_project.description == "这是一个测试项目"
     assert test_project.id is not None
 
     # 验证可以从数据库查询
@@ -68,5 +71,5 @@ def test_sample_fixture(sample_project_data):
     """
     测试示例数据fixture
     """
-    assert sample_project_data['name'] == '示例项目'
-    assert 'video_style' in sample_project_data
+    assert sample_project_data["name"] == "示例项目"
+    assert "video_style" in sample_project_data

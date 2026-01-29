@@ -33,10 +33,7 @@ class RedisConnectionPool:
     _pools = {}  # {(host, port, db): pool}
 
     @classmethod
-    async def get_connection(
-        cls,
-        redis_url: Optional[str] = None
-    ) -> aioredis.Redis:
+    async def get_connection(cls, redis_url: Optional[str] = None) -> aioredis.Redis:
         """
         获取Redis连接(从连接池)
 
@@ -47,11 +44,12 @@ class RedisConnectionPool:
             aioredis.Redis: Redis连接实例
         """
         if redis_url is None:
-            redis_url = getattr(settings, 'CELERY_BROKER_URL', 'redis://localhost:6379/2')
+            redis_url = getattr(settings, "CELERY_BROKER_URL", "redis://localhost:6379/2")
 
         # 解析Redis URL
         import re
-        match = re.match(r'redis://([^:]+):(\d+)/(\d+)', redis_url)
+
+        match = re.match(r"redis://([^:]+):(\d+)/(\d+)", redis_url)
         if match:
             host, port, db = match.groups()
             pool_key = (host, int(port), int(db))
@@ -69,7 +67,7 @@ class RedisConnectionPool:
                 socket_keepalive=True,
                 health_check_interval=30,
                 max_connections=50,  # 最大连接数
-                retry_on_timeout=True
+                retry_on_timeout=True,
             )
 
         return cls._pools[pool_key]
@@ -174,10 +172,7 @@ class RedisPublisherWithContext:
             # 记录发布延迟
             latency_ms = (time.time() - start_time) * 1000
             WebSocketMetrics.record_redis_publish_latency(
-                self.project_id,
-                self.stage,
-                latency_ms,
-                status='success'
+                self.project_id, self.stage, latency_ms, status="success"
             )
 
             logger.debug(
@@ -191,10 +186,7 @@ class RedisPublisherWithContext:
             # 记录失败
             latency_ms = (time.time() - start_time) * 1000
             WebSocketMetrics.record_redis_publish_latency(
-                self.project_id,
-                self.stage,
-                latency_ms,
-                status='error'
+                self.project_id, self.stage, latency_ms, status="error"
             )
 
             logger.error(f"Redis发布失败: {e}")

@@ -8,6 +8,7 @@
 3. 内存使用情况
 4. 异步vs同步性能对比
 """
+
 import os
 import time
 from datetime import datetime
@@ -17,7 +18,7 @@ import django
 import psutil
 import pytest
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.base')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.base")
 django.setup()
 
 from django.contrib.auth import get_user_model
@@ -79,10 +80,10 @@ class PerformanceMetrics:
     def to_dict(self):
         """转换为字典"""
         return {
-            'total_time': round(self.total_time, 2),
-            'memory_used_mb': round(self.memory_used, 2),
-            'stage_times': {k: round(v, 2) for k, v in self.stage_times.items()},
-            'timestamp': datetime.now().isoformat()
+            "total_time": round(self.total_time, 2),
+            "memory_used_mb": round(self.memory_used, 2),
+            "stage_times": {k: round(v, 2) for k, v in self.stage_times.items()},
+            "timestamp": datetime.now().isoformat(),
         }
 
 
@@ -95,29 +96,24 @@ class TestWorkflowPerformance:
     async def benchmark_project(self):
         """创建基准测试项目"""
         # 获取Mock Provider
-        mock_llm = ModelProvider.objects.filter(
-            provider_type='llm',
-            name__contains='Mock'
-        ).first()
+        mock_llm = ModelProvider.objects.filter(provider_type="llm", name__contains="Mock").first()
 
         if not mock_llm:
             pytest.skip("需要Mock LLM Provider")
 
         # 创建测试项目
-        user, _ = await User.objects.aget_or_create(username='benchmark_user')
-        project = ProjectFactory(
-            user=user,
-            original_topic='性能测试主题' * 10,
-            status='draft'
-        )
+        user, _ = await User.objects.aget_or_create(username="benchmark_user")
+        project = ProjectFactory(user=user, original_topic="性能测试主题" * 10, status="draft")
 
         # 创建所有阶段
-        for stage_type in ['rewrite', 'storyboard', 'image_generation', 'camera_movement', 'video_generation']:
-            await ProjectStageFactory(
-                project=project,
-                stage_type=stage_type,
-                status='pending'
-            )
+        for stage_type in [
+            "rewrite",
+            "storyboard",
+            "image_generation",
+            "camera_movement",
+            "video_generation",
+        ]:
+            await ProjectStageFactory(project=project, stage_type=stage_type, status="pending")
 
         return project
 
@@ -131,11 +127,11 @@ class TestWorkflowPerformance:
 
         # 依次执行5个阶段
         adapters = [
-            ('rewrite', RewriteStageAdapter()),
-            ('storyboard', StoryboardStageAdapter()),
-            ('image_generation', ImageGenerationStageAdapter()),
-            ('camera_movement', CameraMovementStageAdapter()),
-            ('video_generation', VideoGenerationStageAdapter())
+            ("rewrite", RewriteStageAdapter()),
+            ("storyboard", StoryboardStageAdapter()),
+            ("image_generation", ImageGenerationStageAdapter()),
+            ("camera_movement", CameraMovementStageAdapter()),
+            ("video_generation", VideoGenerationStageAdapter()),
         ]
 
         for stage_name, adapter in adapters:
@@ -172,5 +168,5 @@ class TestWorkflowPerformance:
         assert metrics.memory_used < 200, f"内存占用过大: {metrics.memory_used:.2f}MB"
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v', '--tb=short'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "--tb=short"])

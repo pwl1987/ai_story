@@ -10,6 +10,7 @@ WebSocket连接测试
     - channels-3.0.4+
     - pytest-asyncio
 """
+
 import asyncio
 
 import pytest
@@ -30,10 +31,7 @@ class TestWebSocketConnection:
 
         # 使用测试项目的UUID
         project_id = "00000000-0000-0000-0000-000000000001"
-        communicator = WebsocketCommunicator(
-            application,
-            f"/ws/projects/{project_id}/"
-        )
+        communicator = WebsocketCommunicator(application, f"/ws/projects/{project_id}/")
 
         # 连接
         connected, _subprotocol = await communicator.connect()
@@ -41,18 +39,15 @@ class TestWebSocketConnection:
 
         # 接收连接确认消息
         response = await communicator.receive_json_from()
-        assert response['type'] == 'connected', "未收到连接确认消息"
+        assert response["type"] == "connected", "未收到连接确认消息"
 
         # 发送ping
-        await communicator.send_json_to({
-            'type': 'ping',
-            'timestamp': 1234567890
-        })
+        await communicator.send_json_to({"type": "ping", "timestamp": 1234567890})
 
         # 接收pong
         response = await communicator.receive_json_from(timeout=5)
-        assert response['type'] == 'pong', "未收到pong响应"
-        assert 'timestamp' in response, "pong响应缺少timestamp"
+        assert response["type"] == "pong", "未收到pong响应"
+        assert "timestamp" in response, "pong响应缺少timestamp"
 
         # 断开连接
         await communicator.disconnect()
@@ -65,8 +60,7 @@ class TestWebSocketConnection:
         project_id = "00000000-0000-0000-0000-000000000001"
         stage_name = "rewrite"
         communicator = WebsocketCommunicator(
-            application,
-            f"/ws/projects/{project_id}/stage/{stage_name}/"
+            application, f"/ws/projects/{project_id}/stage/{stage_name}/"
         )
 
         # 连接
@@ -75,7 +69,7 @@ class TestWebSocketConnection:
 
         # 接收连接确认消息
         response = await communicator.receive_json_from()
-        assert response['type'] == 'connected', "未收到连接确认消息"
+        assert response["type"] == "connected", "未收到连接确认消息"
 
         # 断开连接
         await communicator.disconnect()
@@ -88,10 +82,7 @@ class TestWebSocketConnection:
         project_id = "00000000-0000-0000-0000-000000000001"
 
         # 第一次连接
-        communicator1 = WebsocketCommunicator(
-            application,
-            f"/ws/projects/{project_id}/"
-        )
+        communicator1 = WebsocketCommunicator(application, f"/ws/projects/{project_id}/")
         connected, _ = await communicator1.connect()
         assert connected, "第一次连接失败"
 
@@ -102,10 +93,7 @@ class TestWebSocketConnection:
         await asyncio.sleep(0.1)
 
         # 第二次连接（重连）
-        communicator2 = WebsocketCommunicator(
-            application,
-            f"/ws/projects/{project_id}/"
-        )
+        communicator2 = WebsocketCommunicator(application, f"/ws/projects/{project_id}/")
         connected, _ = await communicator2.connect()
         assert connected, "重连失败"
 
@@ -119,10 +107,7 @@ class TestWebSocketConnection:
         from config.routing import application
 
         project_id = "00000000-0000-0000-0000-000000000001"
-        communicator = WebsocketCommunicator(
-            application,
-            f"/ws/projects/{project_id}/"
-        )
+        communicator = WebsocketCommunicator(application, f"/ws/projects/{project_id}/")
 
         connected, _ = await communicator.connect()
         assert connected
@@ -131,12 +116,9 @@ class TestWebSocketConnection:
 
         # 发送多个心跳
         for i in range(3):
-            await communicator.send_json_to({
-                'type': 'ping',
-                'timestamp': 1234567890 + i
-            })
+            await communicator.send_json_to({"type": "ping", "timestamp": 1234567890 + i})
             response = await communicator.receive_json_from(timeout=5)
-            assert response['type'] == 'pong'
+            assert response["type"] == "pong"
             await asyncio.sleep(0.1)
 
         await communicator.disconnect()
@@ -148,10 +130,7 @@ class TestWebSocketConnection:
 
         # 使用不存在的项目ID
         project_id = "99999999-9999-9999-9999-999999999999"
-        communicator = WebsocketCommunicator(
-            application,
-            f"/ws/projects/{project_id}/"
-        )
+        communicator = WebsocketCommunicator(application, f"/ws/projects/{project_id}/")
 
         # 连接应该被拒绝或超时
         try:
@@ -160,7 +139,7 @@ class TestWebSocketConnection:
                 # 如果连接成功，应该立即收到错误消息
                 try:
                     response = await communicator.receive_json_from(timeout=1)
-                    assert response.get('type') in ['error', 'close'], "应该收到错误消息"
+                    assert response.get("type") in ["error", "close"], "应该收到错误消息"
                 except (asyncio.TimeoutError, Exception):
                     pass  # 超时也是可接受的
                 await communicator.disconnect()
@@ -180,17 +159,14 @@ class TestWebSocketMessages:
         from config.routing import application
 
         project_id = "00000000-0000-0000-0000-000000000001"
-        communicator = WebsocketCommunicator(
-            application,
-            f"/ws/projects/{project_id}/"
-        )
+        communicator = WebsocketCommunicator(application, f"/ws/projects/{project_id}/")
 
         connected, _ = await communicator.connect()
         assert connected
 
         # 接收连接确认
         response = await communicator.receive_json_from()
-        assert response['type'] == 'connected'
+        assert response["type"] == "connected"
 
         # 注意: 实际的进度消息需要从Redis Pub/Sub接收
         # 这里只测试连接和消息格式，不测试实际的消息内容
@@ -199,5 +175,5 @@ class TestWebSocketMessages:
         print("✓ 消息格式测试通过")
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v', '-s'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "-s"])

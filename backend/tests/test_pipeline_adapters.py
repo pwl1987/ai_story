@@ -29,22 +29,15 @@ class TestRewriteStageAdapter:
 
     @pytest.fixture
     def user(self, django_user_model):
-        return django_user_model.objects.create_user(
-            username='testuser',
-            password='testpass123'
-        )
+        return django_user_model.objects.create_user(username="testuser", password="testpass123")
 
     @pytest.fixture
     def project(self, user):
-        return Project.objects.create(
-            name="测试项目",
-            original_topic="AI故事生成测试",
-            user=user
-        )
+        return Project.objects.create(name="测试项目", original_topic="AI故事生成测试", user=user)
 
     def test_adapter_initialization(self, adapter):
         """测试适配器初始化"""
-        assert adapter.stage_name == 'rewrite'
+        assert adapter.stage_name == "rewrite"
         assert adapter.processor is not None
 
     @pytest.mark.asyncio
@@ -65,9 +58,7 @@ class TestRewriteStageAdapter:
     async def test_validate_with_no_topic(self, adapter, user):
         """测试验证失败（缺少主题）"""
         project = await sync_to_async(Project.objects.create)(
-            name="空项目",
-            original_topic="",
-            user=user
+            name="空项目", original_topic="", user=user
         )
         context = PipelineContext(project_id=str(project.id))
         result = await adapter.validate(context)
@@ -79,16 +70,16 @@ class TestRewriteStageAdapter:
         context = PipelineContext(project_id=str(project.id))
 
         # Mock processor.process_stream
-        with patch.object(adapter.processor, 'process_stream') as mock_stream:
+        with patch.object(adapter.processor, "process_stream") as mock_stream:
             mock_stream.return_value = [
-                {'type': 'token', 'content': '测试', 'full_text': '测试'},
-                {'type': 'done', 'full_text': '完整文本'}
+                {"type": "token", "content": "测试", "full_text": "测试"},
+                {"type": "done", "full_text": "完整文本"},
             ]
 
             result = await adapter.process(context)
 
             assert result.success is True
-            assert 'rewritten_text' in result.data
+            assert "rewritten_text" in result.data
 
     @pytest.mark.asyncio
     async def test_on_failure(self, adapter, project):
@@ -112,18 +103,11 @@ class TestStoryboardStageAdapter:
 
     @pytest.fixture
     def user(self, django_user_model):
-        return django_user_model.objects.create_user(
-            username='testuser2',
-            password='testpass123'
-        )
+        return django_user_model.objects.create_user(username="testuser2", password="testpass123")
 
     @pytest.fixture
     def project(self, user):
-        return Project.objects.create(
-            name="测试项目",
-            original_topic="AI故事生成测试",
-            user=user
-        )
+        return Project.objects.create(name="测试项目", original_topic="AI故事生成测试", user=user)
 
     @pytest.mark.asyncio
     async def test_validate_without_rewrite_result(self, adapter, project):
@@ -136,7 +120,7 @@ class TestStoryboardStageAdapter:
     async def test_validate_with_rewrite_result(self, adapter, project):
         """测试验证通过"""
         context = PipelineContext(project_id=str(project.id))
-        context.add_result('rewrite', {'rewritten_text': '改写后的文案'})
+        context.add_result("rewrite", {"rewritten_text": "改写后的文案"})
         result = await adapter.validate(context)
         assert result is True
 
@@ -151,18 +135,11 @@ class TestImageGenerationStageAdapter:
 
     @pytest.fixture
     def user(self, django_user_model):
-        return django_user_model.objects.create_user(
-            username='testuser3',
-            password='testpass123'
-        )
+        return django_user_model.objects.create_user(username="testuser3", password="testpass123")
 
     @pytest.fixture
     def project(self, user):
-        return Project.objects.create(
-            name="测试项目",
-            original_topic="AI故事生成测试",
-            user=user
-        )
+        return Project.objects.create(name="测试项目", original_topic="AI故事生成测试", user=user)
 
     @pytest.mark.asyncio
     async def test_validate_without_storyboard_result(self, adapter, project):
@@ -175,7 +152,7 @@ class TestImageGenerationStageAdapter:
     async def test_validate_with_storyboard_result(self, adapter, project):
         """测试验证通过"""
         context = PipelineContext(project_id=str(project.id))
-        context.add_result('storyboard', {'storyboard_text': '分镜内容'})
+        context.add_result("storyboard", {"storyboard_text": "分镜内容"})
         result = await adapter.validate(context)
         assert result is True
 
@@ -190,18 +167,11 @@ class TestCameraMovementStageAdapter:
 
     @pytest.fixture
     def user(self, django_user_model):
-        return django_user_model.objects.create_user(
-            username='testuser4',
-            password='testpass123'
-        )
+        return django_user_model.objects.create_user(username="testuser4", password="testpass123")
 
     @pytest.fixture
     def project(self, user):
-        return Project.objects.create(
-            name="测试项目",
-            original_topic="AI故事生成测试",
-            user=user
-        )
+        return Project.objects.create(name="测试项目", original_topic="AI故事生成测试", user=user)
 
     @pytest.mark.asyncio
     async def test_validate_without_storyboard_result(self, adapter, project):
@@ -214,7 +184,7 @@ class TestCameraMovementStageAdapter:
     async def test_validate_with_storyboard_result(self, adapter, project):
         """测试验证通过"""
         context = PipelineContext(project_id=str(project.id))
-        context.add_result('storyboard', {'storyboard_text': '分镜内容'})
+        context.add_result("storyboard", {"storyboard_text": "分镜内容"})
         result = await adapter.validate(context)
         assert result is True
 
@@ -229,18 +199,11 @@ class TestVideoGenerationStageAdapter:
 
     @pytest.fixture
     def user(self, django_user_model):
-        return django_user_model.objects.create_user(
-            username='testuser5',
-            password='testpass123'
-        )
+        return django_user_model.objects.create_user(username="testuser5", password="testpass123")
 
     @pytest.fixture
     def project(self, user):
-        return Project.objects.create(
-            name="测试项目",
-            original_topic="AI故事生成测试",
-            user=user
-        )
+        return Project.objects.create(name="测试项目", original_topic="AI故事生成测试", user=user)
 
     @pytest.mark.asyncio
     async def test_validate_without_image_result(self, adapter, project):
@@ -253,6 +216,6 @@ class TestVideoGenerationStageAdapter:
     async def test_validate_with_image_result(self, adapter, project):
         """测试验证通过"""
         context = PipelineContext(project_id=str(project.id))
-        context.add_result('image_generation', {'images': []})
+        context.add_result("image_generation", {"images": []})
         result = await adapter.validate(context)
         assert result is True

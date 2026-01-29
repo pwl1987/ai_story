@@ -54,8 +54,8 @@ class ProjectStageConsumer(AsyncWebsocketConsumer):
         Epic 3: 集成自动重连管理器
         """
         # 从URL获取参数
-        self.project_id = self.scope['url_route']['kwargs']['project_id']
-        self.stage_name = self.scope['url_route']['kwargs']['stage_name']
+        self.project_id = self.scope["url_route"]["kwargs"]["project_id"]
+        self.stage_name = self.scope["url_route"]["kwargs"]["stage_name"]
 
         # 构建Redis频道名称
         self.channel_name = f"ai_story:project:{self.project_id}:stage:{self.stage_name}"
@@ -71,7 +71,7 @@ class ProjectStageConsumer(AsyncWebsocketConsumer):
             stage=self.stage_name,
             connect_callback=self._connect_redis,
             disconnect_callback=self._disconnect_redis,
-            max_retries=5
+            max_retries=5,
         )
 
         # 启动自动重连
@@ -79,11 +79,15 @@ class ProjectStageConsumer(AsyncWebsocketConsumer):
 
         if not success:
             # 重连失败，发送错误消息
-            await self.send(text_data=json.dumps({
-                'type': 'error',
-                'error': 'Redis连接失败，已达到最大重连次数',
-                'retries': self.reconnect_manager.get_retry_count()
-            }))
+            await self.send(
+                text_data=json.dumps(
+                    {
+                        "type": "error",
+                        "error": "Redis连接失败，已达到最大重连次数",
+                        "retries": self.reconnect_manager.get_retry_count(),
+                    }
+                )
+            )
             await self.close()
 
     async def _connect_redis(self) -> bool:
@@ -93,7 +97,7 @@ class ProjectStageConsumer(AsyncWebsocketConsumer):
         Returns:
             bool: 连接是否成功
         """
-        redis_url = getattr(settings, 'CELERY_BROKER_URL', 'redis://localhost:6379/5')
+        redis_url = getattr(settings, "CELERY_BROKER_URL", "redis://localhost:6379/5")
 
         try:
             # 创建Redis连接
@@ -102,7 +106,7 @@ class ProjectStageConsumer(AsyncWebsocketConsumer):
                 decode_responses=True,
                 socket_connect_timeout=5,
                 socket_timeout=5,
-                socket_keepalive=True
+                socket_keepalive=True,
             )
 
             # 创建Pub/Sub对象
@@ -114,11 +118,11 @@ class ProjectStageConsumer(AsyncWebsocketConsumer):
             logger.info(f"已订阅Redis频道: {self.channel_name}")
 
             # 发送连接成功消息
-            await self.send(text_data=json.dumps({
-                'type': 'connected',
-                'channel': self.channel_name,
-                'message': '已连接到实时流'
-            }))
+            await self.send(
+                text_data=json.dumps(
+                    {"type": "connected", "channel": self.channel_name, "message": "已连接到实时流"}
+                )
+            )
 
             # 启动消息监听任务
             asyncio.create_task(self._listen_messages())
@@ -161,15 +165,12 @@ class ProjectStageConsumer(AsyncWebsocketConsumer):
         if text_data:
             try:
                 data = json.loads(text_data)
-                message_type = data.get('type')
+                message_type = data.get("type")
 
-                if message_type == 'ping':
+                if message_type == "ping":
                     # Epic 3: 心跳响应
-                    timestamp = data.get('timestamp', time.time())
-                    await self.send(text_data=json.dumps({
-                        'type': 'pong',
-                        'timestamp': timestamp
-                    }))
+                    timestamp = data.get("timestamp", time.time())
+                    await self.send(text_data=json.dumps({"type": "pong", "timestamp": timestamp}))
 
                     # 更新重连管理器的心跳时间
                     if self.reconnect_manager:
@@ -189,16 +190,16 @@ class ProjectStageConsumer(AsyncWebsocketConsumer):
         try:
             # 持续监听消息
             async for message in self.pubsub.listen():
-                if message['type'] == 'message':
+                if message["type"] == "message":
                     try:
                         # 解析消息
-                        data = json.loads(message['data'])
+                        data = json.loads(message["data"])
 
                         # 转发到WebSocket
                         await self.send(text_data=json.dumps(data))
 
                         # 如果是完成或错误消息，可以选择关闭连接
-                        if data.get('type') in ['done', 'error']:
+                        if data.get("type") in ["done", "error"]:
                             logger.info(f"任务结束，准备关闭连接: {self.channel_name}")
                             # 等待1秒后关闭，确保消息已发送
                             await asyncio.sleep(1)
@@ -217,10 +218,9 @@ class ProjectStageConsumer(AsyncWebsocketConsumer):
 
             # Epic 3: 发送错误消息到前端
             with contextlib.suppress(Exception):
-                await self.send(text_data=json.dumps({
-                    'type': 'error',
-                    'error': f'Redis连接失败: {e!s}'
-                }))
+                await self.send(
+                    text_data=json.dumps({"type": "error", "error": f"Redis连接失败: {e!s}"})
+                )
 
             # Epic 3: 触发重连
             if self.reconnect_manager and self.reconnect_manager.should_retry():
@@ -253,7 +253,7 @@ class ProjectConsumer(AsyncWebsocketConsumer):
 
         Epic 3: 集成自动重连管理器
         """
-        self.project_id = self.scope['url_route']['kwargs']['project_id']
+        self.project_id = self.scope["url_route"]["kwargs"]["project_id"]
 
         # 订阅项目所有阶段的频道
         self.channels = [
@@ -271,10 +271,10 @@ class ProjectConsumer(AsyncWebsocketConsumer):
         # Epic 3: 创建重连管理器
         self.reconnect_manager = WebSocketReconnectManager(
             project_id=self.project_id,
-            stage='all',  # 所有阶段
+            stage="all",  # 所有阶段
             connect_callback=self._connect_redis,
             disconnect_callback=self._disconnect_redis,
-            max_retries=5
+            max_retries=5,
         )
 
         # 启动自动重连
@@ -282,11 +282,15 @@ class ProjectConsumer(AsyncWebsocketConsumer):
 
         if not success:
             # 重连失败，发送错误消息
-            await self.send(text_data=json.dumps({
-                'type': 'error',
-                'error': 'Redis连接失败，已达到最大重连次数',
-                'retries': self.reconnect_manager.get_retry_count()
-            }))
+            await self.send(
+                text_data=json.dumps(
+                    {
+                        "type": "error",
+                        "error": "Redis连接失败，已达到最大重连次数",
+                        "retries": self.reconnect_manager.get_retry_count(),
+                    }
+                )
+            )
             await self.close()
 
     async def _connect_redis(self) -> bool:
@@ -296,7 +300,7 @@ class ProjectConsumer(AsyncWebsocketConsumer):
         Returns:
             bool: 连接是否成功
         """
-        redis_url = getattr(settings, 'CELERY_BROKER_URL', 'redis://localhost:6379/5')
+        redis_url = getattr(settings, "CELERY_BROKER_URL", "redis://localhost:6379/5")
 
         try:
             # 创建Redis连接
@@ -305,7 +309,7 @@ class ProjectConsumer(AsyncWebsocketConsumer):
                 decode_responses=True,
                 socket_connect_timeout=5,
                 socket_timeout=5,
-                socket_keepalive=True
+                socket_keepalive=True,
             )
 
             # 创建Pub/Sub对象
@@ -317,11 +321,15 @@ class ProjectConsumer(AsyncWebsocketConsumer):
             logger.info(f"已订阅项目 {self.project_id} 的所有阶段频道")
 
             # 发送连接成功消息
-            await self.send(text_data=json.dumps({
-                'type': 'connected',
-                'project_id': self.project_id,
-                'message': '已连接到项目实时流'
-            }))
+            await self.send(
+                text_data=json.dumps(
+                    {
+                        "type": "connected",
+                        "project_id": self.project_id,
+                        "message": "已连接到项目实时流",
+                    }
+                )
+            )
 
             # 启动消息监听任务
             asyncio.create_task(self._listen_messages())
@@ -364,15 +372,12 @@ class ProjectConsumer(AsyncWebsocketConsumer):
         if text_data:
             try:
                 data = json.loads(text_data)
-                message_type = data.get('type')
+                message_type = data.get("type")
 
-                if message_type == 'ping':
+                if message_type == "ping":
                     # Epic 3: 心跳响应
-                    timestamp = data.get('timestamp', time.time())
-                    await self.send(text_data=json.dumps({
-                        'type': 'pong',
-                        'timestamp': timestamp
-                    }))
+                    timestamp = data.get("timestamp", time.time())
+                    await self.send(text_data=json.dumps({"type": "pong", "timestamp": timestamp}))
 
                     # 更新重连管理器的心跳时间
                     if self.reconnect_manager:
@@ -392,9 +397,9 @@ class ProjectConsumer(AsyncWebsocketConsumer):
         try:
             # 持续监听消息
             async for message in self.pubsub.listen():
-                if message['type'] == 'message':
+                if message["type"] == "message":
                     try:
-                        data = json.loads(message['data'])
+                        data = json.loads(message["data"])
                         await self.send(text_data=json.dumps(data))
                     except json.JSONDecodeError as e:
                         logger.error(f"Redis消息解析失败: {e}")
@@ -408,10 +413,9 @@ class ProjectConsumer(AsyncWebsocketConsumer):
 
             # Epic 3: 发送错误消息到前端
             with contextlib.suppress(Exception):
-                await self.send(text_data=json.dumps({
-                    'type': 'error',
-                    'error': f'Redis连接失败: {e!s}'
-                }))
+                await self.send(
+                    text_data=json.dumps({"type": "error", "error": f"Redis连接失败: {e!s}"})
+                )
 
             # Epic 3: 触发重连
             if self.reconnect_manager and self.reconnect_manager.should_retry():

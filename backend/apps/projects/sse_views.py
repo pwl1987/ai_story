@@ -18,7 +18,7 @@ from core.redis.subscriber import RedisStreamSubscriber
 logger = logging.getLogger(__name__)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
+@method_decorator(csrf_exempt, name="dispatch")
 class ProjectStageSSEView(View):
     """
     项目阶段SSE流式视图
@@ -52,22 +52,23 @@ class ProjectStageSSEView(View):
 
         # 返回SSE响应
         response = StreamingHttpResponse(
-            event_stream,
-            content_type='text/event-stream; charset=utf-8'
+            event_stream, content_type="text/event-stream; charset=utf-8"
         )
 
         # SSE必需的响应头
-        response['Cache-Control'] = 'no-cache, no-transform'
-        response['X-Accel-Buffering'] = 'no'  # 禁用Nginx缓冲
+        response["Cache-Control"] = "no-cache, no-transform"
+        response["X-Accel-Buffering"] = "no"  # 禁用Nginx缓冲
 
         # CORS支持 (如果需要)
-        response['Access-Control-Allow-Origin'] = '*'
-        response['Access-Control-Allow-Methods'] = 'GET'
-        response['Access-Control-Allow-Headers'] = 'Content-Type'
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "GET"
+        response["Access-Control-Allow-Headers"] = "Content-Type"
 
         return response
 
-    def _create_event_stream(self, project_id: str, stage_name: str) -> Generator[bytes, None, None]:
+    def _create_event_stream(
+        self, project_id: str, stage_name: str
+    ) -> Generator[bytes, None, None]:
         """
         创建SSE事件流生成器
 
@@ -85,12 +86,14 @@ class ProjectStageSSEView(View):
             subscriber = RedisStreamSubscriber(project_id, stage_name)
 
             # 发送连接成功消息
-            yield self._format_sse_message({
-                'type': 'connected',
-                'project_id': project_id,
-                'stage': stage_name,
-                'message': 'SSE连接已建立'
-            })
+            yield self._format_sse_message(
+                {
+                    "type": "connected",
+                    "project_id": project_id,
+                    "stage": stage_name,
+                    "message": "SSE连接已建立",
+                }
+            )
 
             # 监听Redis消息
             for message in subscriber.listen(timeout=600):  # 10分钟超时
@@ -99,18 +102,16 @@ class ProjectStageSSEView(View):
                 yield sse_message
 
                 # 如果收到done或error消息,结束流
-                if message.get('type') in ('done', 'error'):
+                if message.get("type") in ("done", "error"):
                     logger.info(f"SSE流结束: {message.get('type')}")
                     break
 
         except Exception as e:
             logger.error(f"SSE流异常: {e!s}")
             # 发送错误消息
-            yield self._format_sse_message({
-                'type': 'error',
-                'error': f'SSE流异常: {e!s}',
-                'project_id': project_id
-            })
+            yield self._format_sse_message(
+                {"type": "error", "error": f"SSE流异常: {e!s}", "project_id": project_id}
+            )
 
         finally:
             # 清理资源
@@ -118,11 +119,9 @@ class ProjectStageSSEView(View):
                 subscriber.close()
 
             # 发送流结束消息
-            yield self._format_sse_message({
-                'type': 'stream_end',
-                'project_id': project_id,
-                'message': 'SSE流已关闭'
-            })
+            yield self._format_sse_message(
+                {"type": "stream_end", "project_id": project_id, "message": "SSE流已关闭"}
+            )
 
             logger.info(f"SSE连接关闭: project_id={project_id}, stage_name={stage_name}")
 
@@ -146,19 +145,18 @@ class ProjectStageSSEView(View):
             # SSE格式: data: {json}\n\n
             sse_message = f"data: {json_data}\n\n"
 
-            return sse_message.encode('utf-8')
+            return sse_message.encode("utf-8")
 
         except Exception as e:
             logger.error(f"SSE消息格式化失败: {e!s}")
             # 返回错误消息
-            error_data = json.dumps({
-                'type': 'error',
-                'error': f'消息格式化失败: {e!s}'
-            }, ensure_ascii=False)
+            error_data = json.dumps(
+                {"type": "error", "error": f"消息格式化失败: {e!s}"}, ensure_ascii=False
+            )
             return f"data: {error_data}\n\n".encode()
 
 
-@method_decorator(csrf_exempt, name='dispatch')
+@method_decorator(csrf_exempt, name="dispatch")
 class ProjectAllStagesSSEView(View):
     """
     项目所有阶段SSE流式视图
@@ -185,18 +183,17 @@ class ProjectAllStagesSSEView(View):
 
         # 返回SSE响应
         response = StreamingHttpResponse(
-            event_stream,
-            content_type='text/event-stream; charset=utf-8'
+            event_stream, content_type="text/event-stream; charset=utf-8"
         )
 
         # SSE必需的响应头
-        response['Cache-Control'] = 'no-cache, no-transform'
-        response['X-Accel-Buffering'] = 'no'
+        response["Cache-Control"] = "no-cache, no-transform"
+        response["X-Accel-Buffering"] = "no"
 
         # CORS支持
-        response['Access-Control-Allow-Origin'] = '*'
-        response['Access-Control-Allow-Methods'] = 'GET'
-        response['Access-Control-Allow-Headers'] = 'Content-Type'
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "GET"
+        response["Access-Control-Allow-Headers"] = "Content-Type"
 
         return response
 
@@ -217,11 +214,13 @@ class ProjectAllStagesSSEView(View):
             subscriber = RedisStreamSubscriber(project_id, stage_name=None)
 
             # 发送连接成功消息
-            yield self._format_sse_message({
-                'type': 'connected',
-                'project_id': project_id,
-                'message': 'SSE连接已建立(所有阶段)'
-            })
+            yield self._format_sse_message(
+                {
+                    "type": "connected",
+                    "project_id": project_id,
+                    "message": "SSE连接已建立(所有阶段)",
+                }
+            )
 
             # 监听Redis消息
             for message in subscriber.listen(timeout=1800):  # 30分钟超时
@@ -231,21 +230,17 @@ class ProjectAllStagesSSEView(View):
 
         except Exception as e:
             logger.error(f"SSE流异常: {e!s}")
-            yield self._format_sse_message({
-                'type': 'error',
-                'error': f'SSE流异常: {e!s}',
-                'project_id': project_id
-            })
+            yield self._format_sse_message(
+                {"type": "error", "error": f"SSE流异常: {e!s}", "project_id": project_id}
+            )
 
         finally:
             if subscriber:
                 subscriber.close()
 
-            yield self._format_sse_message({
-                'type': 'stream_end',
-                'project_id': project_id,
-                'message': 'SSE流已关闭'
-            })
+            yield self._format_sse_message(
+                {"type": "stream_end", "project_id": project_id, "message": "SSE流已关闭"}
+            )
 
             logger.info(f"SSE连接关闭(所有阶段): project_id={project_id}")
 
@@ -262,12 +257,10 @@ class ProjectAllStagesSSEView(View):
         try:
             json_data = json.dumps(data, ensure_ascii=False)
             sse_message = f"data: {json_data}\n\n"
-            return sse_message.encode('utf-8')
+            return sse_message.encode("utf-8")
         except Exception as e:
             logger.error(f"SSE消息格式化失败: {e!s}")
-            error_data = json.dumps({
-                'type': 'error',
-                'error': f'消息格式化失败: {e!s}'
-            }, ensure_ascii=False)
+            error_data = json.dumps(
+                {"type": "error", "error": f"消息格式化失败: {e!s}"}, ensure_ascii=False
+            )
             return f"data: {error_data}\n\n".encode()
-

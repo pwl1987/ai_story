@@ -31,48 +31,48 @@ class TestPipelineContext:
         """测试创建包含初始数据的上下文"""
         context = PipelineContext(
             project_id="test-project-123",
-            results={'stage1': {'data': 'value1'}},
-            metadata={'start_time': '2024-01-01'}
+            results={"stage1": {"data": "value1"}},
+            metadata={"start_time": "2024-01-01"},
         )
 
-        assert context.results['stage1'] == {'data': 'value1'}
-        assert context.metadata['start_time'] == '2024-01-01'
+        assert context.results["stage1"] == {"data": "value1"}
+        assert context.metadata["start_time"] == "2024-01-01"
 
     def test_add_result(self):
         """测试添加阶段结果"""
         context = PipelineContext(project_id="test-project")
 
-        context.add_result('rewrite', {'text': 'Rewritten content'})
+        context.add_result("rewrite", {"text": "Rewritten content"})
 
-        assert context.results['rewrite'] == {'text': 'Rewritten content'}
+        assert context.results["rewrite"] == {"text": "Rewritten content"}
 
     def test_add_multiple_results(self):
         """测试添加多个阶段结果"""
         context = PipelineContext(project_id="test-project")
 
-        context.add_result('stage1', {'data': 'value1'})
-        context.add_result('stage2', {'data': 'value2'})
-        context.add_result('stage3', {'data': 'value3'})
+        context.add_result("stage1", {"data": "value1"})
+        context.add_result("stage2", {"data": "value2"})
+        context.add_result("stage3", {"data": "value3"})
 
         assert len(context.results) == 3
-        assert context.results['stage1'] == {'data': 'value1'}
-        assert context.results['stage2'] == {'data': 'value2'}
-        assert context.results['stage3'] == {'data': 'value3'}
+        assert context.results["stage1"] == {"data": "value1"}
+        assert context.results["stage2"] == {"data": "value2"}
+        assert context.results["stage3"] == {"data": "value3"}
 
     def test_get_result_existing(self):
         """测试获取存在的阶段结果"""
         context = PipelineContext(project_id="test-project")
-        context.add_result('rewrite', {'text': 'content'})
+        context.add_result("rewrite", {"text": "content"})
 
-        result = context.get_result('rewrite')
+        result = context.get_result("rewrite")
 
-        assert result == {'text': 'content'}
+        assert result == {"text": "content"}
 
     def test_get_result_non_existent(self):
         """测试获取不存在的阶段结果返回None"""
         context = PipelineContext(project_id="test-project")
 
-        result = context.get_result('non_existent_stage')
+        result = context.get_result("non_existent_stage")
 
         assert result is None
 
@@ -80,17 +80,17 @@ class TestPipelineContext:
         """测试添加和获取元数据"""
         context = PipelineContext(project_id="test-project")
 
-        context.add_metadata('total_tokens', 1000)
-        context.add_metadata('model', 'gpt-4')
+        context.add_metadata("total_tokens", 1000)
+        context.add_metadata("model", "gpt-4")
 
-        assert context.get_metadata('total_tokens') == 1000
-        assert context.get_metadata('model') == 'gpt-4'
+        assert context.get_metadata("total_tokens") == 1000
+        assert context.get_metadata("model") == "gpt-4"
 
     def test_get_non_existent_metadata(self):
         """测试获取不存在的元数据返回None"""
         context = PipelineContext(project_id="test-project")
 
-        result = context.get_metadata('non_existent_key')
+        result = context.get_metadata("non_existent_key")
 
         assert result is None
 
@@ -101,20 +101,16 @@ class TestStageResult:
 
     def test_create_success_result(self):
         """测试创建成功结果"""
-        result = StageResult(success=True, data={'output': 'value'})
+        result = StageResult(success=True, data={"output": "value"})
 
         assert result.success is True
-        assert result.data == {'output': 'value'}
+        assert result.data == {"output": "value"}
         assert result.error is None
         assert result.can_retry is True
 
     def test_create_error_result(self):
         """测试创建错误结果"""
-        result = StageResult(
-            success=False,
-            error="Processing failed",
-            can_retry=True
-        )
+        result = StageResult(success=False, error="Processing failed", can_retry=True)
 
         assert result.success is False
         assert result.error == "Processing failed"
@@ -123,25 +119,16 @@ class TestStageResult:
 
     def test_create_no_retry_result(self):
         """测试创建不可重试的结果"""
-        result = StageResult(
-            success=False,
-            error="Critical error",
-            can_retry=False
-        )
+        result = StageResult(success=False, error="Critical error", can_retry=False)
 
         assert result.can_retry is False
 
     def test_create_result_with_all_fields(self):
         """测试创建包含所有字段的结果"""
-        result = StageResult(
-            success=True,
-            data={'key': 'value'},
-            error=None,
-            can_retry=False
-        )
+        result = StageResult(success=True, data={"key": "value"}, error=None, can_retry=False)
 
         assert result.success is True
-        assert result.data == {'key': 'value'}
+        assert result.data == {"key": "value"}
         assert result.can_retry is False
 
 
@@ -159,7 +146,7 @@ class TestStageProcessor:
                 return bool(context.project_id)
 
             async def on_failure(self, context, error):
-                context.add_metadata('error', str(error))
+                context.add_metadata("error", str(error))
 
             async def on_success(self, context, result):
                 context.add_result(self.stage_name, result.data)
@@ -196,17 +183,17 @@ class TestStageProcessor:
 
         await concrete_processor.on_failure(context, error)
 
-        assert context.get_metadata('error') == "Test error"
+        assert context.get_metadata("error") == "Test error"
 
     @pytest.mark.asyncio
     async def test_on_success_callback(self, concrete_processor):
         """测试成功回调"""
         context = PipelineContext(project_id="test-project")
-        result = StageResult(success=True, data={'output': 'value'})
+        result = StageResult(success=True, data={"output": "value"})
 
         await concrete_processor.on_success(context, result)
 
-        assert context.get_result('test_stage') == {'output': 'value'}
+        assert context.get_result("test_stage") == {"output": "value"}
 
     def test_abstract_class_cannot_be_instantiated(self):
         """测试抽象类不能直接实例化"""
@@ -259,29 +246,25 @@ class TestPipelineIntegration:
                 return True
 
             async def on_failure(self, context, error):
-                context.add_metadata(f'{self.stage_name}_error', str(error))
+                context.add_metadata(f"{self.stage_name}_error", str(error))
 
             async def on_success(self, context, result):
                 context.add_result(self.stage_name, result.data)
 
         # 创建上下文和处理器链
         context = PipelineContext(project_id="test-project")
-        processors = [
-            MockProcessor("stage1"),
-            MockProcessor("stage2"),
-            MockProcessor("stage3")
-        ]
+        processors = [MockProcessor("stage1"), MockProcessor("stage2"), MockProcessor("stage3")]
 
         # 执行处理器链
         for processor in processors:
             if await processor.validate(context):
-                result = StageResult(success=True, data={'stage': processor.stage_name})
+                result = StageResult(success=True, data={"stage": processor.stage_name})
                 await processor.on_success(context, result)
 
         # 验证所有阶段都执行成功
-        assert context.get_result('stage1')['stage'] == 'stage1'
-        assert context.get_result('stage2')['stage'] == 'stage2'
-        assert context.get_result('stage3')['stage'] == 'stage3'
+        assert context.get_result("stage1")["stage"] == "stage1"
+        assert context.get_result("stage2")["stage"] == "stage2"
+        assert context.get_result("stage3")["stage"] == "stage3"
 
     @pytest.mark.asyncio
     async def test_pipeline_with_failure(self):
@@ -292,7 +275,7 @@ class TestPipelineIntegration:
                 return True
 
             async def on_failure(self, context, error):
-                context.add_metadata('failure_handled', True)
+                context.add_metadata("failure_handled", True)
 
         context = PipelineContext(project_id="test-project")
         processor = FailingProcessor("failing_stage")
@@ -302,4 +285,4 @@ class TestPipelineIntegration:
         await processor.on_failure(context, error)
 
         # 验证失败被处理
-        assert context.get_metadata('failure_handled') is True
+        assert context.get_metadata("failure_handled") is True

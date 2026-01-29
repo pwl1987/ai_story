@@ -29,7 +29,7 @@ def get_executor_class(class_path: str) -> Optional[Type[BaseAIClient]]:
 
     try:
         # 分割模块路径和类名
-        module_path, class_name = class_path.rsplit('.', 1)
+        module_path, class_name = class_path.rsplit(".", 1)
 
         # 动态导入模块
         module = importlib.import_module(module_path)
@@ -79,9 +79,9 @@ def get_base_class_for_provider_type(provider_type: str) -> Type[BaseAIClient]:
         ValueError: 无效的provider_type
     """
     base_class_map = {
-        'llm': LLMClient,
-        'text2image': Text2ImageClient,
-        'image2video': Image2VideoClient,
+        "llm": LLMClient,
+        "text2image": Text2ImageClient,
+        "image2video": Image2VideoClient,
     }
 
     base_class = base_class_map.get(provider_type)
@@ -92,10 +92,7 @@ def get_base_class_for_provider_type(provider_type: str) -> Type[BaseAIClient]:
     return base_class
 
 
-def validate_executor_for_provider(
-    executor_class: Type,
-    provider_type: str
-) -> bool:
+def validate_executor_for_provider(executor_class: Type, provider_type: str) -> bool:
     """
     验证执行器类是否适用于指定的provider_type
 

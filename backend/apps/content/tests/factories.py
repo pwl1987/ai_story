@@ -19,7 +19,7 @@ from apps.content.models import (
 from apps.projects.tests.factories import ProjectFactory
 
 User = get_user_model()
-fake = Faker(['zh_CN'])
+fake = Faker(["zh_CN"])
 
 
 class ContentRewriteFactory(factory.django.DjangoModelFactory):
@@ -28,6 +28,7 @@ class ContentRewriteFactory(factory.django.DjangoModelFactory):
     职责: 创建ContentRewrite测试数据
     遵循单一职责原则(SRP)
     """
+
     class Meta:
         model = ContentRewrite
 
@@ -49,6 +50,7 @@ class StoryboardFactory(factory.django.DjangoModelFactory):
     职责: 创建Storyboard测试数据
     遵循单一职责原则(SRP)
     """
+
     class Meta:
         model = Storyboard
 
@@ -69,6 +71,7 @@ class GeneratedImageFactory(factory.django.DjangoModelFactory):
     职责: 创建GeneratedImage测试数据
     遵循单一职责原则(SRP)
     """
+
     class Meta:
         model = GeneratedImage
 
@@ -78,15 +81,13 @@ class GeneratedImageFactory(factory.django.DjangoModelFactory):
     image_url = factory.LazyFunction(lambda: fake.url())
     thumbnail_url = factory.LazyFunction(lambda: fake.url())
 
-    generation_params = factory.LazyFunction(lambda: {
-        'width': 1024,
-        'height': 1024,
-        'steps': fake.random_int(min=20, max=50)
-    })
+    generation_params = factory.LazyFunction(
+        lambda: {"width": 1024, "height": 1024, "steps": fake.random_int(min=20, max=50)}
+    )
 
     model_provider = None  # 设为None，避免关联
 
-    status = 'pending'
+    status = "pending"
     retry_count = 0
 
     file_size = factory.LazyFunction(lambda: fake.random_int(min=100000, max=5000000))
@@ -100,18 +101,21 @@ class CameraMovementFactory(factory.django.DjangoModelFactory):
     职责: 创建CameraMovement测试数据
     遵循单一职责原则(SRP)
     """
+
     class Meta:
         model = CameraMovement
 
     id = factory.LazyFunction(uuid.uuid4)
     storyboard = factory.SubFactory(StoryboardFactory)
 
-    movement_type = factory.Iterator(['static', 'zoom_in', 'zoom_out', 'pan_left', 'pan_right'])
+    movement_type = factory.Iterator(["static", "zoom_in", "zoom_out", "pan_left", "pan_right"])
 
-    movement_params = factory.LazyFunction(lambda: {
-        'intensity': fake.pyfloat(min_value=0.1, max_value=1.0, right_digits=2),
-        'duration': fake.pyfloat(min_value=1.0, max_value=5.0, right_digits=1)
-    })
+    movement_params = factory.LazyFunction(
+        lambda: {
+            "intensity": fake.pyfloat(min_value=0.1, max_value=1.0, right_digits=2),
+            "duration": fake.pyfloat(min_value=1.0, max_value=5.0, right_digits=1),
+        }
+    )
 
     model_provider = None  # 设为None，避免关联
     prompt_used = factory.LazyFunction(lambda: fake.sentence())
@@ -123,6 +127,7 @@ class GeneratedVideoFactory(factory.django.DjangoModelFactory):
     职责: 创建GeneratedVideo测试数据
     遵循单一职责原则(SRP)
     """
+
     class Meta:
         model = GeneratedVideo
 
@@ -135,7 +140,9 @@ class GeneratedVideoFactory(factory.django.DjangoModelFactory):
     video_url = factory.LazyFunction(lambda: fake.url())
     thumbnail_url = factory.LazyFunction(lambda: fake.url())
 
-    duration = factory.LazyFunction(lambda: fake.pyfloat(min_value=2.0, max_value=10.0, right_digits=1))
+    duration = factory.LazyFunction(
+        lambda: fake.pyfloat(min_value=2.0, max_value=10.0, right_digits=1)
+    )
     width = 1080
     height = 1920
     fps = 24
@@ -143,11 +150,9 @@ class GeneratedVideoFactory(factory.django.DjangoModelFactory):
 
     model_provider = None  # 设为None，避免关联
 
-    generation_params = factory.LazyFunction(lambda: {
-        'duration': 3.0,
-        'fps': 24,
-        'quality': 'high'
-    })
+    generation_params = factory.LazyFunction(
+        lambda: {"duration": 3.0, "fps": 24, "quality": "high"}
+    )
 
-    status = 'pending'
+    status = "pending"
     retry_count = 0

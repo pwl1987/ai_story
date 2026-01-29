@@ -27,12 +27,12 @@ from celery.exceptions import Ignore, Retry
 from celery.signals import task_failure, task_postrun, task_prerun, task_retry
 from django.conf import settings
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.base')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.base")
 
-app = Celery('ai_story')
+app = Celery("ai_story")
 
 # 任务日志记录器
-logger = logging.getLogger('apps.celery')
+logger = logging.getLogger("apps.celery")
 
 # Story 2.6: Prometheus metrics for Celery tasks
 PROMETHEUS_ENABLED = False
@@ -42,28 +42,27 @@ celery_task_failure_total = None
 
 try:
     from prometheus_client import Counter, Histogram
+
     PROMETHEUS_ENABLED = True
 
     # Celery任务执行时间（直方图）
     celery_task_duration_seconds = Histogram(
-        'celery_task_duration_seconds',
-        'Celery task execution duration',
-        ['task_name', 'queue'],
-        buckets=(0.1, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0, 600.0)
+        "celery_task_duration_seconds",
+        "Celery task execution duration",
+        ["task_name", "queue"],
+        buckets=(0.1, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0, 600.0),
     )
 
     # Celery任务总数（计数器）
     celery_task_total = Counter(
-        'celery_task_total',
-        'Total Celery tasks executed',
-        ['task_name', 'status', 'queue']
+        "celery_task_total", "Total Celery tasks executed", ["task_name", "status", "queue"]
     )
 
     # Celery任务失败总数（计数器）
     celery_task_failure_total = Counter(
-        'celery_task_failure_total',
-        'Total failed Celery tasks',
-        ['task_name', 'exception_type', 'queue']
+        "celery_task_failure_total",
+        "Total failed Celery tasks",
+        ["task_name", "exception_type", "queue"],
     )
 
     logger.info("Prometheus metrics enabled for Celery tasks")
@@ -81,11 +80,11 @@ def _get_slow_task_threshold():
     Returns:
         int: 慢任务阈值（秒）
     """
-    return getattr(settings, 'SLOW_TASK_THRESHOLD_S', 60)  # 60秒默认值
+    return getattr(settings, "SLOW_TASK_THRESHOLD_S", 60)  # 60秒默认值
 
 
 # 从Django settings加载配置
-app.config_from_object('django.conf:settings')
+app.config_from_object("django.conf:settings")
 
 # 自动发现任务
 app.autodiscover_tasks()
@@ -98,42 +97,36 @@ app.conf.update(
     # Broker和Backend配置 (必须显式设置)
     broker_url=settings.CELERY_BROKER_URL,
     result_backend=settings.CELERY_RESULT_BACKEND,
-
     # Broker连接配置
     broker_connection_retry_on_startup=True,  # Celery 6.0+ 启动时重试连接
-
     # 任务结果过期时间 (1小时)
     result_expires=3600,
-
     # 任务序列化
-    task_serializer='json',
-    result_serializer='json',
-    accept_content=['json'],
-
+    task_serializer="json",
+    result_serializer="json",
+    accept_content=["json"],
     # 时区
-    timezone='Asia/Shanghai',
+    timezone="Asia/Shanghai",
     enable_utc=True,
-
     # # 任务路由 (可选，用于任务分发到不同队列)
     # task_routes={
     #     'apps.projects.tasks.execute_llm_stage': {'queue': 'llm'},
     #     'apps.projects.tasks.execute_text2image_stage': {'queue': 'image'},
     #     'apps.projects.tasks.execute_image2video_stage': {'queue': 'video'},
     # },
-
     # 任务优先级
     task_acks_late=True,
     task_reject_on_worker_lost=True,
-
     # Worker配置
     worker_prefetch_multiplier=1,  # 每次只预取1个任务
     worker_max_tasks_per_child=100,  # 每个worker处理100个任务后重启
 )
 
+
 @app.task(bind=True, ignore_result=True)
 def debug_task(self):
     """调试任务"""
-    print(f'Request: {self.request!r}')
+    print(f"Request: {self.request!r}")
 
 
 # Celery信号处理 - Story 2.4 + 2.6: 增强的结构化日志记录 + 执行时间监控
@@ -146,19 +139,21 @@ def task_prerun_handler(sender=None, task_id=None, task=None, **kwargs):
     Story 2.6: 记录任务开始时间，用于执行时间计算
     """
     # 记录开始时间到任务请求上下文（Story 2.6）
-    if hasattr(task, 'request'):
+    if hasattr(task, "request"):
         task.request.start_time = time.time()
 
     logger.info(
         f"Task started: {sender.name}",
-        extra={'extra_fields': {
-            'task_id': task_id,
-            'task_name': sender.name,
-            'args': str(task.request.args) if hasattr(task, 'request') else [],
-            'kwargs': str(task.request.kwargs) if hasattr(task, 'request') else {},
-            'retries': task.request.retries if hasattr(task, 'request') else 0,
-            'event': 'task_prerun'
-        }}
+        extra={
+            "extra_fields": {
+                "task_id": task_id,
+                "task_name": sender.name,
+                "args": str(task.request.args) if hasattr(task, "request") else [],
+                "kwargs": str(task.request.kwargs) if hasattr(task, "request") else {},
+                "retries": task.request.retries if hasattr(task, "request") else 0,
+                "event": "task_prerun",
+            }
+        },
     )
 
 
@@ -178,7 +173,11 @@ def task_postrun_handler(sender=None, task_id=None, task=None, retval=None, **kw
     runtime_s = None
     is_slow_task = False
 
-    if hasattr(task, 'request') and hasattr(task.request, 'start_time') and task.request.start_time is not None:
+    if (
+        hasattr(task, "request")
+        and hasattr(task.request, "start_time")
+        and task.request.start_time is not None
+    ):
         runtime_s = time.time() - task.request.start_time
         slow_threshold = _get_slow_task_threshold()
         is_slow_task = runtime_s > slow_threshold
@@ -193,43 +192,34 @@ def task_postrun_handler(sender=None, task_id=None, task=None, retval=None, **kw
     if PROMETHEUS_ENABLED and runtime_s is not None:
         try:
             # 获取队列名称
-            queue = getattr(task.request, 'delivery_info', {}).get('routing_key', 'default')
+            queue = getattr(task.request, "delivery_info", {}).get("routing_key", "default")
 
             # 记录任务执行时间
-            celery_task_duration_seconds.labels(
-                task_name=sender.name,
-                queue=queue
-            ).observe(runtime_s)
+            celery_task_duration_seconds.labels(task_name=sender.name, queue=queue).observe(
+                runtime_s
+            )
 
             # 记录任务总数
-            task_state = kwargs.get('state', 'UNKNOWN')
-            celery_task_total.labels(
-                task_name=sender.name,
-                status=task_state,
-                queue=queue
-            ).inc()
+            task_state = kwargs.get("state", "UNKNOWN")
+            celery_task_total.labels(task_name=sender.name, status=task_state, queue=queue).inc()
         except Exception as e:
             logger.warning(f"Failed to record Prometheus metrics: {e}")
 
     # 构建日志上下文
     context = {
-        'task_id': task_id,
-        'task_name': sender.name,
-        'state': kwargs.get('state', 'UNKNOWN'),
-        'retval': str(retval)[:500] if retval else None,  # 限制长度
-        'event': 'task_postrun'
+        "task_id": task_id,
+        "task_name": sender.name,
+        "state": kwargs.get("state", "UNKNOWN"),
+        "retval": str(retval)[:500] if retval else None,  # 限制长度
+        "event": "task_postrun",
     }
 
     # 添加执行时间信息（Story 2.6）
     if runtime_s is not None:
-        context['runtime_s'] = round(runtime_s, 2)
-        context['is_slow_task'] = is_slow_task
+        context["runtime_s"] = round(runtime_s, 2)
+        context["is_slow_task"] = is_slow_task
 
-    logger.log(
-        log_level,
-        log_message,
-        extra={'extra_fields': context}
-    )
+    logger.log(log_level, log_message, extra={"extra_fields": context})
 
 
 @task_retry.connect
@@ -241,15 +231,17 @@ def task_retry_handler(sender=None, task_id=None, reason=None, einfo=None, **kwa
     """
     logger.warning(
         f"Task retrying: {sender.name if sender else 'unknown'}",
-        extra={'extra_fields': {
-            'task_id': task_id,
-            'task_name': sender.name if sender else 'unknown',
-            'reason': str(reason) if reason else 'Unknown reason',
-            'traceback': traceback.format_exc() if einfo else None,
-            'retries': sender.request.retries if hasattr(sender, 'request') else 0,
-            'max_retries': sender.max_retries if hasattr(sender, 'max_retries') else None,
-            'event': 'task_retry'
-        }}
+        extra={
+            "extra_fields": {
+                "task_id": task_id,
+                "task_name": sender.name if sender else "unknown",
+                "reason": str(reason) if reason else "Unknown reason",
+                "traceback": traceback.format_exc() if einfo else None,
+                "retries": sender.request.retries if hasattr(sender, "request") else 0,
+                "max_retries": sender.max_retries if hasattr(sender, "max_retries") else None,
+                "event": "task_retry",
+            }
+        },
     )
 
 
@@ -267,21 +259,23 @@ def task_failure_handler(sender=None, task_id=None, exception=None, einfo=None, 
     Story 2.6: 记录失败任务Prometheus metrics
     """
     # 获取任务信息
-    task_name = sender.name if sender else 'unknown'
-    exc_type = type(exception).__name__ if exception else 'Unknown'
-    exc_message = str(exception) if exception else 'No exception message'
+    task_name = sender.name if sender else "unknown"
+    exc_type = type(exception).__name__ if exception else "Unknown"
+    exc_message = str(exception) if exception else "No exception message"
 
     # Story 2.6: 记录失败任务Prometheus metrics
     if PROMETHEUS_ENABLED and sender:
         try:
             # 获取队列名称
-            queue = getattr(sender.request, 'delivery_info', {}).get('routing_key', 'default') if hasattr(sender, 'request') else 'default'
+            queue = (
+                getattr(sender.request, "delivery_info", {}).get("routing_key", "default")
+                if hasattr(sender, "request")
+                else "default"
+            )
 
             # 记录失败任务
             celery_task_failure_total.labels(
-                task_name=task_name,
-                exception_type=exc_type,
-                queue=queue
+                task_name=task_name, exception_type=exc_type, queue=queue
             ).inc()
         except Exception as e:
             logger.warning(f"Failed to record failure metrics: {e}")
@@ -291,32 +285,33 @@ def task_failure_handler(sender=None, task_id=None, exception=None, einfo=None, 
     kwargs_dict = {}
     retries = 0
 
-    if sender and hasattr(sender, 'request'):
+    if sender and hasattr(sender, "request"):
         request = sender.request
-        args = request.args if hasattr(request, 'args') else []
-        kwargs_dict = request.kwargs if hasattr(request, 'kwargs') else {}
-        retries = request.retries if hasattr(request, 'retries') else 0
+        args = request.args if hasattr(request, "args") else []
+        kwargs_dict = request.kwargs if hasattr(request, "kwargs") else {}
+        retries = request.retries if hasattr(request, "retries") else 0
 
     # 过滤敏感参数
     filtered_kwargs = _filter_sensitive_kwargs(kwargs_dict)
 
     # 构建日志上下文
     context = {
-        'task_id': task_id,
-        'task_name': task_name,
-        'exception_type': exc_type,
-        'exception_message': exc_message,
-        'traceback': traceback.format_exception(type(exception), exception, exception.__traceback__) if exception else [],
-        'args': str(args)[:1000],  # 限制长度
-        'kwargs': str(filtered_kwargs)[:1000],  # 限制长度并过滤敏感信息
-        'retries': retries,
-        'event': 'task_failure'
+        "task_id": task_id,
+        "task_name": task_name,
+        "exception_type": exc_type,
+        "exception_message": exc_message,
+        "traceback": traceback.format_exception(type(exception), exception, exception.__traceback__)
+        if exception
+        else [],
+        "args": str(args)[:1000],  # 限制长度
+        "kwargs": str(filtered_kwargs)[:1000],  # 限制长度并过滤敏感信息
+        "retries": retries,
+        "event": "task_failure",
     }
 
     # 记录错误日志
     logger.error(
-        f"Task failed: {task_name} - {exc_type}: {exc_message}",
-        extra={'extra_fields': context}
+        f"Task failed: {task_name} - {exc_type}: {exc_message}", extra={"extra_fields": context}
     )
 
 
@@ -333,14 +328,21 @@ def _filter_sensitive_kwargs(kwargs: Dict[str, Any]) -> Dict[str, Any]:
         过滤后的参数字典
     """
     sensitive_fields = {
-        'password', 'api_key', 'apikey', 'secret', 'token',
-        'authorization', 'csrf_token', 'access_token', 'refresh_token'
+        "password",
+        "api_key",
+        "apikey",
+        "secret",
+        "token",
+        "authorization",
+        "csrf_token",
+        "access_token",
+        "refresh_token",
     }
 
     filtered = {}
     for key, value in kwargs.items():
         if key.lower() in sensitive_fields:
-            filtered[key] = '***FILTERED***'
+            filtered[key] = "***FILTERED***"
         elif isinstance(value, dict):
             # 递归过滤嵌套字典
             filtered[key] = _filter_sensitive_kwargs(value)

@@ -5,6 +5,7 @@
 3. save_as_template - 保存项目为模板
 4. export - 导出视频
 """
+
 import os
 import sys
 
@@ -15,7 +16,7 @@ backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.base')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.base")
 django.setup()
 
 from django.contrib.auth import get_user_model
@@ -42,13 +43,13 @@ def test_cancel_project_tasks():
     print(f"✓ 找到测试项目: {project.name} (ID: {project.id})")
 
     # 将项目状态设为processing
-    project.status = 'processing'
+    project.status = "processing"
     project.save()
 
     # 模拟一个processing状态的任务
     stage = project.stages.first()
     if stage:
-        stage.status = 'processing'
+        stage.status = "processing"
         stage.save()
         print(f"✓ 设置阶段 {stage.stage_type} 为processing状态")
 
@@ -58,7 +59,7 @@ def test_cancel_project_tasks():
 
     # 验证阶段状态已重置
     stage.refresh_from_db()
-    if stage.status == 'pending':
+    if stage.status == "pending":
         print("✓ 阶段状态已重置为pending")
         return True
     else:
@@ -89,7 +90,7 @@ def test_save_as_template():
         name=f"{template_name} (模板)",
         description=f"基于项目 '{project.name}' 创建的模板",
         created_by=project.user,
-        is_active=True
+        is_active=True,
     )
     print(f"✓ 创建新提示词集: {new_template_set.name}")
 
@@ -100,7 +101,7 @@ def test_save_as_template():
             template_set=new_template_set,
             stage_type=template.stage_type,
             template_content=template.template_content,
-            is_active=True
+            is_active=True,
         )
 
     print(f"✓ 复制了 {original_templates.count()} 个提示词模板")
@@ -122,7 +123,7 @@ def test_export_logic():
     print("=" * 60)
 
     # 获取一个已完成的项目
-    completed_project = Project.objects.filter(status='completed').first()
+    completed_project = Project.objects.filter(status="completed").first()
     if not completed_project:
         print("⚠️ 没有找到已完成的项目，跳过导出测试")
         return True
@@ -136,20 +137,19 @@ def test_export_logic():
     from apps.projects.models import ProjectProgressHistory
 
     # 获取所有生成的视频片段
-    storyboards = Storyboard.objects.filter(project=completed_project).order_by('sequence_number')
+    storyboards = Storyboard.objects.filter(project=completed_project).order_by("sequence_number")
     videos = []
 
     for storyboard in storyboards:
-        video = GeneratedVideo.objects.filter(
-            storyboard=storyboard,
-            status='completed'
-        ).first()
+        video = GeneratedVideo.objects.filter(storyboard=storyboard, status="completed").first()
 
         if video and video.video_url:
-            videos.append({
-                'sequence_number': storyboard.sequence_number,
-                'video_url': video.video_url,
-            })
+            videos.append(
+                {
+                    "sequence_number": storyboard.sequence_number,
+                    "video_url": video.video_url,
+                }
+            )
 
     print(f"✓ 找到 {len(videos)} 个视频片段")
 
@@ -159,14 +159,11 @@ def test_export_logic():
 
         ProjectProgressHistory.objects.create(
             project=completed_project,
-            stage_type='export',
-            status='processing',
+            stage_type="export",
+            status="processing",
             progress=0,
             message=f"开始导出视频，共{len(videos)}个片段",
-            metadata={
-                'export_id': export_id,
-                'video_count': len(videos)
-            }
+            metadata={"export_id": export_id, "video_count": len(videos)},
         )
 
         print(f"✓ 创建导出任务记录: {export_id}")
@@ -230,5 +227,5 @@ def main():
         return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     exit(main())

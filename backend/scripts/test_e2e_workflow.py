@@ -15,6 +15,7 @@
 
 依赖: 需要先运行 setup_mock_env.py 和 create_test_project.py
 """
+
 import os
 import sys
 import time
@@ -23,7 +24,7 @@ import time
 backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, backend_dir)
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
 
 import django
 
@@ -47,15 +48,14 @@ def get_auth_token(base_url="http://localhost:8000/api/v1"):
     print("\n1. 获取认证token...")
 
     # 尝试登录
-    response = requests.post(f"{base_url}/users/login/", json={
-        "username": "e2e_test_user",
-        "password": "test_password"
-    })
+    response = requests.post(
+        f"{base_url}/users/login/", json={"username": "e2e_test_user", "password": "test_password"}
+    )
 
     if response.status_code == 200:
         data = response.json()
-        token = data.get('token') or data.get('access')
-        user_id = data.get('user_id')
+        token = data.get("token") or data.get("access")
+        user_id = data.get("user_id")
         print("✓ 登录成功")
         return token, user_id
     else:
@@ -74,7 +74,7 @@ def get_test_project():
     print("\n2. 获取测试项目...")
 
     try:
-        project = Project.objects.get(name='E2E Test Project')
+        project = Project.objects.get(name="E2E Test Project")
         print(f"✓ 找到测试项目: {project.name} (ID: {project.id})")
         print(f"  状态: {project.status}")
         print(f"  阶段数: {project.stages.count()}")
@@ -144,33 +144,36 @@ def monitor_progress(project_id, token, base_url="http://localhost:8000/api/v1",
             return False
 
         project = response.json()
-        status = project['status']
-        stages = project['stages']
+        status = project["status"]
+        stages = project["stages"]
 
         # 计算完成进度
-        completed = sum(1 for s in stages if s['status'] == 'completed')
+        completed = sum(1 for s in stages if s["status"] == "completed")
         total = len(stages)
 
         # 构建进度条
-        progress_bar = '█' * completed + '░' * (total - completed)
+        progress_bar = "█" * completed + "░" * (total - completed)
         elapsed = int(time.time() - start_time)
 
-        print(f"\r  进度: [{progress_bar}] {completed}/{total} | 状态: {status} | 已用时: {elapsed}秒", end='')
+        print(
+            f"\r  进度: [{progress_bar}] {completed}/{total} | 状态: {status} | 已用时: {elapsed}秒",
+            end="",
+        )
 
         # 检查是否完成
-        if status == 'completed':
+        if status == "completed":
             print("\n\n✓ 工作流完成！")
             print("\n  阶段详情:")
             for stage in stages:
                 print(f"    - {stage['stage_type']}: {stage['status']}")
             return True
-        elif status == 'failed':
+        elif status == "failed":
             print("\n\n✗ 工作流失败")
             # 显示失败的阶段
             for stage in stages:
-                if stage['status'] == 'failed':
+                if stage["status"] == "failed":
                     print(f"    失败阶段: {stage['stage_type']}")
-                    if stage.get('error_message'):
+                    if stage.get("error_message"):
                         print(f"    错误信息: {stage['error_message']}")
             return False
 
@@ -221,9 +224,10 @@ def main():
     except Exception as e:
         print(f"\n✗ 测试失败: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     exit(main())

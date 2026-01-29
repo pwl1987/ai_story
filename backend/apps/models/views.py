@@ -34,24 +34,24 @@ class ModelProviderViewSet(viewsets.ModelViewSet):
 
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['provider_type', 'is_active']
-    search_fields = ['name', 'model_name', 'api_url']
-    ordering_fields = ['created_at', 'updated_at', 'priority', 'name']
-    ordering = ['-priority', '-created_at']
+    filterset_fields = ["provider_type", "is_active"]
+    search_fields = ["name", "model_name", "api_url"]
+    ordering_fields = ["created_at", "updated_at", "priority", "name"]
+    ordering = ["-priority", "-created_at"]
 
     def get_queryset(self):
         """获取所有模型提供商"""
-        return ModelProvider.objects.all().prefetch_related('usage_logs')
+        return ModelProvider.objects.all().prefetch_related("usage_logs")
 
     def get_serializer_class(self):
         """根据动作选择序列化器"""
-        if self.action == 'list':
+        if self.action == "list":
             return ModelProviderListSerializer
-        elif self.action == 'retrieve':
+        elif self.action == "retrieve":
             return ModelProviderDetailSerializer
-        elif self.action == 'create':
+        elif self.action == "create":
             return ModelProviderCreateSerializer
-        elif self.action in ['update', 'partial_update']:
+        elif self.action in ["update", "partial_update"]:
             return ModelProviderUpdateSerializer
         return ModelProviderDetailSerializer
 
@@ -65,23 +65,17 @@ class ModelProviderViewSet(viewsets.ModelViewSet):
 
         # 返回详情
         response_serializer = ModelProviderDetailSerializer(provider)
-        return Response(
-            response_serializer.data,
-            status=status.HTTP_201_CREATED
-        )
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         """更新模型提供商"""
-        partial = kwargs.pop('partial', False)
+        partial = kwargs.pop("partial", False)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
 
         # 使用服务层更新
-        provider = ModelProviderService.update_provider(
-            str(instance.id),
-            serializer.validated_data
-        )
+        provider = ModelProviderService.update_provider(str(instance.id), serializer.validated_data)
 
         # 返回详情
         response_serializer = ModelProviderDetailSerializer(provider)
@@ -96,17 +90,16 @@ class ModelProviderViewSet(viewsets.ModelViewSet):
 
         # 检查所有关联字段
         in_use = (
-            ProjectModelConfig.objects.filter(rewrite_providers=instance).exists() or
-            ProjectModelConfig.objects.filter(storyboard_providers=instance).exists() or
-            ProjectModelConfig.objects.filter(image_providers=instance).exists() or
-            ProjectModelConfig.objects.filter(camera_providers=instance).exists() or
-            ProjectModelConfig.objects.filter(video_providers=instance).exists()
+            ProjectModelConfig.objects.filter(rewrite_providers=instance).exists()
+            or ProjectModelConfig.objects.filter(storyboard_providers=instance).exists()
+            or ProjectModelConfig.objects.filter(image_providers=instance).exists()
+            or ProjectModelConfig.objects.filter(camera_providers=instance).exists()
+            or ProjectModelConfig.objects.filter(video_providers=instance).exists()
         )
 
         if in_use:
             return Response(
-                {'error': '该模型提供商正在被项目使用,无法删除'},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "该模型提供商正在被项目使用,无法删除"}, status=status.HTTP_400_BAD_REQUEST
             )
 
         # 使用服务层删除
@@ -115,12 +108,9 @@ class ModelProviderViewSet(viewsets.ModelViewSet):
         if success:
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
-            return Response(
-                {'error': '删除失败'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "删除失败"}, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def toggle_status(self, request, pk=None):
         """
         切换模型提供商激活状态
@@ -129,13 +119,15 @@ class ModelProviderViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         provider = ModelProviderService.toggle_provider_status(str(instance.id))
 
-        return Response({
-            'message': f'模型提供商已{"激活" if provider.is_active else "停用"}',
-            'is_active': provider.is_active,
-            'provider': ModelProviderDetailSerializer(provider).data
-        })
+        return Response(
+            {
+                "message": f"模型提供商已{'激活' if provider.is_active else '停用'}",
+                "is_active": provider.is_active,
+                "provider": ModelProviderDetailSerializer(provider).data,
+            }
+        )
 
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=["get"])
     def statistics(self, request, pk=None):
         """
         获取模型提供商统计信息
@@ -146,7 +138,7 @@ class ModelProviderViewSet(viewsets.ModelViewSet):
 
         return Response(stats)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def test_connection(self, request, pk=None):
         """
         测试模型提供商连接
@@ -155,124 +147,111 @@ class ModelProviderViewSet(viewsets.ModelViewSet):
         """
         instance = self.get_object()
         serializer = ModelProviderTestSerializer(
-            data=request.data,
-            context={'provider_id': str(instance.id)}
+            data=request.data, context={"provider_id": str(instance.id)}
         )
         serializer.is_valid(raise_exception=True)
 
-        test_prompt = serializer.validated_data.get(
-            'test_prompt',
-            'Hello, this is a test.'
-        )
+        test_prompt = serializer.validated_data.get("test_prompt", "Hello, this is a test.")
 
         # 异步测试转同步执行
         result = async_to_sync(ModelProviderService.test_provider_connection)(
-            str(instance.id),
-            test_prompt
+            str(instance.id), test_prompt
         )
 
-        if result['success']:
-            return Response({
-                'success': True,
-                'message': '连接测试成功',
-                'latency_ms': result['latency_ms'],
-                'response': result.get('response'),
-                'data': result.get('data', {})
-            })
+        if result["success"]:
+            return Response(
+                {
+                    "success": True,
+                    "message": "连接测试成功",
+                    "latency_ms": result["latency_ms"],
+                    "response": result.get("response"),
+                    "data": result.get("data", {}),
+                }
+            )
         else:
-            return Response({
-                'success': False,
-                'message': '连接测试失败',
-                'error': result.get('error'),
-                'latency_ms': result.get('latency_ms', 0)
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "success": False,
+                    "message": "连接测试失败",
+                    "error": result.get("error"),
+                    "latency_ms": result.get("latency_ms", 0),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=["get"])
     def usage_logs(self, request, pk=None):
         """
         获取模型提供商的使用日志
         GET /api/v1/models/providers/{id}/usage-logs/
         """
         instance = self.get_object()
-        limit = int(request.query_params.get('limit', 100))
+        limit = int(request.query_params.get("limit", 100))
 
-        logs = ModelUsageLogService.get_logs_by_provider(
-            str(instance.id),
-            limit=limit
-        )
+        logs = ModelUsageLogService.get_logs_by_provider(str(instance.id), limit=limit)
 
         serializer = ModelUsageLogSerializer(logs, many=True)
-        return Response({
-            'count': len(logs),
-            'results': serializer.data
-        })
+        return Response({"count": len(logs), "results": serializer.data})
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def active_providers(self, request):
         """
         获取所有激活的模型提供商
         GET /api/v1/models/providers/active-providers/
         Query: ?provider_type=llm
         """
-        provider_type = request.query_params.get('provider_type')
+        provider_type = request.query_params.get("provider_type")
         providers = ModelProviderService.get_active_providers(provider_type)
 
         serializer = ModelProviderListSerializer(providers, many=True)
-        return Response({
-            'count': len(providers),
-            'results': serializer.data
-        })
+        return Response({"count": len(providers), "results": serializer.data})
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def by_type(self, request):
         """
         按类型分组获取模型提供商
         GET /api/v1/models/providers/by-type/
         """
-        llm_providers = ModelProvider.objects.filter(
-            provider_type='llm',
-            is_active=True
-        ).order_by('-priority')
+        llm_providers = ModelProvider.objects.filter(provider_type="llm", is_active=True).order_by(
+            "-priority"
+        )
 
         text2image_providers = ModelProvider.objects.filter(
-            provider_type='text2image',
-            is_active=True
-        ).order_by('-priority')
+            provider_type="text2image", is_active=True
+        ).order_by("-priority")
 
         image2video_providers = ModelProvider.objects.filter(
-            provider_type='image2video',
-            is_active=True
-        ).order_by('-priority')
+            provider_type="image2video", is_active=True
+        ).order_by("-priority")
 
-        return Response({
-            'llm': ModelProviderListSerializer(llm_providers, many=True).data,
-            'text2image': ModelProviderListSerializer(text2image_providers, many=True).data,
-            'image2video': ModelProviderListSerializer(image2video_providers, many=True).data,
-        })
+        return Response(
+            {
+                "llm": ModelProviderListSerializer(llm_providers, many=True).data,
+                "text2image": ModelProviderListSerializer(text2image_providers, many=True).data,
+                "image2video": ModelProviderListSerializer(image2video_providers, many=True).data,
+            }
+        )
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def simple_list(self, request):
         """
         获取简化的模型列表(仅id和name) - 用于下拉选择
         GET /api/v1/models/providers/simple-list/
         Query: ?provider_type=llm
         """
-        provider_type = request.query_params.get('provider_type')
+        provider_type = request.query_params.get("provider_type")
 
         queryset = ModelProvider.objects.filter(is_active=True)
 
         if provider_type:
             queryset = queryset.filter(provider_type=provider_type)
 
-        queryset = queryset.order_by('-priority', 'name')
+        queryset = queryset.order_by("-priority", "name")
 
         serializer = ModelProviderSimpleSerializer(queryset, many=True)
-        return Response({
-            'count': queryset.count(),
-            'results': serializer.data
-        })
+        return Response({"count": queryset.count(), "results": serializer.data})
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def executor_choices(self, request):
         """
         获取执行器选项列表
@@ -288,20 +267,21 @@ class ModelProviderViewSet(viewsets.ModelViewSet):
             "image2video": [...]
         }
         """
-        provider_type = request.query_params.get('provider_type')
+        provider_type = request.query_params.get("provider_type")
 
         # 如果指定了provider_type，只返回该类型的执行器
         if provider_type:
             temp_instance = ModelProvider(provider_type=provider_type)
             executor_choices = temp_instance.get_executor_choices()
 
-            return Response({
-                'provider_type': provider_type,
-                'executors': [
-                    {'value': choice[0], 'label': choice[1]}
-                    for choice in executor_choices
-                ]
-            })
+            return Response(
+                {
+                    "provider_type": provider_type,
+                    "executors": [
+                        {"value": choice[0], "label": choice[1]} for choice in executor_choices
+                    ],
+                }
+            )
 
         # 否则返回所有类型的执行器
         all_executors = {}
@@ -311,8 +291,7 @@ class ModelProviderViewSet(viewsets.ModelViewSet):
             executor_choices = temp_instance.get_executor_choices()
 
             all_executors[ptype] = [
-                {'value': choice[0], 'label': choice[1]}
-                for choice in executor_choices
+                {"value": choice[0], "label": choice[1]} for choice in executor_choices
             ]
 
         return Response(all_executors)
@@ -328,47 +307,38 @@ class ModelUsageLogViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = ModelUsageLogSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ['model_provider', 'status', 'project_id', 'stage_type']
-    ordering = ['-created_at']
+    filterset_fields = ["model_provider", "status", "project_id", "stage_type"]
+    ordering = ["-created_at"]
 
     def get_queryset(self):
         """获取所有使用日志"""
-        return ModelUsageLog.objects.all().select_related('model_provider')
+        return ModelUsageLog.objects.all().select_related("model_provider")
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def by_project(self, request):
         """
         按项目获取使用日志
         GET /api/v1/models/usage-logs/by-project/
         Query: ?project_id=xxx&stage_type=rewrite
         """
-        project_id = request.query_params.get('project_id')
+        project_id = request.query_params.get("project_id")
         if not project_id:
-            return Response(
-                {'error': '缺少project_id参数'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "缺少project_id参数"}, status=status.HTTP_400_BAD_REQUEST)
 
-        stage_type = request.query_params.get('stage_type')
+        stage_type = request.query_params.get("stage_type")
         logs = ModelUsageLogService.get_logs_by_project(project_id, stage_type)
 
         serializer = self.get_serializer(logs, many=True)
-        return Response({
-            'count': len(logs),
-            'results': serializer.data
-        })
+        return Response({"count": len(logs), "results": serializer.data})
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def failed_logs(self, request):
         """
         获取失败的使用日志
         GET /api/v1/models/usage-logs/failed-logs/
         """
-        limit = int(request.query_params.get('limit', 100))
+        limit = int(request.query_params.get("limit", 100))
         logs = ModelUsageLogService.get_failed_logs(limit=limit)
 
         serializer = self.get_serializer(logs, many=True)
-        return Response({
-            'count': len(logs),
-            'results': serializer.data
-        })
+        return Response({"count": len(logs), "results": serializer.data})

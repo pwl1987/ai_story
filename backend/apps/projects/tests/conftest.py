@@ -2,6 +2,7 @@
 Pipeline适配器测试配置
 解决SQLite数据库锁和SynchronousOnlyOperation问题
 """
+
 import os
 import tempfile
 
@@ -9,7 +10,7 @@ import pytest
 
 
 # 配置测试使用文件数据库而非内存数据库
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def django_db_setup():
     """
     配置测试使用文件型SQLite数据库而非内存数据库
@@ -17,15 +18,15 @@ def django_db_setup():
     """
     # 创建临时文件数据库
     temp_dir = tempfile.mkdtemp()
-    db_path = os.path.join(temp_dir, 'test_db.sqlite3')
+    db_path = os.path.join(temp_dir, "test_db.sqlite3")
 
     # 返回配置
     yield {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': db_path,
-        'TEST': {
-            'NAME': db_path,
-        }
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": db_path,
+        "TEST": {
+            "NAME": db_path,
+        },
     }
 
     # 清理临时文件
@@ -55,7 +56,7 @@ def django_db_use_transaction(db):
 
 
 # 为测试添加必要的设置
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def django_db_blocked():
     """
     覆盖默认的数据库阻止行为

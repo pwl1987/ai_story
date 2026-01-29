@@ -4,4 +4,4 @@
 遵循单一职责原则(SRP)
 """
 
-default_app_config = 'apps.files.apps.FilesConfig'
+default_app_config = "apps.files.apps.FilesConfig"

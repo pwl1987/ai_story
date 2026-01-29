@@ -9,6 +9,7 @@ Story 2.6 - Celery任务执行时间监控
 - 失败任务记录
 - 队列维度统计
 """
+
 import importlib.util
 import time
 from unittest.mock import Mock, patch
@@ -37,7 +38,7 @@ class TestCeleryMetricsIntegration:
     def test_prometheus_enabled(self):
         """测试Prometheus是否启用"""
         # 验证prometheus_client已安装
-        if importlib.util.find_spec('prometheus_client'):
+        if importlib.util.find_spec("prometheus_client"):
             assert PROMETHEUS_ENABLED
         else:
             # 如果未安装，验证禁用标志
@@ -53,25 +54,25 @@ class TestCeleryMetricsIntegration:
     @pytest.mark.skipif(not PROMETHEUS_ENABLED, reason="Prometheus not enabled")
     def test_celery_task_duration_metric_structure(self):
         """测试任务执行时间指标结构"""
-        assert celery_task_duration_seconds._type == 'histogram'
-        assert 'task_name' in celery_task_duration_seconds._labelnames
-        assert 'queue' in celery_task_duration_seconds._labelnames
+        assert celery_task_duration_seconds._type == "histogram"
+        assert "task_name" in celery_task_duration_seconds._labelnames
+        assert "queue" in celery_task_duration_seconds._labelnames
 
     @pytest.mark.skipif(not PROMETHEUS_ENABLED, reason="Prometheus not enabled")
     def test_celery_task_total_metric_structure(self):
         """测试任务总数指标结构"""
-        assert celery_task_total._type == 'counter'
-        assert 'task_name' in celery_task_total._labelnames
-        assert 'status' in celery_task_total._labelnames
-        assert 'queue' in celery_task_total._labelnames
+        assert celery_task_total._type == "counter"
+        assert "task_name" in celery_task_total._labelnames
+        assert "status" in celery_task_total._labelnames
+        assert "queue" in celery_task_total._labelnames
 
     @pytest.mark.skipif(not PROMETHEUS_ENABLED, reason="Prometheus not enabled")
     def test_celery_task_failure_metric_structure(self):
         """测试失败任务指标结构"""
-        assert celery_task_failure_total._type == 'counter'
-        assert 'task_name' in celery_task_failure_total._labelnames
-        assert 'exception_type' in celery_task_failure_total._labelnames
-        assert 'queue' in celery_task_failure_total._labelnames
+        assert celery_task_failure_total._type == "counter"
+        assert "task_name" in celery_task_failure_total._labelnames
+        assert "exception_type" in celery_task_failure_total._labelnames
+        assert "queue" in celery_task_failure_total._labelnames
 
 
 @pytest.mark.django_db
@@ -82,30 +83,30 @@ class TestTaskPrerunHandler:
         """测试任务开始时间记录"""
         # 创建mock task和sender
         sender = Mock()
-        sender.name = 'test_task'
+        sender.name = "test_task"
         task = Mock()
         task.request = Mock()
         task.request.args = [1, 2, 3]
-        task.request.kwargs = {'key': 'value'}
+        task.request.kwargs = {"key": "value"}
         task.request.retries = 0
 
         # 调用处理器
-        task_prerun_handler(sender=sender, task_id='test-id', task=task)
+        task_prerun_handler(sender=sender, task_id="test-id", task=task)
 
         # 验证开始时间已记录
-        assert hasattr(task.request, 'start_time')
+        assert hasattr(task.request, "start_time")
         assert task.request.start_time is not None
 
     def test_task_prerun_with_missing_request(self):
         """测试没有request属性的任务"""
         sender = Mock()
-        sender.name = 'test_task'
+        sender.name = "test_task"
         task = Mock()
         # 移除request属性
-        delattr(task, 'request') if hasattr(task, 'request') else None
+        delattr(task, "request") if hasattr(task, "request") else None
 
         # 调用处理器（不应抛出异常）
-        task_prerun_handler(sender=sender, task_id='test-id', task=task)
+        task_prerun_handler(sender=sender, task_id="test-id", task=task)
 
 
 @pytest.mark.django_db
@@ -115,12 +116,12 @@ class TestTaskPostrunHandler:
     def setup_method(self):
         """每个测试前初始化"""
         self.sender = Mock()
-        self.sender.name = 'test_task'
+        self.sender.name = "test_task"
         self.task = Mock()
         self.task.request = Mock()
         self.task.request.args = [1, 2, 3]
-        self.task.request.kwargs = {'key': 'value'}
-        self.task_id = 'test-id'
+        self.task.request.kwargs = {"key": "value"}
+        self.task_id = "test-id"
 
     def test_task_postrun_calculates_runtime(self):
         """测试任务执行时间计算"""
@@ -135,12 +136,12 @@ class TestTaskPostrunHandler:
             sender=self.sender,
             task_id=self.task_id,
             task=self.task,
-            retval={'result': 'success'},
-            state='SUCCESS'
+            retval={"result": "success"},
+            state="SUCCESS",
         )
 
         # 验证执行时间已计算
-        assert hasattr(self.task.request, 'start_time')
+        assert hasattr(self.task.request, "start_time")
 
     def test_task_postrun_detects_slow_task(self):
         """测试慢任务检测"""
@@ -149,13 +150,13 @@ class TestTaskPostrunHandler:
         self.task.request.start_time = time.time() - (slow_threshold + 10)
 
         # 调用处理器
-        with patch('config.celery.logger') as mock_logger:
+        with patch("config.celery.logger") as mock_logger:
             task_postrun_handler(
                 sender=self.sender,
                 task_id=self.task_id,
                 task=self.task,
-                retval={'result': 'success'},
-                state='SUCCESS'
+                retval={"result": "success"},
+                state="SUCCESS",
             )
 
             # 验证使用了WARNING级别
@@ -172,8 +173,8 @@ class TestTaskPostrunHandler:
             sender=self.sender,
             task_id=self.task_id,
             task=self.task,
-            retval=Retry('Retrying'),
-            state='RETRY'
+            retval=Retry("Retrying"),
+            state="RETRY",
         )
 
         # 验证没有记录日志（函数提前返回）
@@ -184,19 +185,20 @@ class TestTaskPostrunHandler:
         """测试任务完成后记录Prometheus metrics"""
         # 设置开始时间
         self.task.request.start_time = time.time()
-        self.task.request.delivery_info = {'routing_key': 'llm'}
+        self.task.request.delivery_info = {"routing_key": "llm"}
 
         # 获取初始计数
         try:
-            initial_count = celery_task_total.labels(
-                task_name='test_task',
-                status='SUCCESS',
-                queue='llm'
-            )._value.get() if hasattr(celery_task_total.labels(
-                task_name='test_task',
-                status='SUCCESS',
-                queue='llm'
-            ), '_value') else 0
+            initial_count = (
+                celery_task_total.labels(
+                    task_name="test_task", status="SUCCESS", queue="llm"
+                )._value.get()
+                if hasattr(
+                    celery_task_total.labels(task_name="test_task", status="SUCCESS", queue="llm"),
+                    "_value",
+                )
+                else 0
+            )
         except (AttributeError, ValueError):
             initial_count = 0
 
@@ -205,21 +207,22 @@ class TestTaskPostrunHandler:
             sender=self.sender,
             task_id=self.task_id,
             task=self.task,
-            retval={'result': 'success'},
-            state='SUCCESS'
+            retval={"result": "success"},
+            state="SUCCESS",
         )
 
         # 验证metrics被记录（计数增加）
         try:
-            new_count = celery_task_total.labels(
-                task_name='test_task',
-                status='SUCCESS',
-                queue='llm'
-            )._value.get() if hasattr(celery_task_total.labels(
-                task_name='test_task',
-                status='SUCCESS',
-                queue='llm'
-            ), '_value') else 0
+            new_count = (
+                celery_task_total.labels(
+                    task_name="test_task", status="SUCCESS", queue="llm"
+                )._value.get()
+                if hasattr(
+                    celery_task_total.labels(task_name="test_task", status="SUCCESS", queue="llm"),
+                    "_value",
+                )
+                else 0
+            )
             assert new_count >= initial_count
         except (AttributeError, ValueError, AssertionError):
             # 如果无法获取计数或断言失败，至少验证没有错误
@@ -233,23 +236,18 @@ class TestTaskFailureHandler:
     def test_task_failure_logs_error(self):
         """测试任务失败记录错误"""
         sender = Mock()
-        sender.name = 'test_task'
+        sender.name = "test_task"
         sender.request = Mock()
         sender.request.args = [1, 2, 3]
-        sender.request.kwargs = {'password': 'secret123'}
+        sender.request.kwargs = {"password": "secret123"}
         sender.request.retries = 0
         sender.max_retries = 3
 
         exception = Exception("Test error")
         exception.__traceback__ = None
 
-        with patch('config.celery.logger') as mock_logger:
-            task_failure_handler(
-                sender=sender,
-                task_id='test-id',
-                exception=exception,
-                einfo=None
-            )
+        with patch("config.celery.logger") as mock_logger:
+            task_failure_handler(sender=sender, task_id="test-id", exception=exception, einfo=None)
 
             # 验证错误被记录
             assert mock_logger.error.called
@@ -258,9 +256,9 @@ class TestTaskFailureHandler:
     def test_task_failure_records_prometheus_metrics(self):
         """测试失败任务记录Prometheus metrics"""
         sender = Mock()
-        sender.name = 'test_task'
+        sender.name = "test_task"
         sender.request = Mock()
-        sender.request.delivery_info = {'routing_key': 'llm'}
+        sender.request.delivery_info = {"routing_key": "llm"}
         sender.request.args = []
         sender.request.kwargs = {}
         sender.request.retries = 0
@@ -270,13 +268,10 @@ class TestTaskFailureHandler:
         exception.__traceback__ = None
 
         # 调用处理器
-        with patch('config.celery.logger'):
+        with patch("config.celery.logger"):
             try:
                 task_failure_handler(
-                    sender=sender,
-                    task_id='test-id',
-                    exception=exception,
-                    einfo=None
+                    sender=sender, task_id="test-id", exception=exception, einfo=None
                 )
                 # 如果没有抛出异常，则测试通过
                 assert True
@@ -296,49 +291,38 @@ class TestSensitiveDataFiltering:
 
     def test_filter_password(self):
         """测试密码过滤"""
-        kwargs = {'username': 'test', 'password': 'secret123'}
+        kwargs = {"username": "test", "password": "secret123"}
         filtered = _filter_sensitive_kwargs(kwargs)
 
-        assert filtered['username'] == 'test'
-        assert filtered['password'] == '***FILTERED***'
+        assert filtered["username"] == "test"
+        assert filtered["password"] == "***FILTERED***"
 
     def test_filter_api_key(self):
         """测试API密钥过滤"""
-        kwargs = {'data': 'value', 'api_key': 'key123'}
+        kwargs = {"data": "value", "api_key": "key123"}
         filtered = _filter_sensitive_kwargs(kwargs)
 
-        assert filtered['data'] == 'value'
-        assert filtered['api_key'] == '***FILTERED***'
+        assert filtered["data"] == "value"
+        assert filtered["api_key"] == "***FILTERED***"
 
     def test_filter_nested_dict(self):
         """测试嵌套字典过滤"""
-        kwargs = {
-            'username': 'test',
-            'config': {
-                'password': 'nested_secret',
-                'timeout': 30
-            }
-        }
+        kwargs = {"username": "test", "config": {"password": "nested_secret", "timeout": 30}}
         filtered = _filter_sensitive_kwargs(kwargs)
 
-        assert filtered['username'] == 'test'
-        assert filtered['config']['password'] == '***FILTERED***'
-        assert filtered['config']['timeout'] == 30
+        assert filtered["username"] == "test"
+        assert filtered["config"]["password"] == "***FILTERED***"
+        assert filtered["config"]["timeout"] == 30
 
     def test_filter_multiple_sensitive_fields(self):
         """测试多个敏感字段过滤"""
-        kwargs = {
-            'password': 'pwd123',
-            'token': 'tok123',
-            'secret': 'sec123',
-            'normal': 'value'
-        }
+        kwargs = {"password": "pwd123", "token": "tok123", "secret": "sec123", "normal": "value"}
         filtered = _filter_sensitive_kwargs(kwargs)
 
-        assert filtered['password'] == '***FILTERED***'
-        assert filtered['token'] == '***FILTERED***'
-        assert filtered['secret'] == '***FILTERED***'
-        assert filtered['normal'] == 'value'
+        assert filtered["password"] == "***FILTERED***"
+        assert filtered["token"] == "***FILTERED***"
+        assert filtered["secret"] == "***FILTERED***"
+        assert filtered["normal"] == "value"
 
 
 @pytest.mark.django_db
@@ -368,20 +352,15 @@ class TestTaskRetryHandler:
     def test_task_retry_logs_warning(self):
         """测试任务重试记录警告"""
         sender = Mock()
-        sender.name = 'test_task'
+        sender.name = "test_task"
         sender.request = Mock()
         sender.request.retries = 1
         sender.max_retries = 3
 
         reason = Exception("Temporary error")
 
-        with patch('config.celery.logger') as mock_logger:
-            task_retry_handler(
-                sender=sender,
-                task_id='test-id',
-                reason=reason,
-                einfo=None
-            )
+        with patch("config.celery.logger") as mock_logger:
+            task_retry_handler(sender=sender, task_id="test-id", reason=reason, einfo=None)
 
             # 验证警告被记录
             assert mock_logger.warning.called

@@ -33,47 +33,43 @@ class WebSocketMetrics:
 
     # WebSocket连接时间(毫秒)
     connection_time_histogram = Histogram(
-        'websocket_connection_time_milliseconds',
-        'WebSocket连接建立时间',
-        ['project_id', 'stage'],
-        buckets=[5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000]
+        "websocket_connection_time_milliseconds",
+        "WebSocket连接建立时间",
+        ["project_id", "stage"],
+        buckets=[5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000],
     )
 
     # 消息推送延迟(毫秒)
     message_latency_histogram = Histogram(
-        'websocket_message_latency_milliseconds',
-        'WebSocket消息推送延迟',
-        ['project_id', 'stage', 'message_type'],
-        buckets=[1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000]
+        "websocket_message_latency_milliseconds",
+        "WebSocket消息推送延迟",
+        ["project_id", "stage", "message_type"],
+        buckets=[1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000],
     )
 
     # Redis Pub/Sub延迟(毫秒)
     redis_publish_latency_histogram = Histogram(
-        'redis_publish_latency_milliseconds',
-        'Redis消息发布延迟',
-        ['project_id', 'stage'],
-        buckets=[0.1, 0.5, 1, 5, 10, 25, 50, 100, 250, 500]
+        "redis_publish_latency_milliseconds",
+        "Redis消息发布延迟",
+        ["project_id", "stage"],
+        buckets=[0.1, 0.5, 1, 5, 10, 25, 50, 100, 250, 500],
     )
 
     # WebSocket连接计数
     active_connections_gauge = Gauge(
-        'websocket_active_connections',
-        '当前活跃WebSocket连接数',
-        ['project_id', 'stage']
+        "websocket_active_connections", "当前活跃WebSocket连接数", ["project_id", "stage"]
     )
 
     # 消息推送计数
     messages_sent_counter = Counter(
-        'websocket_messages_sent_total',
-        'WebSocket消息发送总数',
-        ['project_id', 'stage', 'message_type', 'status']
+        "websocket_messages_sent_total",
+        "WebSocket消息发送总数",
+        ["project_id", "stage", "message_type", "status"],
     )
 
     # Redis消息发布计数
     redis_messages_published_counter = Counter(
-        'redis_messages_published_total',
-        'Redis消息发布总数',
-        ['project_id', 'stage', 'status']
+        "redis_messages_published_total", "Redis消息发布总数", ["project_id", "stage", "status"]
     )
 
     @staticmethod
@@ -88,24 +84,18 @@ class WebSocketMetrics:
         """
         try:
             WebSocketMetrics.connection_time_histogram.labels(
-                project_id=project_id,
-                stage=stage
+                project_id=project_id, stage=stage
             ).observe(duration_ms)
 
             logger.debug(
-                f"WebSocket连接时间: project={project_id}, stage={stage}, "
-                f"duration={duration_ms}ms"
+                f"WebSocket连接时间: project={project_id}, stage={stage}, duration={duration_ms}ms"
             )
         except Exception as e:
             logger.error(f"记录连接时间失败: {e}")
 
     @staticmethod
     def record_message_latency(
-        project_id: str,
-        stage: str,
-        message_type: str,
-        latency_ms: float,
-        status: str = 'success'
+        project_id: str, stage: str, message_type: str, latency_ms: float, status: str = "success"
     ) -> None:
         """
         记录消息推送延迟
@@ -120,17 +110,12 @@ class WebSocketMetrics:
         try:
             # 记录延迟
             WebSocketMetrics.message_latency_histogram.labels(
-                project_id=project_id,
-                stage=stage,
-                message_type=message_type
+                project_id=project_id, stage=stage, message_type=message_type
             ).observe(latency_ms)
 
             # 记录发送计数
             WebSocketMetrics.messages_sent_counter.labels(
-                project_id=project_id,
-                stage=stage,
-                message_type=message_type,
-                status=status
+                project_id=project_id, stage=stage, message_type=message_type, status=status
             ).inc()
 
             # NFR-P4: 推送延迟应<500ms
@@ -144,10 +129,7 @@ class WebSocketMetrics:
 
     @staticmethod
     def record_redis_publish_latency(
-        project_id: str,
-        stage: str,
-        latency_ms: float,
-        status: str = 'success'
+        project_id: str, stage: str, latency_ms: float, status: str = "success"
     ) -> None:
         """
         记录Redis消息发布延迟
@@ -161,15 +143,12 @@ class WebSocketMetrics:
         try:
             # 记录延迟
             WebSocketMetrics.redis_publish_latency_histogram.labels(
-                project_id=project_id,
-                stage=stage
+                project_id=project_id, stage=stage
             ).observe(latency_ms)
 
             # 记录发布计数
             WebSocketMetrics.redis_messages_published_counter.labels(
-                project_id=project_id,
-                stage=stage,
-                status=status
+                project_id=project_id, stage=stage, status=status
             ).inc()
 
             # NFR-I5: Redis延迟应<100ms
@@ -192,8 +171,7 @@ class WebSocketMetrics:
         """
         try:
             WebSocketMetrics.active_connections_gauge.labels(
-                project_id=project_id,
-                stage=stage
+                project_id=project_id, stage=stage
             ).inc()
         except Exception as e:
             logger.error(f"增加连接计数失败: {e}")
@@ -209,8 +187,7 @@ class WebSocketMetrics:
         """
         try:
             WebSocketMetrics.active_connections_gauge.labels(
-                project_id=project_id,
-                stage=stage
+                project_id=project_id, stage=stage
             ).dec()
         except Exception as e:
             logger.error(f"减少连接计数失败: {e}")
@@ -238,30 +215,34 @@ class WebSocketMetrics:
         connection_samples = []
         for sample in WebSocketMetrics.connection_time_histogram.collect():
             for _name, labels, samples in sample.samples:
-                if project_id is None or labels.get('project_id') == project_id:
+                if project_id is None or labels.get("project_id") == project_id:
                     connection_samples.extend(samples)
 
         # 收集消息延迟样本
         message_samples = []
         for sample in WebSocketMetrics.message_latency_histogram.collect():
             for _name, labels, samples in sample.samples:
-                if project_id is None or labels.get('project_id') == project_id:
+                if project_id is None or labels.get("project_id") == project_id:
                     message_samples.extend(samples)
 
         # 计算统计信息
         summary = {
-            'total_connections': sum(connection_samples),
-            'average_connection_time': sum(connection_samples) / len(connection_samples) if connection_samples else 0,
-            'average_message_latency': sum(message_samples) / len(message_samples) if message_samples else 0,
-            'active_connections': 0,  # 需要从Gauge获取
+            "total_connections": sum(connection_samples),
+            "average_connection_time": sum(connection_samples) / len(connection_samples)
+            if connection_samples
+            else 0,
+            "average_message_latency": sum(message_samples) / len(message_samples)
+            if message_samples
+            else 0,
+            "active_connections": 0,  # 需要从Gauge获取
         }
 
         # 计算百分位数
         if message_samples:
             sorted_samples = sorted(message_samples)
             n = len(sorted_samples)
-            summary['p95_message_latency'] = sorted_samples[int(n * 0.95)] if n > 0 else 0
-            summary['p99_message_latency'] = sorted_samples[int(n * 0.99)] if n > 0 else 0
+            summary["p95_message_latency"] = sorted_samples[int(n * 0.95)] if n > 0 else 0
+            summary["p99_message_latency"] = sorted_samples[int(n * 0.99)] if n > 0 else 0
 
         return summary
 
@@ -300,11 +281,7 @@ class ConnectionTimer:
         """结束计时并记录"""
         if self.start_time:
             duration_ms = (time.time() - self.start_time) * 1000
-            WebSocketMetrics.record_connection_time(
-                self.project_id,
-                self.stage,
-                duration_ms
-            )
+            WebSocketMetrics.record_connection_time(self.project_id, self.stage, duration_ms)
 
             # NFR-P2: 连接建立应<1秒
             if duration_ms > 1000:
@@ -351,13 +328,9 @@ class MessageLatencyTimer:
         """结束计时并记录"""
         if self.start_time:
             latency_ms = (time.time() - self.start_time) * 1000
-            status = 'error' if exc_type else 'success'
+            status = "error" if exc_type else "success"
             WebSocketMetrics.record_message_latency(
-                self.project_id,
-                self.stage,
-                self.message_type,
-                latency_ms,
-                status
+                self.project_id, self.stage, self.message_type, latency_ms, status
             )
 
         return False

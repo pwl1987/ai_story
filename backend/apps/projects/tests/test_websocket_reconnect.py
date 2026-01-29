@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 from core.websocket.reconnect_manager import (
     ReconnectState,
@@ -71,11 +71,7 @@ class TestReconnectStrategy:
 
     def test_exponential_backoff(self):
         """测试指数退避延迟"""
-        strategy = ReconnectStrategy(
-            max_retries=5,
-            initial_delay=1.0,
-            backoff_multiplier=2.0
-        )
+        strategy = ReconnectStrategy(max_retries=5, initial_delay=1.0, backoff_multiplier=2.0)
 
         # 测试延迟序列: 1s, 2s, 4s, 8s, 16s
         # 注意: 第5次失败时达到max_retries，不再更新延迟
@@ -84,8 +80,9 @@ class TestReconnectStrategy:
         for i, expected_delay in enumerate(expected_delays):
             asyncio.run(strategy.on_failure())
             # 验证当前延迟 (on_failure已设置current_delay)
-            assert strategy.current_delay == expected_delay, \
-                f"第{i+1}次失败，期望延迟{expected_delay}秒，实际{strategy.current_delay}秒"
+            assert strategy.current_delay == expected_delay, (
+                f"第{i + 1}次失败，期望延迟{expected_delay}秒，实际{strategy.current_delay}秒"
+            )
 
     def test_max_delay_limit(self):
         """测试最大延迟限制"""
@@ -93,7 +90,7 @@ class TestReconnectStrategy:
             max_retries=10,
             initial_delay=1.0,
             max_delay=5.0,  # 最大5秒
-            backoff_multiplier=2.0
+            backoff_multiplier=2.0,
         )
 
         # 测试延迟不会超过最大值
@@ -136,14 +133,14 @@ class TestWebSocketReconnectManager:
     def test_initial_state(self, mock_connect_callback):
         """测试初始状态"""
         manager = WebSocketReconnectManager(
-            project_id='proj-1',
-            stage='rewrite',
+            project_id="proj-1",
+            stage="rewrite",
             connect_callback=mock_connect_callback,
-            max_retries=5
+            max_retries=5,
         )
 
-        assert manager.project_id == 'proj-1'
-        assert manager.stage == 'rewrite'
+        assert manager.project_id == "proj-1"
+        assert manager.stage == "rewrite"
         assert manager.is_connected is False
         assert manager.get_state() == ReconnectState.DISCONNECTED
 
@@ -151,10 +148,10 @@ class TestWebSocketReconnectManager:
     async def test_successful_connection(self, mock_connect_callback):
         """测试连接成功"""
         manager = WebSocketReconnectManager(
-            project_id='proj-1',
-            stage='rewrite',
+            project_id="proj-1",
+            stage="rewrite",
             connect_callback=mock_connect_callback,
-            max_retries=5
+            max_retries=5,
         )
 
         # 启动连接
@@ -171,10 +168,10 @@ class TestWebSocketReconnectManager:
         mock_connect = AsyncMock(return_value=False)
 
         manager = WebSocketReconnectManager(
-            project_id='proj-1',
-            stage='rewrite',
+            project_id="proj-1",
+            stage="rewrite",
             connect_callback=mock_connect,
-            max_retries=2  # 仅重试2次以加快测试
+            max_retries=2,  # 仅重试2次以加快测试
         )
 
         # 启动连接 (会重连2次后失败)
@@ -190,10 +187,10 @@ class TestWebSocketReconnectManager:
     async def test_ping_pong(self, mock_connect_callback):
         """测试心跳检测"""
         manager = WebSocketReconnectManager(
-            project_id='proj-1',
-            stage='rewrite',
+            project_id="proj-1",
+            stage="rewrite",
             connect_callback=mock_connect_callback,
-            max_retries=5
+            max_retries=5,
         )
 
         # 模拟收到ping
@@ -206,10 +203,10 @@ class TestWebSocketReconnectManager:
     async def test_health_check(self, mock_connect_callback):
         """测试健康检查"""
         manager = WebSocketReconnectManager(
-            project_id='proj-1',
-            stage='rewrite',
+            project_id="proj-1",
+            stage="rewrite",
             connect_callback=mock_connect_callback,
-            max_retries=5
+            max_retries=5,
         )
 
         # 未连接时健康检查失败
@@ -225,11 +222,11 @@ class TestWebSocketReconnectManager:
     async def test_health_check_timeout(self, mock_connect_callback):
         """测试心跳超时"""
         manager = WebSocketReconnectManager(
-            project_id='proj-1',
-            stage='rewrite',
+            project_id="proj-1",
+            stage="rewrite",
             connect_callback=mock_connect_callback,
             max_retries=5,
-            ping_timeout=1  # 1秒超时
+            ping_timeout=1,  # 1秒超时
         )
 
         # 连接成功
@@ -242,18 +239,14 @@ class TestWebSocketReconnectManager:
         assert manager.check_health() is False
 
     @pytest.mark.asyncio
-    async def test_stop_manager(
-        self,
-        mock_connect_callback,
-        mock_disconnect_callback
-    ):
+    async def test_stop_manager(self, mock_connect_callback, mock_disconnect_callback):
         """测试停止管理器"""
         manager = WebSocketReconnectManager(
-            project_id='proj-1',
-            stage='rewrite',
+            project_id="proj-1",
+            stage="rewrite",
             connect_callback=mock_connect_callback,
             disconnect_callback=mock_disconnect_callback,
-            max_retries=5
+            max_retries=5,
         )
 
         # 启动连接
@@ -288,12 +281,12 @@ class TestWebSocketConsumerReconnect:
         consumer = ProjectStageConsumer()
 
         # 验证重连管理器初始化
-        assert hasattr(consumer, 'reconnect_manager')
+        assert hasattr(consumer, "reconnect_manager")
 
         # 验证连接和断开方法存在
-        assert hasattr(consumer, '_connect_redis')
-        assert hasattr(consumer, '_disconnect_redis')
-        assert hasattr(consumer, '_listen_messages')
+        assert hasattr(consumer, "_connect_redis")
+        assert hasattr(consumer, "_disconnect_redis")
+        assert hasattr(consumer, "_listen_messages")
 
     async def test_consumer_ping_pong_handling(self):
         """
@@ -311,9 +304,10 @@ class TestWebSocketConsumerReconnect:
         # 验证消息处理逻辑 (不实际调用receive，因为需要WebSocket连接)
         # 这里只验证消息格式正确
         import json
+
         data = json.loads(ping_message)
-        assert data['type'] == 'ping'
-        assert data['timestamp'] == 1234567890.0
+        assert data["type"] == "ping"
+        assert data["timestamp"] == 1234567890.0
 
 
 @pytest.mark.performance
@@ -335,10 +329,7 @@ class TestReconnectPerformance:
             return not call_count[0] < 5
 
         manager = WebSocketReconnectManager(
-            project_id='proj-1',
-            stage='rewrite',
-            connect_callback=mock_connect,
-            max_retries=5
+            project_id="proj-1", stage="rewrite", connect_callback=mock_connect, max_retries=5
         )
 
         # 记录开始时间
@@ -363,10 +354,7 @@ class TestReconnectPerformance:
         mock_connect = AsyncMock(return_value=True)
 
         manager = WebSocketReconnectManager(
-            project_id='proj-1',
-            stage='rewrite',
-            connect_callback=mock_connect,
-            max_retries=5
+            project_id="proj-1", stage="rewrite", connect_callback=mock_connect, max_retries=5
         )
 
         # 启动连接

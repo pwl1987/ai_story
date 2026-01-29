@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional
 
 from django.core.cache import cache
 
-logger = logging.getLogger('apps.core')
+logger = logging.getLogger("apps.core")
 
 
 class PercentileStats:
@@ -38,14 +38,11 @@ class PercentileStats:
     PERCENTILES = [50, 75, 90, 95, 99]
 
     # 缓存key前缀
-    API_STATS_KEY = 'percentile_stats:api:latest'
-    CELERY_STATS_KEY = 'percentile_stats:celery:latest'
+    API_STATS_KEY = "percentile_stats:api:latest"
+    CELERY_STATS_KEY = "percentile_stats:celery:latest"
 
     @classmethod
-    def calculate_api_percentiles(
-        cls,
-        time_window_minutes: int = None
-    ) -> Dict[str, Any]:
+    def calculate_api_percentiles(cls, time_window_minutes: int = None) -> Dict[str, Any]:
         """
         计算API响应时间的百分位数
 
@@ -60,10 +57,12 @@ class PercentileStats:
 
         logger.info(
             "计算API响应时间百分位数",
-            extra={'extra_fields': {
-                'time_window_minutes': time_window_minutes,
-                'percentiles': cls.PERCENTILES
-            }}
+            extra={
+                "extra_fields": {
+                    "time_window_minutes": time_window_minutes,
+                    "percentiles": cls.PERCENTILES,
+                }
+            },
         )
 
         try:
@@ -73,7 +72,7 @@ class PercentileStats:
 
             if not response_times:
                 logger.warning("未找到API响应时间数据")
-                stats = cls._get_empty_stats('api', time_window_minutes)
+                stats = cls._get_empty_stats("api", time_window_minutes)
                 cls._cache_stats(cls.API_STATS_KEY, stats)
                 return stats
 
@@ -82,17 +81,17 @@ class PercentileStats:
 
             # 构建统计结果
             stats = {
-                'type': 'api',
-                'time_window_minutes': time_window_minutes,
-                'sample_count': len(response_times),
-                'percentiles': percentiles,
-                'statistics': {
-                    'min': round(min(response_times), 2),
-                    'max': round(max(response_times), 2),
-                    'avg': round(sum(response_times) / len(response_times), 2),
-                    'median': round(median(response_times), 2)
+                "type": "api",
+                "time_window_minutes": time_window_minutes,
+                "sample_count": len(response_times),
+                "percentiles": percentiles,
+                "statistics": {
+                    "min": round(min(response_times), 2),
+                    "max": round(max(response_times), 2),
+                    "avg": round(sum(response_times) / len(response_times), 2),
+                    "median": round(median(response_times), 2),
                 },
-                'calculated_at': datetime.now().isoformat()
+                "calculated_at": datetime.now().isoformat(),
             }
 
             # 缓存统计结果
@@ -100,11 +99,13 @@ class PercentileStats:
 
             logger.info(
                 "API响应时间百分位数计算完成",
-                extra={'extra_fields': {
-                    'sample_count': len(response_times),
-                    'p95': percentiles.get('p95'),
-                    'p99': percentiles.get('p99')
-                }}
+                extra={
+                    "extra_fields": {
+                        "sample_count": len(response_times),
+                        "p95": percentiles.get("p95"),
+                        "p99": percentiles.get("p99"),
+                    }
+                },
             )
 
             return stats
@@ -113,18 +114,15 @@ class PercentileStats:
             logger.error(
                 f"计算API百分位数失败: {e}",
                 exc_info=True,
-                extra={'extra_fields': {'error': str(e)}}
+                extra={"extra_fields": {"error": str(e)}},
             )
-            stats = cls._get_empty_stats('api', time_window_minutes)
-            stats['error'] = str(e)
+            stats = cls._get_empty_stats("api", time_window_minutes)
+            stats["error"] = str(e)
             cls._cache_stats(cls.API_STATS_KEY, stats)
             return stats
 
     @classmethod
-    def calculate_celery_percentiles(
-        cls,
-        time_window_minutes: int = None
-    ) -> Dict[str, Any]:
+    def calculate_celery_percentiles(cls, time_window_minutes: int = None) -> Dict[str, Any]:
         """
         计算Celery任务执行时间的百分位数
 
@@ -139,10 +137,12 @@ class PercentileStats:
 
         logger.info(
             "计算Celery任务执行时间百分位数",
-            extra={'extra_fields': {
-                'time_window_minutes': time_window_minutes,
-                'percentiles': cls.PERCENTILES
-            }}
+            extra={
+                "extra_fields": {
+                    "time_window_minutes": time_window_minutes,
+                    "percentiles": cls.PERCENTILES,
+                }
+            },
         )
 
         try:
@@ -151,7 +151,7 @@ class PercentileStats:
 
             if not execution_times:
                 logger.warning("未找到Celery任务执行时间数据")
-                stats = cls._get_empty_stats('celery', time_window_minutes)
+                stats = cls._get_empty_stats("celery", time_window_minutes)
                 cls._cache_stats(cls.CELERY_STATS_KEY, stats)
                 return stats
 
@@ -160,17 +160,17 @@ class PercentileStats:
 
             # 构建统计结果
             stats = {
-                'type': 'celery',
-                'time_window_minutes': time_window_minutes,
-                'sample_count': len(execution_times),
-                'percentiles': percentiles,
-                'statistics': {
-                    'min': round(min(execution_times), 2),
-                    'max': round(max(execution_times), 2),
-                    'avg': round(sum(execution_times) / len(execution_times), 2),
-                    'median': round(median(execution_times), 2)
+                "type": "celery",
+                "time_window_minutes": time_window_minutes,
+                "sample_count": len(execution_times),
+                "percentiles": percentiles,
+                "statistics": {
+                    "min": round(min(execution_times), 2),
+                    "max": round(max(execution_times), 2),
+                    "avg": round(sum(execution_times) / len(execution_times), 2),
+                    "median": round(median(execution_times), 2),
                 },
-                'calculated_at': datetime.now().isoformat()
+                "calculated_at": datetime.now().isoformat(),
             }
 
             # 缓存统计结果
@@ -178,11 +178,13 @@ class PercentileStats:
 
             logger.info(
                 "Celery任务执行时间百分位数计算完成",
-                extra={'extra_fields': {
-                    'sample_count': len(execution_times),
-                    'p95': percentiles.get('p95'),
-                    'p99': percentiles.get('p99')
-                }}
+                extra={
+                    "extra_fields": {
+                        "sample_count": len(execution_times),
+                        "p95": percentiles.get("p95"),
+                        "p99": percentiles.get("p99"),
+                    }
+                },
             )
 
             return stats
@@ -191,10 +193,10 @@ class PercentileStats:
             logger.error(
                 f"计算Celery百分位数失败: {e}",
                 exc_info=True,
-                extra={'extra_fields': {'error': str(e)}}
+                extra={"extra_fields": {"error": str(e)}},
             )
-            stats = cls._get_empty_stats('celery', time_window_minutes)
-            stats['error'] = str(e)
+            stats = cls._get_empty_stats("celery", time_window_minutes)
+            stats["error"] = str(e)
             cls._cache_stats(cls.CELERY_STATS_KEY, stats)
             return stats
 
@@ -305,7 +307,7 @@ class PercentileStats:
                 weight = index - lower
                 value = sorted_data[lower] * (1 - weight) + sorted_data[upper] * weight
 
-            percentiles[f'p{p}'] = round(value, 2)
+            percentiles[f"p{p}"] = round(value, 2)
 
         return percentiles
 
@@ -325,11 +327,7 @@ class PercentileStats:
             logger.error(f"缓存统计失败: {e}", exc_info=True)
 
     @classmethod
-    def _get_empty_stats(
-        cls,
-        stats_type: str,
-        time_window_minutes: int
-    ) -> Dict[str, Any]:
+    def _get_empty_stats(cls, stats_type: str, time_window_minutes: int) -> Dict[str, Any]:
         """
         获取空统计结果
 
@@ -341,22 +339,17 @@ class PercentileStats:
             Dict: 空统计结果
         """
         return {
-            'type': stats_type,
-            'time_window_minutes': time_window_minutes,
-            'sample_count': 0,
-            'percentiles': {},
-            'statistics': {
-                'min': 0,
-                'max': 0,
-                'avg': 0,
-                'median': 0
-            },
-            'calculated_at': datetime.now().isoformat(),
-            'error': 'No data available'
+            "type": stats_type,
+            "time_window_minutes": time_window_minutes,
+            "sample_count": 0,
+            "percentiles": {},
+            "statistics": {"min": 0, "max": 0, "avg": 0, "median": 0},
+            "calculated_at": datetime.now().isoformat(),
+            "error": "No data available",
         }
 
     @classmethod
-    def get_latest_stats(cls, stats_type: str = 'api') -> Optional[Dict[str, Any]]:
+    def get_latest_stats(cls, stats_type: str = "api") -> Optional[Dict[str, Any]]:
         """
         获取最新的统计结果
 
@@ -367,7 +360,7 @@ class PercentileStats:
             Optional[Dict]: 最新统计结果
         """
         try:
-            key = cls.API_STATS_KEY if stats_type == 'api' else cls.CELERY_STATS_KEY
+            key = cls.API_STATS_KEY if stats_type == "api" else cls.CELERY_STATS_KEY
             stats = cache.get(key)
 
             return stats
@@ -377,10 +370,7 @@ class PercentileStats:
             return None
 
     @classmethod
-    def calculate_all_percentiles(
-        cls,
-        time_window_minutes: int = None
-    ) -> Dict[str, Any]:
+    def calculate_all_percentiles(cls, time_window_minutes: int = None) -> Dict[str, Any]:
         """
         计算所有百分位数统计
 
@@ -396,7 +386,7 @@ class PercentileStats:
         celery_stats = cls.calculate_celery_percentiles(time_window_minutes)
 
         return {
-            'api': api_stats,
-            'celery': celery_stats,
-            'generated_at': datetime.now().isoformat()
+            "api": api_stats,
+            "celery": celery_stats,
+            "generated_at": datetime.now().isoformat(),
         }

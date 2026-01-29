@@ -36,10 +36,12 @@ class EnhancedMockLLMClient(LLMClient):
         top_p: float = 0.9,
         # 新增参数
         simulate_delay: float = 0.5,  # 模拟延迟（秒）
-        simulate_error: Optional[str] = None,  # 模拟错误类型: "timeout", "rate_limit", "server_error"
+        simulate_error: Optional[
+            str
+        ] = None,  # 模拟错误类型: "timeout", "rate_limit", "server_error"
         enable_logging: bool = True,  # 是否启用日志
         custom_response: Optional[str] = None,  # 自定义响应
-        **kwargs
+        **kwargs,
     ):
         """
         初始化增强版Mock客户端
@@ -73,7 +75,6 @@ class EnhancedMockLLMClient(LLMClient):
 这个故事讲述了艺术与生活的完美融合，展现了一个追梦者的日常。通过细腻的笔触，我们看到了他对艺术的执着追求。
 
 改写后的内容更加生动，情感更加饱满，适合进行下一步的分镜创作。""",
-
         "storyboard": """{
   "scenes": [
     {
@@ -96,7 +97,6 @@ class EnhancedMockLLMClient(LLMClient):
     }
   ]
 }""",
-
         "camera_movement": """{
   "movement_type": "slow_zoom_in",
   "movement_params": {
@@ -107,7 +107,6 @@ class EnhancedMockLLMClient(LLMClient):
   },
   "description": "缓慢推进镜头，聚焦主体"
 }""",
-
         "default": """这是一个模拟的 LLM 响应。
 
 在实际使用中，这里会返回根据提示词生成的真实内容。Mock API 主要用于：
@@ -116,7 +115,7 @@ class EnhancedMockLLMClient(LLMClient):
 3. 前端界面的调试
 4. 成本控制（避免频繁调用真实 API）
 
-请在生产环境中配置真实的 LLM 服务。"""
+请在生产环境中配置真实的 LLM 服务。""",
     }
 
     def _log_request(self, prompt: str, **kwargs):
@@ -125,13 +124,13 @@ class EnhancedMockLLMClient(LLMClient):
             return
 
         log_entry = {
-            'timestamp': time.time(),
-            'model': self.model_name,
-            'stage_type': self.stage_type,
-            'prompt_length': len(prompt),
-            'simulate_delay': self.simulate_delay,
-            'simulate_error': self.simulate_error,
-            'kwargs': kwargs
+            "timestamp": time.time(),
+            "model": self.model_name,
+            "stage_type": self.stage_type,
+            "prompt_length": len(prompt),
+            "simulate_delay": self.simulate_delay,
+            "simulate_error": self.simulate_error,
+            "kwargs": kwargs,
         }
 
         self.request_log.append(log_entry)
@@ -144,7 +143,7 @@ class EnhancedMockLLMClient(LLMClient):
                 success=False,
                 text="",
                 error="模拟超时错误: API请求超时（超过30秒）",
-                metadata={'simulate_timeout': True}
+                metadata={"simulate_timeout": True},
             )
 
         elif self.simulate_error == "rate_limit":
@@ -152,7 +151,7 @@ class EnhancedMockLLMClient(LLMClient):
                 success=False,
                 text="",
                 error="模拟限流错误: API调用频率超限，请稍后重试",
-                metadata={'simulate_rate_limit': True, 'retry_after': 60}
+                metadata={"simulate_rate_limit": True, "retry_after": 60},
             )
 
         elif self.simulate_error == "server_error":
@@ -160,7 +159,7 @@ class EnhancedMockLLMClient(LLMClient):
                 success=False,
                 text="",
                 error="模拟服务器错误: 500 Internal Server Error",
-                metadata={'simulate_server_error': True}
+                metadata={"simulate_server_error": True},
             )
 
         else:
@@ -169,15 +168,11 @@ class EnhancedMockLLMClient(LLMClient):
                 success=False,
                 text="",
                 error=f"未知错误类型: {self.simulate_error}",
-                metadata={'simulate_unknown_error': True}
+                metadata={"simulate_unknown_error": True},
             )
 
     async def _generate_text(
-        self,
-        prompt: str,
-        max_tokens: int,
-        temperature: float,
-        **kwargs
+        self, prompt: str, max_tokens: int, temperature: float, **kwargs
     ) -> AIResponse:
         """
         生成模拟的文本响应（增强版）
@@ -216,12 +211,12 @@ class EnhancedMockLLMClient(LLMClient):
             success=True,
             text=response_text,
             metadata={
-                'tokens_used': tokens_used,
-                'latency_ms': latency_ms,
-                'model': self.model_name,
-                'is_mock': True,
-                'simulate_delay': self.simulate_delay
-            }
+                "tokens_used": tokens_used,
+                "latency_ms": latency_ms,
+                "model": self.model_name,
+                "is_mock": True,
+                "simulate_delay": self.simulate_delay,
+            },
         )
 
     def generate_stream(
@@ -230,7 +225,7 @@ class EnhancedMockLLMClient(LLMClient):
         system_prompt: str = "",
         max_tokens: int = 2000,
         temperature: float = 0.7,
-        **kwargs
+        **kwargs,
     ) -> Generator[Dict[str, Any], None, None]:
         """
         流式生成模拟文本（增强版）
@@ -249,16 +244,13 @@ class EnhancedMockLLMClient(LLMClient):
             max_tokens=max_tokens,
             temperature=temperature,
             stream=True,
-            **kwargs
+            **kwargs,
         )
 
         # 如果配置了错误模拟，返回错误chunk
         if self.simulate_error:
             error_response = self._simulate_error_scenario()
-            yield {
-                'type': 'error',
-                'error': error_response.error
-            }
+            yield {"type": "error", "error": error_response.error}
             return
 
         # 获取响应文本
@@ -276,26 +268,23 @@ class EnhancedMockLLMClient(LLMClient):
         chunk_size = max(1, len(words) // 5)  # 分成5个chunk
 
         for i in range(0, len(words), chunk_size):
-            chunk_words = words[i:i + chunk_size]
-            chunk_text = ' '.join(chunk_words)
+            chunk_words = words[i : i + chunk_size]
+            chunk_text = " ".join(chunk_words)
 
             yield {
-                'type': 'token',
-                'content': chunk_text,
-                'full_text': full_text,
-                'progress': (i + chunk_size) / len(words) * 100
+                "type": "token",
+                "content": chunk_text,
+                "full_text": full_text,
+                "progress": (i + chunk_size) / len(words) * 100,
             }
 
         # 返回完成信号
         latency_ms = int((time.time() - start_time) * 1000)
 
         yield {
-            'type': 'done',
-            'full_text': full_text,
-            'metadata': {
-                'latency_ms': latency_ms,
-                'simulate_delay': self.simulate_delay
-            }
+            "type": "done",
+            "full_text": full_text,
+            "metadata": {"latency_ms": latency_ms, "simulate_delay": self.simulate_delay},
         }
 
     async def validate_config(self) -> bool:
@@ -360,5 +349,3 @@ class EnhancedMockLLMClient(LLMClient):
             return self.MOCK_RESPONSES["camera_movement"]
         else:
             return self.MOCK_RESPONSES["default"]
-
-

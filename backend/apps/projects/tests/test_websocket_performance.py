@@ -13,7 +13,7 @@ import time
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 from core.metrics.websocket_metrics import ConnectionTimer, MessageLatencyTimer, WebSocketMetrics
 from core.redis.connection_pool import RedisConnectionPool
@@ -26,58 +26,56 @@ class TestWebSocketMetrics:
     def test_record_connection_time(self):
         """测试记录连接时间"""
         # 正常连接时间
-        WebSocketMetrics.record_connection_time('proj-1', 'rewrite', 500)
+        WebSocketMetrics.record_connection_time("proj-1", "rewrite", 500)
 
         # 慢速连接(超过1秒)
-        WebSocketMetrics.record_connection_time('proj-1', 'rewrite', 1500)
+        WebSocketMetrics.record_connection_time("proj-1", "rewrite", 1500)
 
     def test_record_message_latency(self):
         """测试记录消息延迟"""
         # 正常延迟
-        WebSocketMetrics.record_message_latency('proj-1', 'rewrite', 'stage_update', 250)
+        WebSocketMetrics.record_message_latency("proj-1", "rewrite", "stage_update", 250)
 
         # 超标延迟(超过500ms)
-        WebSocketMetrics.record_message_latency('proj-1', 'rewrite', 'stage_update', 750)
+        WebSocketMetrics.record_message_latency("proj-1", "rewrite", "stage_update", 750)
 
         # 错误延迟
-        WebSocketMetrics.record_message_latency(
-            'proj-1', 'rewrite', 'stage_update', 100, 'error'
-        )
+        WebSocketMetrics.record_message_latency("proj-1", "rewrite", "stage_update", 100, "error")
 
     def test_record_redis_publish_latency(self):
         """测试记录Redis发布延迟"""
         # 正常延迟
-        WebSocketMetrics.record_redis_publish_latency('proj-1', 'rewrite', 50)
+        WebSocketMetrics.record_redis_publish_latency("proj-1", "rewrite", 50)
 
         # 超标延迟(超过100ms)
-        WebSocketMetrics.record_redis_publish_latency('proj-1', 'rewrite', 150)
+        WebSocketMetrics.record_redis_publish_latency("proj-1", "rewrite", 150)
 
     def test_active_connections_gauge(self):
         """测试活跃连接计数"""
         # 增加连接
-        WebSocketMetrics.increment_active_connections('proj-1', 'rewrite')
-        WebSocketMetrics.increment_active_connections('proj-1', 'rewrite')
+        WebSocketMetrics.increment_active_connections("proj-1", "rewrite")
+        WebSocketMetrics.increment_active_connections("proj-1", "rewrite")
 
         # 减少连接
-        WebSocketMetrics.decrement_active_connections('proj-1', 'rewrite')
+        WebSocketMetrics.decrement_active_connections("proj-1", "rewrite")
 
     def test_get_metrics_summary(self):
         """测试获取性能指标摘要"""
         # 记录一些指标
-        WebSocketMetrics.record_connection_time('proj-1', 'rewrite', 500)
-        WebSocketMetrics.record_connection_time('proj-1', 'rewrite', 300)
-        WebSocketMetrics.record_message_latency('proj-1', 'rewrite', 'token', 100)
-        WebSocketMetrics.record_message_latency('proj-1', 'rewrite', 'token', 200)
+        WebSocketMetrics.record_connection_time("proj-1", "rewrite", 500)
+        WebSocketMetrics.record_connection_time("proj-1", "rewrite", 300)
+        WebSocketMetrics.record_message_latency("proj-1", "rewrite", "token", 100)
+        WebSocketMetrics.record_message_latency("proj-1", "rewrite", "token", 200)
 
         # 获取摘要
         # 注意: 暂时跳过Prometheus指标收集的复杂实现
         # 只测试方法调用不出错
         # TODO: 完善Prometheus样本解析
         try:
-            summary = WebSocketMetrics.get_metrics_summary('proj-1')
+            summary = WebSocketMetrics.get_metrics_summary("proj-1")
             # 验证基本结构
-            assert 'total_connections' in summary
-            assert 'average_connection_time' in summary
+            assert "total_connections" in summary
+            assert "average_connection_time" in summary
         except (ValueError, KeyError):
             # Prometheus样本解析问题,暂时跳过
             # 这是已知的Prometheus客户端库兼容性问题
@@ -91,7 +89,7 @@ class TestConnectionTimer:
     def test_connection_timer(self):
         """测试连接计时器"""
         # 模拟快速连接
-        with ConnectionTimer('proj-1', 'rewrite'):
+        with ConnectionTimer("proj-1", "rewrite"):
             time.sleep(0.1)  # 模拟100ms连接时间
 
         # 计时器自动记录,不需要断言
@@ -99,7 +97,7 @@ class TestConnectionTimer:
     def test_slow_connection_timer(self):
         """测试慢速连接计时器"""
         # 模拟慢速连接(超过1秒)
-        with ConnectionTimer('proj-1', 'rewrite'):
+        with ConnectionTimer("proj-1", "rewrite"):
             time.sleep(1.1)  # 模拟1.1秒连接时间
 
 
@@ -110,20 +108,20 @@ class TestMessageLatencyTimer:
     def test_message_latency_timer(self):
         """测试消息延迟计时器"""
         # 模拟正常延迟
-        with MessageLatencyTimer('proj-1', 'rewrite', 'stage_update'):
+        with MessageLatencyTimer("proj-1", "rewrite", "stage_update"):
             time.sleep(0.05)  # 模拟50ms延迟
 
     def test_slow_message_latency_timer(self):
         """测试慢速消息延迟计时器"""
         # 模拟超标延迟(超过500ms)
-        with MessageLatencyTimer('proj-1', 'rewrite', 'stage_update'):
+        with MessageLatencyTimer("proj-1", "rewrite", "stage_update"):
             time.sleep(0.6)  # 模拟600ms延迟
 
     def test_error_latency_timer(self):
         """测试错误延迟计时器"""
         # 模拟发送失败
         with pytest.raises(RuntimeError, match="Send failed"):
-            with MessageLatencyTimer('proj-1', 'rewrite', 'stage_update'):
+            with MessageLatencyTimer("proj-1", "rewrite", "stage_update"):
                 time.sleep(0.1)
                 raise RuntimeError("Send failed")
 
@@ -237,7 +235,7 @@ class TestRedisConnectionPool:
     async def test_health_check(self):
         """测试健康检查"""
         # 测试健康检查方法调用不出错
-        is_healthy = await RedisConnectionPool.health_check('redis://localhost:6379/2')
+        is_healthy = await RedisConnectionPool.health_check("redis://localhost:6379/2")
 
         # 如果Redis运行中,应该返回True
         # 如果Redis未运行,应该返回False而不抛异常

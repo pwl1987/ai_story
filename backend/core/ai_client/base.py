@@ -91,11 +91,7 @@ class LLMClient(BaseAIClient):
     """
 
     async def generate(
-        self,
-        prompt: str,
-        max_tokens: int = 2000,
-        temperature: float = 0.7,
-        **kwargs
+        self, prompt: str, max_tokens: int = 2000, temperature: float = 0.7, **kwargs
     ) -> AIResponse:
         """
         生成文本
@@ -113,11 +109,7 @@ class LLMClient(BaseAIClient):
 
     @abstractmethod
     async def _generate_text(
-        self,
-        prompt: str,
-        max_tokens: int,
-        temperature: float,
-        **kwargs
+        self, prompt: str, max_tokens: int, temperature: float, **kwargs
     ) -> AIResponse:
         """具体的文本生成实现"""
         pass
@@ -135,7 +127,7 @@ class Text2ImageClient(BaseAIClient):
         width: int = 1024,
         height: int = 1024,
         steps: int = 20,
-        **kwargs
+        **kwargs,
     ) -> AIResponse:
         """
         生成图片
@@ -151,19 +143,11 @@ class Text2ImageClient(BaseAIClient):
         Returns:
             AIResponse: 包含图片URL的响应对象
         """
-        return self._generate_image(
-            prompt, negative_prompt, width, height, steps, **kwargs
-        )
+        return self._generate_image(prompt, negative_prompt, width, height, steps, **kwargs)
 
     @abstractmethod
     def _generate_image(
-        self,
-        prompt: str,
-        negative_prompt: str,
-        width: int,
-        height: int,
-        steps: int,
-        **kwargs
+        self, prompt: str, negative_prompt: str, width: int, height: int, steps: int, **kwargs
     ) -> AIResponse:
         """具体的图片生成实现"""
         pass
@@ -180,7 +164,7 @@ class Image2VideoClient(BaseAIClient):
         camera_movement: Dict[str, Any],
         duration: float = 3.0,
         fps: int = 24,
-        **kwargs
+        **kwargs,
     ) -> AIResponse:
         """
         生成视频
@@ -195,18 +179,11 @@ class Image2VideoClient(BaseAIClient):
         Returns:
             AIResponse: 包含视频URL的响应对象
         """
-        return await self._generate_video(
-            image_url, camera_movement, duration, fps, **kwargs
-        )
+        return await self._generate_video(image_url, camera_movement, duration, fps, **kwargs)
 
     @abstractmethod
     async def _generate_video(
-        self,
-        image_url: str,
-        camera_movement: Dict[str, Any],
-        duration: float,
-        fps: int,
-        **kwargs
+        self, image_url: str, camera_movement: Dict[str, Any], duration: float, fps: int, **kwargs
     ) -> AIResponse:
         """具体的视频生成实现"""
         pass

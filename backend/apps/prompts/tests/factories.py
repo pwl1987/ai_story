@@ -9,11 +9,12 @@ from faker import Faker
 
 from apps.prompts.models import GlobalVariable, PromptTemplate, PromptTemplateSet
 
-fake = Faker(['zh_CN'])
+fake = Faker(["zh_CN"])
 
 
 class UserFactory(factory.django.DjangoModelFactory):
     """用户工厂"""
+
     class Meta:
         model = User
 
@@ -23,6 +24,7 @@ class UserFactory(factory.django.DjangoModelFactory):
 
 class PromptTemplateSetFactory(factory.django.DjangoModelFactory):
     """提示词集工厂"""
+
     class Meta:
         model = PromptTemplateSet
 
@@ -35,27 +37,31 @@ class PromptTemplateSetFactory(factory.django.DjangoModelFactory):
 
 class PromptTemplateFactory(factory.django.DjangoModelFactory):
     """提示词模板工厂"""
+
     class Meta:
         model = PromptTemplate
 
     template_set = factory.SubFactory(PromptTemplateSetFactory)
 
-    stage_type = factory.Iterator(['rewrite', 'storyboard', 'image_generation', 'camera_movement', 'video_generation'])
+    stage_type = factory.Iterator(
+        ["rewrite", "storyboard", "image_generation", "camera_movement", "video_generation"]
+    )
     template_content = factory.LazyFunction(lambda: fake.text(max_nb_chars=500))
-    variables = factory.LazyFunction(lambda: {'topic': 'string', 'style': 'string'})
+    variables = factory.LazyFunction(lambda: {"topic": "string", "style": "string"})
 
     version = 1
 
 
 class GlobalVariableFactory(factory.django.DjangoModelFactory):
     """全局变量工厂"""
+
     class Meta:
         model = GlobalVariable
 
     key = factory.Sequence(lambda n: f"variable_{n}")
     value = factory.LazyFunction(lambda: fake.word())
-    variable_type = factory.Iterator(['string', 'number', 'boolean', 'object'])
-    scope = factory.Iterator(['system', 'user'])
+    variable_type = factory.Iterator(["string", "number", "boolean", "object"])
+    scope = factory.Iterator(["system", "user"])
     group = factory.LazyFunction(lambda: fake.word())
     description = factory.LazyFunction(lambda: fake.sentence())
     created_by = None  # 可选字段

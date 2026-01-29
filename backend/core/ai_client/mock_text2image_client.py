@@ -31,7 +31,7 @@ class MockText2ImageClient(Text2ImageClient):
         width: int = 1024,
         height: int = 1024,
         steps: int = 20,
-        **kwargs
+        **kwargs,
     ) -> AIResponse:
         """
         生成模拟的图片响应（异步版本）
@@ -54,9 +54,9 @@ class MockText2ImageClient(Text2ImageClient):
         await asyncio.sleep(delay)
 
         # 从kwargs获取参数
-        kwargs.get('ratio', '1:1')
-        kwargs.get('resolution', '2k')
-        sample_count = kwargs.get('sample_count', 1)
+        kwargs.get("ratio", "1:1")
+        kwargs.get("resolution", "2k")
+        sample_count = kwargs.get("sample_count", 1)
 
         # 根据提示词哈希选择图片（保证相同提示词返回相同图片）
         prompt_hash = hash(prompt) % len(self.MOCK_IMAGE_URLS)
@@ -70,12 +70,7 @@ class MockText2ImageClient(Text2ImageClient):
             # 使用不同的随机种子
             url = f"{base_url}&seed={prompt_hash + i}"
             image_urls.append(url)
-            images_data.append({
-                "url": url,
-                "width": width,
-                "height": height,
-                "format": "jpeg"
-            })
+            images_data.append({"url": url, "width": width, "height": height, "format": "jpeg"})
 
         end_time = asyncio.get_event_loop().time()
         latency_ms = int((end_time - start_time) * 1000)
@@ -83,17 +78,17 @@ class MockText2ImageClient(Text2ImageClient):
         return AIResponse(
             success=True,
             data={
-                'image_urls': image_urls,
-                'images': images_data,
-                'first_image': image_urls[0] if image_urls else None
+                "image_urls": image_urls,
+                "images": images_data,
+                "first_image": image_urls[0] if image_urls else None,
             },
             metadata={
-                'latency_ms': latency_ms,
-                'model': self.model_name,
-                'width': width,
-                'height': height,
-                'is_mock': True
-            }
+                "latency_ms": latency_ms,
+                "model": self.model_name,
+                "width": width,
+                "height": height,
+                "is_mock": True,
+            },
         )
 
     async def validate_config(self) -> bool:

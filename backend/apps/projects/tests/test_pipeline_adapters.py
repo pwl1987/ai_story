@@ -11,6 +11,7 @@ Pipeline适配器单元测试
 
 使用pytest-asyncio进行异步测试
 """
+
 from unittest.mock import Mock, patch
 
 import pytest
@@ -40,9 +41,8 @@ class TestRewriteStageAdapter:
     async def project(self):
         # 使用sync_to_async包装ProjectFactory
         from asgiref.sync import sync_to_async
-        return await sync_to_async(ProjectFactory)(
-            original_topic="宁静的小镇，年轻的画家"
-        )
+
+        return await sync_to_async(ProjectFactory)(original_topic="宁静的小镇，年轻的画家")
 
     @pytest.fixture
     async def context(self, project):
@@ -71,15 +71,15 @@ class TestRewriteStageAdapter:
         result = await adapter.validate(context)
         assert not result
 
-    @patch('apps.projects.pipeline_adapters.LLMStageProcessor')
+    @patch("apps.projects.pipeline_adapters.LLMStageProcessor")
     @pytest.mark.asyncio
     async def test_process_success(self, mock_processor_class, adapter, context, project):
         """测试处理成功"""
         # Mock processor
         mock_processor = Mock()
         mock_processor.process_stream.return_value = [
-            {'type': 'token', 'full_text': '改写后的文本'},
-            {'type': 'done', 'full_text': '改写后的文本'}
+            {"type": "token", "full_text": "改写后的文本"},
+            {"type": "done", "full_text": "改写后的文本"},
         ]
         mock_processor_class.return_value = mock_processor
 
@@ -89,8 +89,8 @@ class TestRewriteStageAdapter:
         result = await adapter.process(context)
 
         assert result.success
-        assert 'rewritten_text' in result.data
-        assert result.data['rewritten_text'] == '改写后的文本'
+        assert "rewritten_text" in result.data
+        assert result.data["rewritten_text"] == "改写后的文本"
 
     @pytest.mark.asyncio
     async def test_process_failure_error_chunk(self, adapter, project, context):
@@ -117,18 +117,16 @@ class TestRewriteStageAdapter:
         """测试失败处理"""
         # 先创建stage
         stage = await sync_to_async(ProjectStage.objects.get_or_create)(
-            project=project,
-            stage_type='rewrite',
-            defaults={'status': 'pending'}
+            project=project, stage_type="rewrite", defaults={"status": "pending"}
         )
 
         error = Exception("测试错误")
         await adapter.on_failure(context, error)
 
         # 刷新并验证
-        stage = await sync_to_async(ProjectStage.objects.get)(project=project, stage_type='rewrite')
-        assert stage.status == 'failed'
-        assert '测试错误' in stage.error_message
+        stage = await sync_to_async(ProjectStage.objects.get)(project=project, stage_type="rewrite")
+        assert stage.status == "failed"
+        assert "测试错误" in stage.error_message
 
 
 @pytest.mark.django_db
@@ -145,9 +143,9 @@ class TestStoryboardStageAdapter:
         # 创建rewrite阶段并完成
         await sync_to_async(ProjectStageFactory)(
             project=project,
-            stage_type='rewrite',
-            status='completed',
-            output_data={'raw_text': '改写后的文本'}
+            stage_type="rewrite",
+            status="completed",
+            output_data={"raw_text": "改写后的文本"},
         )
         return project
 
@@ -155,7 +153,7 @@ class TestStoryboardStageAdapter:
     async def context(self, project):
         context = PipelineContext(project_id=str(project.id))
         # 添加rewrite结果到context（StoryboardStageAdapter.validate需要）
-        context.add_result('rewrite', {'raw_text': '改写后的文本'})
+        context.add_result("rewrite", {"raw_text": "改写后的文本"})
         return context
 
     @pytest.mark.asyncio
@@ -172,19 +170,19 @@ class TestStoryboardStageAdapter:
         result = await adapter.validate(context)
         assert not result
 
-    @patch('apps.projects.pipeline_adapters.LLMStageProcessor')
+    @patch("apps.projects.pipeline_adapters.LLMStageProcessor")
     @pytest.mark.asyncio
     async def test_process_success(self, mock_processor_class, adapter, context, project):
         """测试处理成功"""
         # 确保context有rewrite结果
-        if not context.get_result('rewrite'):
-            context.add_result('rewrite', {'raw_text': '改写后的文本'})
+        if not context.get_result("rewrite"):
+            context.add_result("rewrite", {"raw_text": "改写后的文本"})
 
         mock_processor = Mock()
         storyboard_json = '[{"scene_number": 1, "scene_description": "测试场景"}]'
         mock_processor.process_stream.return_value = [
-            {'type': 'token', 'full_text': storyboard_json},
-            {'type': 'done', 'full_text': storyboard_json}
+            {"type": "token", "full_text": storyboard_json},
+            {"type": "done", "full_text": storyboard_json},
         ]
         mock_processor_class.return_value = mock_processor
 
@@ -193,7 +191,7 @@ class TestStoryboardStageAdapter:
 
         assert result.success
         # 修复：StoryboardStageAdapter返回的键是'storyboard_text'而不是'storyboard'
-        assert 'storyboard_text' in result.data
+        assert "storyboard_text" in result.data
 
 
 @pytest.mark.django_db
@@ -210,9 +208,11 @@ class TestImageGenerationStageAdapter:
         # 创建storyboard阶段并完成
         await sync_to_async(ProjectStageFactory)(
             project=project,
-            stage_type='storyboard',
-            status='completed',
-            output_data={'storyboard': '[{"scene_number": 1, "scene_description": "测试场景", "image_prompt": "test prompt"}]'}
+            stage_type="storyboard",
+            status="completed",
+            output_data={
+                "storyboard": '[{"scene_number": 1, "scene_description": "测试场景", "image_prompt": "test prompt"}]'
+            },
         )
         return project
 
@@ -220,8 +220,10 @@ class TestImageGenerationStageAdapter:
     async def context(self, project):
         context = PipelineContext(project_id=str(project.id))
         # 添加storyboard结果到context（ImageGenerationStageAdapter.validate需要）
-        storyboard_data = [{"scene_number": 1, "scene_description": "测试场景", "image_prompt": "test prompt"}]
-        context.add_result('storyboard', {'storyboard': storyboard_data})
+        storyboard_data = [
+            {"scene_number": 1, "scene_description": "测试场景", "image_prompt": "test prompt"}
+        ]
+        context.add_result("storyboard", {"storyboard": storyboard_data})
         return context
 
     @pytest.mark.asyncio
@@ -233,22 +235,21 @@ class TestImageGenerationStageAdapter:
     @pytest.mark.asyncio
     async def test_validate_failure_no_storyboard(self, adapter, project):
         """测试验证失败：无storyboard输出"""
-        await sync_to_async(ProjectStage.objects.filter(
-        ).delete)()
+        await sync_to_async(ProjectStage.objects.filter().delete)()
 
         context = PipelineContext(project_id=str(project.id))
         result = await adapter.validate(context)
         assert not result
 
-    @patch('apps.projects.pipeline_adapters.Text2ImageStageProcessor')
+    @patch("apps.projects.pipeline_adapters.Text2ImageStageProcessor")
     @pytest.mark.asyncio
     async def test_process_success(self, mock_processor_class, adapter, context):
         """测试处理成功"""
         mock_processor = Mock()
         mock_processor.process_stream.return_value = [
-            {'type': 'progress', 'scene_index': 0, 'progress': 50},
-            {'type': 'image', 'scene_index': 0, 'image_url': 'http://example.com/image1.jpg'},
-            {'type': 'done', 'total_images': 1}
+            {"type": "progress", "scene_index": 0, "progress": 50},
+            {"type": "image", "scene_index": 0, "image_url": "http://example.com/image1.jpg"},
+            {"type": "done", "total_images": 1},
         ]
         mock_processor_class.return_value = mock_processor
 
@@ -256,7 +257,7 @@ class TestImageGenerationStageAdapter:
         result = await adapter.process(context)
 
         assert result.success
-        assert 'images' in result.data
+        assert "images" in result.data
 
 
 @pytest.mark.django_db
@@ -273,9 +274,9 @@ class TestCameraMovementStageAdapter:
         # 创建storyboard阶段并完成（CameraMovementStageAdapter需要storyboard结果）
         await sync_to_async(ProjectStageFactory)(
             project=project,
-            stage_type='storyboard',
-            status='completed',
-            output_data={'storyboard': '[{"scene_number": 1, "scene_description": "测试场景"}]'}
+            stage_type="storyboard",
+            status="completed",
+            output_data={"storyboard": '[{"scene_number": 1, "scene_description": "测试场景"}]'},
         )
         return project
 
@@ -284,7 +285,7 @@ class TestCameraMovementStageAdapter:
         context = PipelineContext(project_id=str(project.id))
         # 添加storyboard结果到context（CameraMovementStageAdapter.validate需要storyboard）
         storyboard_data = [{"scene_number": 1, "scene_description": "测试场景"}]
-        context.add_result('storyboard', {'storyboard_text': storyboard_data})
+        context.add_result("storyboard", {"storyboard_text": storyboard_data})
         return context
 
     @pytest.mark.asyncio
@@ -301,19 +302,19 @@ class TestCameraMovementStageAdapter:
         result = await adapter.validate(context)
         assert not result
 
-    @patch('apps.projects.pipeline_adapters.LLMStageProcessor')
+    @patch("apps.projects.pipeline_adapters.LLMStageProcessor")
     @pytest.mark.asyncio
     async def test_process_success(self, mock_processor_class, adapter, context):
         """测试处理成功"""
         # 确保context有storyboard结果
-        if not context.get_result('storyboard'):
+        if not context.get_result("storyboard"):
             storyboard_data = [{"scene_number": 1, "scene_description": "测试场景"}]
-            context.add_result('storyboard', {'storyboard_text': storyboard_data})
+            context.add_result("storyboard", {"storyboard_text": storyboard_data})
 
         mock_processor = Mock()
         mock_processor.process_stream.return_value = [
-            {'type': 'token', 'full_text': '{"movement_type": "zoom_in"}'},
-            {'type': 'done', 'full_text': '{"movement_type": "zoom_in"}'}
+            {"type": "token", "full_text": '{"movement_type": "zoom_in"}'},
+            {"type": "done", "full_text": '{"movement_type": "zoom_in"}'},
         ]
         mock_processor_class.return_value = mock_processor
 
@@ -322,7 +323,7 @@ class TestCameraMovementStageAdapter:
 
         assert result.success
         # 修复：CameraMovementStageAdapter返回的键是'camera_movement_text'而不是'camera_movements'
-        assert 'camera_movement_text' in result.data
+        assert "camera_movement_text" in result.data
 
 
 @pytest.mark.django_db
@@ -339,15 +340,17 @@ class TestVideoGenerationStageAdapter:
         # 创建前置阶段
         await sync_to_async(ProjectStageFactory)(
             project=project,
-            stage_type='camera_movement',
-            status='completed',
-            output_data={'camera_movements': [{'scene_index': 0, 'movement_type': 'zoom_in'}]}
+            stage_type="camera_movement",
+            status="completed",
+            output_data={"camera_movements": [{"scene_index": 0, "movement_type": "zoom_in"}]},
         )
         await sync_to_async(ProjectStageFactory)(
             project=project,
-            stage_type='image_generation',
-            status='completed',
-            output_data={'images': [{'scene_index': 0, 'image_url': 'http://example.com/image1.jpg'}]}
+            stage_type="image_generation",
+            status="completed",
+            output_data={
+                "images": [{"scene_index": 0, "image_url": "http://example.com/image1.jpg"}]
+            },
         )
         return project
 
@@ -355,10 +358,10 @@ class TestVideoGenerationStageAdapter:
     async def context(self, project):
         context = PipelineContext(project_id=str(project.id))
         # 添加camera_movement和image_generation结果到context（VideoGenerationStageAdapter.validate需要）
-        camera_movements_data = [{'scene_index': 0, 'movement_type': 'zoom_in'}]
-        images_data = [{'scene_index': 0, 'image_url': 'http://example.com/image1.jpg'}]
-        context.add_result('camera_movement', {'camera_movements': camera_movements_data})
-        context.add_result('image_generation', {'images': images_data})
+        camera_movements_data = [{"scene_index": 0, "movement_type": "zoom_in"}]
+        images_data = [{"scene_index": 0, "image_url": "http://example.com/image1.jpg"}]
+        context.add_result("camera_movement", {"camera_movements": camera_movements_data})
+        context.add_result("image_generation", {"images": images_data})
         return context
 
     @pytest.mark.asyncio
@@ -380,8 +383,8 @@ class TestVideoGenerationStageAdapter:
         """测试验证失败：无图片"""
         # 创建只有camera_movement但无image_generation结果的context
         context = PipelineContext(project_id=str(project.id))
-        camera_movements_data = [{'scene_index': 0, 'movement_type': 'zoom_in'}]
-        context.add_result('camera_movement', {'camera_movements': camera_movements_data})
+        camera_movements_data = [{"scene_index": 0, "movement_type": "zoom_in"}]
+        context.add_result("camera_movement", {"camera_movements": camera_movements_data})
         result = await adapter.validate(context)
         assert not result
 
@@ -390,12 +393,12 @@ class TestVideoGenerationStageAdapter:
         """测试处理成功（集成测试）"""
         # 不使用Mock，改为验证validate和数据结构
         # 确保context有前置阶段结果
-        if not context.get_result('camera_movement'):
-            camera_movements_data = [{'scene_index': 0, 'movement_type': 'zoom_in'}]
-            context.add_result('camera_movement', {'camera_movements': camera_movements_data})
-        if not context.get_result('image_generation'):
-            images_data = [{'scene_index': 0, 'image_url': 'http://example.com/image1.jpg'}]
-            context.add_result('image_generation', {'images': images_data})
+        if not context.get_result("camera_movement"):
+            camera_movements_data = [{"scene_index": 0, "movement_type": "zoom_in"}]
+            context.add_result("camera_movement", {"camera_movements": camera_movements_data})
+        if not context.get_result("image_generation"):
+            images_data = [{"scene_index": 0, "image_url": "http://example.com/image1.jpg"}]
+            context.add_result("image_generation", {"images": images_data})
 
         # 由于VideoGeneration需要真实的AI客户端，这里只测试验证和初始化逻辑
         # 实际的process测试在集成测试中覆盖
@@ -403,8 +406,8 @@ class TestVideoGenerationStageAdapter:
         # 验证adapter可以创建context
         assert adapter is not None
         assert context is not None
-        assert context.get_result('camera_movement') is not None
-        assert context.get_result('image_generation') is not None
+        assert context.get_result("camera_movement") is not None
+        assert context.get_result("image_generation") is not None
 
 
 @pytest.mark.django_db
@@ -418,11 +421,15 @@ class TestAdapterIntegration:
         project = await sync_to_async(ProjectFactory)(original_topic="宁静的小镇，年轻的画家")
 
         # 创建所有阶段 - 使用sync_to_async包装ProjectStageFactory
-        for stage_type in ['rewrite', 'storyboard', 'image_generation', 'camera_movement', 'video_generation']:
+        for stage_type in [
+            "rewrite",
+            "storyboard",
+            "image_generation",
+            "camera_movement",
+            "video_generation",
+        ]:
             await sync_to_async(ProjectStageFactory)(
-                project=project,
-                stage_type=stage_type,
-                status='pending'
+                project=project, stage_type=stage_type, status="pending"
             )
 
         context = PipelineContext(project_id=str(project.id))
@@ -437,9 +444,7 @@ class TestAdapterIntegration:
         project = await sync_to_async(ProjectFactory)(original_topic="测试主题")
         # 使用sync_to_async包装ProjectStageFactory
         await sync_to_async(ProjectStageFactory)(
-            project=project,
-            stage_type='rewrite',
-            status='pending'
+            project=project, stage_type="rewrite", status="pending"
         )
 
         context = PipelineContext(project_id=str(project.id))
@@ -449,6 +454,6 @@ class TestAdapterIntegration:
         error = Exception("测试错误")
         await adapter.on_failure(context, error)
 
-        stage = await sync_to_async(ProjectStage.objects.get)(project=project, stage_type='rewrite')
-        assert stage.status == 'failed'
-        assert '测试错误' in stage.error_message
+        stage = await sync_to_async(ProjectStage.objects.get)(project=project, stage_type="rewrite")
+        assert stage.status == "failed"
+        assert "测试错误" in stage.error_message

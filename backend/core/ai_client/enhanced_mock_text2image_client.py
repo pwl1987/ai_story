@@ -34,7 +34,7 @@ class EnhancedMockText2ImageClient(Text2ImageClient):
         simulate_error: Optional[str] = None,  # 模拟错误类型
         enable_logging: bool = True,
         custom_image_url: Optional[str] = None,  # 自定义图片URL
-        **kwargs
+        **kwargs,
     ):
         """
         初始化增强版Mock Text2Image客户端
@@ -54,13 +54,13 @@ class EnhancedMockText2ImageClient(Text2ImageClient):
             return
 
         log_entry = {
-            'timestamp': time.time(),
-            'model': self.model_name,
-            'prompt_length': len(prompt),
-            'width': width,
-            'height': height,
-            'simulate_delay': self.simulate_delay,
-            'simulate_error': self.simulate_error
+            "timestamp": time.time(),
+            "model": self.model_name,
+            "prompt_length": len(prompt),
+            "width": width,
+            "height": height,
+            "simulate_delay": self.simulate_delay,
+            "simulate_error": self.simulate_error,
         }
 
         self.request_log.append(log_entry)
@@ -70,37 +70,21 @@ class EnhancedMockText2ImageClient(Text2ImageClient):
         """模拟错误场景"""
         if self.simulate_error == "timeout":
             return AIResponse(
-                success=False,
-                data={},
-                error="模拟超时错误: 图片生成超时（超过60秒）"
+                success=False, data={}, error="模拟超时错误: 图片生成超时（超过60秒）"
             )
 
         elif self.simulate_error == "rate_limit":
-            return AIResponse(
-                success=False,
-                data={},
-                error="模拟限流错误: API调用频率超限"
-            )
+            return AIResponse(success=False, data={}, error="模拟限流错误: API调用频率超限")
 
         elif self.simulate_error == "server_error":
             return AIResponse(
-                success=False,
-                data={},
-                error="模拟服务器错误: 500 Internal Server Error"
+                success=False, data={}, error="模拟服务器错误: 500 Internal Server Error"
             )
 
-        return AIResponse(
-            success=False,
-            data={},
-            error=f"未知错误类型: {self.simulate_error}"
-        )
+        return AIResponse(success=False, data={}, error=f"未知错误类型: {self.simulate_error}")
 
     async def generate(
-        self,
-        prompt: str,
-        width: int = 1024,
-        height: int = 1024,
-        **kwargs
+        self, prompt: str, width: int = 1024, height: int = 1024, **kwargs
     ) -> AIResponse:
         """
         生成图片（增强版）
@@ -126,11 +110,7 @@ class EnhancedMockText2ImageClient(Text2ImageClient):
         return AIResponse(
             success=True,
             data=image_data,
-            metadata={
-                'latency_ms': latency_ms,
-                'model': self.model_name,
-                'is_mock': True
-            }
+            metadata={"latency_ms": latency_ms, "model": self.model_name, "is_mock": True},
         )
 
     def get_request_log(self) -> List[Dict[str, Any]]:
@@ -150,11 +130,7 @@ class EnhancedMockText2ImageClient(Text2ImageClient):
         self.simulate_error = error_type
 
     def _generate_image(
-        self,
-        prompt: str,
-        width: int = 1024,
-        height: int = 1024,
-        **kwargs
+        self, prompt: str, width: int = 1024, height: int = 1024, **kwargs
     ) -> Dict[str, Any]:
         """
         生成图片（同步版本，内部使用）
@@ -167,11 +143,7 @@ class EnhancedMockText2ImageClient(Text2ImageClient):
         else:
             image_url = f"http://localhost:8000/mock/image/{int(time.time())}.jpg"
 
-        return {
-            'image_url': image_url,
-            'width': width,
-            'height': height
-        }
+        return {"image_url": image_url, "width": width, "height": height}
 
     async def validate_config(self) -> bool:
         """
@@ -196,4 +168,3 @@ class EnhancedMockText2ImageClient(Text2ImageClient):
             return False
 
         return True
-

@@ -39,14 +39,14 @@ class PromptTemplateSetViewSet(viewsets.ModelViewSet):
     queryset = PromptTemplateSet.objects.all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['is_active', 'is_default', 'created_by']
-    search_fields = ['name', 'description']
-    ordering_fields = ['created_at', 'updated_at', 'name']
-    ordering = ['-created_at']
+    filterset_fields = ["is_active", "is_default", "created_by"]
+    search_fields = ["name", "description"]
+    ordering_fields = ["created_at", "updated_at", "name"]
+    ordering = ["-created_at"]
 
     def get_serializer_class(self):
         """根据操作类型选择序列化器"""
-        if self.action == 'list':
+        if self.action == "list":
             return PromptTemplateSetListSerializer
         return PromptTemplateSetSerializer
 
@@ -59,13 +59,11 @@ class PromptTemplateSetViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         if not user.is_staff:
-            queryset = queryset.filter(
-                Q(created_by=user) | Q(is_default=True)
-            )
+            queryset = queryset.filter(Q(created_by=user) | Q(is_default=True))
 
-        return queryset.prefetch_related('templates', 'created_by')
+        return queryset.prefetch_related("templates", "created_by")
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def clone(self, request, pk=None):
         """
         克隆提示词集
@@ -73,21 +71,18 @@ class PromptTemplateSetViewSet(viewsets.ModelViewSet):
         Body: {"name": "新提示词集名称"}
         """
         original_set = self.get_object()
-        new_name = request.data.get('name')
+        new_name = request.data.get("name")
 
         if not new_name:
-            return Response(
-                {'error': '请提供新提示词集的名称'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "请提供新提示词集的名称"}, status=status.HTTP_400_BAD_REQUEST)
 
         # 创建新提示词集
         new_set = PromptTemplateSet.objects.create(
             name=new_name,
-            description=f'克隆自: {original_set.name}',
+            description=f"克隆自: {original_set.name}",
             is_active=True,
             is_default=False,
-            created_by=request.user
+            created_by=request.user,
         )
 
         # 复制所有模板
@@ -98,13 +93,13 @@ class PromptTemplateSetViewSet(viewsets.ModelViewSet):
                 template_content=template.template_content,
                 variables=template.variables,
                 version=1,
-                is_active=True
+                is_active=True,
             )
 
         serializer = self.get_serializer(new_set)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def set_default(self, request, pk=None):
         """
         设置为默认提示词集
@@ -113,8 +108,7 @@ class PromptTemplateSetViewSet(viewsets.ModelViewSet):
         """
         if not request.user.is_staff:
             return Response(
-                {'error': '只有管理员可以设置默认提示词集'},
-                status=status.HTTP_403_FORBIDDEN
+                {"error": "只有管理员可以设置默认提示词集"}, status=status.HTTP_403_FORBIDDEN
             )
 
         prompt_set = self.get_object()
@@ -129,7 +123,7 @@ class PromptTemplateSetViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(prompt_set)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def default(self, request):
         """
         获取默认提示词集
@@ -138,10 +132,7 @@ class PromptTemplateSetViewSet(viewsets.ModelViewSet):
         default_set = PromptTemplateSet.objects.filter(is_default=True).first()
 
         if not default_set:
-            return Response(
-                {'error': '未设置默认提示词集'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": "未设置默认提示词集"}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = self.get_serializer(default_set)
         return Response(serializer.data)
@@ -156,14 +147,14 @@ class PromptTemplateViewSet(viewsets.ModelViewSet):
     queryset = PromptTemplate.objects.all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['template_set', 'stage_type', 'is_active']
-    search_fields = ['template_content']
-    ordering_fields = ['created_at', 'updated_at', 'version']
-    ordering = ['-updated_at']
+    filterset_fields = ["template_set", "stage_type", "is_active"]
+    search_fields = ["template_content"]
+    ordering_fields = ["created_at", "updated_at", "version"]
+    ordering = ["-updated_at"]
 
     def get_serializer_class(self):
         """根据操作类型选择序列化器"""
-        if self.action == 'list':
+        if self.action == "list":
             return PromptTemplateListSerializer
         return PromptTemplateSerializer
 
@@ -177,38 +168,40 @@ class PromptTemplateViewSet(viewsets.ModelViewSet):
 
         if not user.is_staff:
             queryset = queryset.filter(
-                Q(template_set__created_by=user) |
-                Q(template_set__is_default=True)
+                Q(template_set__created_by=user) | Q(template_set__is_default=True)
             )
 
-        return queryset.select_related('template_set', 'model_provider')
+        return queryset.select_related("template_set", "model_provider")
 
     def perform_create(self, serializer):
         """
         创建提示词模板时，检查是否已存在相同 template_set + stage_type 的模板
         如果存在，删除旧模板或提示用户更新
         """
-        template_set = serializer.validated_data.get('template_set')
-        stage_type = serializer.validated_data.get('stage_type')
+        template_set = serializer.validated_data.get("template_set")
+        stage_type = serializer.validated_data.get("stage_type")
 
         # 检查是否存在相同的模板
         existing_template = PromptTemplate.objects.filter(
-            template_set=template_set,
-            stage_type=stage_type
+            template_set=template_set, stage_type=stage_type
         ).first()
 
         if existing_template:
             # 验证权限
-            if existing_template.template_set.created_by != self.request.user and not self.request.user.is_staff:
+            if (
+                existing_template.template_set.created_by != self.request.user
+                and not self.request.user.is_staff
+            ):
                 from rest_framework.exceptions import PermissionDenied
-                raise PermissionDenied('无权限修改此模板')
+
+                raise PermissionDenied("无权限修改此模板")
 
             # 删除旧模板（可选：改为更新旧模板）
             existing_template.delete()
 
         serializer.save()
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def create_version(self, request, pk=None):
         """
         创建新版本
@@ -222,10 +215,7 @@ class PromptTemplateViewSet(viewsets.ModelViewSet):
 
         # 验证权限
         if original_template.template_set.created_by != request.user and not request.user.is_staff:
-            return Response(
-                {'error': '无权限修改此模板'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return Response({"error": "无权限修改此模板"}, status=status.HTTP_403_FORBIDDEN)
 
         # 创建新版本
         serializer = PromptTemplateSerializer(data=request.data)
@@ -234,10 +224,10 @@ class PromptTemplateViewSet(viewsets.ModelViewSet):
         new_template = PromptTemplate.objects.create(
             template_set=original_template.template_set,
             stage_type=original_template.stage_type,
-            template_content=serializer.validated_data['template_content'],
-            variables=serializer.validated_data.get('variables', {}),
+            template_content=serializer.validated_data["template_content"],
+            variables=serializer.validated_data.get("variables", {}),
             version=original_template.version + 1,
-            is_active=True
+            is_active=True,
         )
 
         # 停用旧版本
@@ -247,7 +237,7 @@ class PromptTemplateViewSet(viewsets.ModelViewSet):
         response_serializer = PromptTemplateSerializer(new_template)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=["get"])
     def versions(self, request, pk=None):
         """
         获取版本历史
@@ -260,14 +250,13 @@ class PromptTemplateViewSet(viewsets.ModelViewSet):
 
         # 获取���一阶段类型的所有版本
         versions = PromptTemplate.objects.filter(
-            template_set=template.template_set,
-            stage_type=template.stage_type
-        ).order_by('-version')
+            template_set=template.template_set, stage_type=template.stage_type
+        ).order_by("-version")
 
         serializer = PromptTemplateSerializer(versions, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def validate(self, request, pk=None):
         """
         验证模板语法
@@ -277,12 +266,9 @@ class PromptTemplateViewSet(viewsets.ModelViewSet):
         serializer = PromptTemplateValidateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        return Response({
-            'valid': True,
-            'message': '模板语法正确'
-        })
+        return Response({"valid": True, "message": "模板语法正确"})
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def preview(self, request, pk=None):
         """
         预览模板渲染结果
@@ -298,28 +284,22 @@ class PromptTemplateViewSet(viewsets.ModelViewSet):
         serializer = PromptTemplatePreviewSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        variables = serializer.validated_data['variables']
+        variables = serializer.validated_data["variables"]
 
         try:
             # 渲染模板
             jinja_template = Template(template.template_content)
             rendered = jinja_template.render(**variables)
 
-            return Response({
-                'success': True,
-                'rendered_content': rendered,
-                'variables_used': variables
-            })
+            return Response(
+                {"success": True, "rendered_content": rendered, "variables_used": variables}
+            )
         except Exception as e:
             return Response(
-                {
-                    'success': False,
-                    'error': f'渲染失败: {e!s}'
-                },
-                status=status.HTTP_400_BAD_REQUEST
+                {"success": False, "error": f"渲染失败: {e!s}"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def evaluate(self, request, pk=None):
         """
         AI评估提示词效果
@@ -332,9 +312,7 @@ class PromptTemplateViewSet(viewsets.ModelViewSet):
         try:
             # 使用评估服务进行AI分析
             evaluation_service = PromptEvaluationService()
-            evaluation_result = asyncio.run(
-                evaluation_service.evaluate_prompt(template)
-            )
+            evaluation_result = asyncio.run(evaluation_service.evaluate_prompt(template))
 
             serializer = PromptTemplateEvaluationSerializer(data=evaluation_result)
             serializer.is_valid(raise_exception=True)
@@ -342,10 +320,7 @@ class PromptTemplateViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         except Exception as e:
             return Response(
-                {
-                    'error': f'评估失败: {e!s}'
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": f"评估失败: {e!s}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 
@@ -358,16 +333,16 @@ class GlobalVariableViewSet(viewsets.ModelViewSet):
     queryset = GlobalVariable.objects.all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['scope', 'group', 'variable_type', 'is_active', 'created_by']
-    search_fields = ['key', 'description', 'group']
-    ordering_fields = ['created_at', 'updated_at', 'key', 'group']
-    ordering = ['group', 'key']
+    filterset_fields = ["scope", "group", "variable_type", "is_active", "created_by"]
+    search_fields = ["key", "description", "group"]
+    ordering_fields = ["created_at", "updated_at", "key", "group"]
+    ordering = ["group", "key"]
 
     def get_serializer_class(self):
         """根据操作类型选择序列化器"""
-        if self.action == 'list':
+        if self.action == "list":
             return GlobalVariableListSerializer
-        elif self.action == 'batch_create':
+        elif self.action == "batch_create":
             return GlobalVariableBatchSerializer
         return GlobalVariableSerializer
 
@@ -382,39 +357,35 @@ class GlobalVariableViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         # 用户可以看到自己的用户级变量 + 所有系统级变量
-        queryset = queryset.filter(
-            Q(created_by=user, scope='user') |
-            Q(scope='system')
-        )
+        queryset = queryset.filter(Q(created_by=user, scope="user") | Q(scope="system"))
 
-        return queryset.select_related('created_by')
+        return queryset.select_related("created_by")
 
     def perform_destroy(self, instance):
         """
         删除变量时的权限检查
         系统级变量只能由管理员删除
         """
-        if instance.scope == 'system' and not self.request.user.is_staff:
+        if instance.scope == "system" and not self.request.user.is_staff:
             from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied('只有管理员可以删除系统级变量')
+
+            raise PermissionDenied("只有管理员可以删除系统级变量")
 
         super().perform_destroy(instance)
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def groups(self, request):
         """
         获取所有变量分组
         GET /api/v1/prompts/variables/groups/
         """
         queryset = self.get_queryset()
-        groups = queryset.values_list('group', flat=True).distinct()
+        groups = queryset.values_list("group", flat=True).distinct()
         groups = [g for g in groups if g]  # 过滤空字符串
 
-        return Response({
-            'groups': sorted(groups)
-        })
+        return Response({"groups": sorted(groups)})
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     async def for_template(self, request):
         """
         获取可用于模板渲染的变量字典
@@ -424,19 +395,15 @@ class GlobalVariableViewSet(viewsets.ModelViewSet):
 
         返回格式: {key: typed_value}
         """
-        include_system = request.query_params.get('include_system', 'true').lower() == 'true'
+        include_system = request.query_params.get("include_system", "true").lower() == "true"
 
         variables = await GlobalVariable.get_variables_for_user(
-            user=request.user,
-            include_system=include_system
+            user=request.user, include_system=include_system
         )
 
-        return Response({
-            'variables': variables,
-            'count': len(variables)
-        })
+        return Response({"variables": variables, "count": len(variables)})
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=["post"])
     def batch_create(self, request):
         """
         批量创建/更新变量
@@ -458,30 +425,25 @@ class GlobalVariableViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        variables_data = serializer.validated_data['variables']
+        variables_data = serializer.validated_data["variables"]
         created = []
         updated = []
         errors = []
 
         for var_data in variables_data:
-            key = var_data.get('key')
-            scope = var_data.get('scope', 'user')
+            key = var_data.get("key")
+            scope = var_data.get("scope", "user")
 
             # 检查是否已存在
             existing = GlobalVariable.objects.filter(
-                key=key,
-                created_by=request.user,
-                scope=scope
+                key=key, created_by=request.user, scope=scope
             ).first()
 
             try:
                 if existing:
                     # 更新现有变量
                     var_serializer = GlobalVariableSerializer(
-                        existing,
-                        data=var_data,
-                        context={'request': request},
-                        partial=True
+                        existing, data=var_data, context={"request": request}, partial=True
                     )
                     var_serializer.is_valid(raise_exception=True)
                     var_serializer.save()
@@ -489,30 +451,29 @@ class GlobalVariableViewSet(viewsets.ModelViewSet):
                 else:
                     # 创建新变量
                     var_serializer = GlobalVariableSerializer(
-                        data=var_data,
-                        context={'request': request}
+                        data=var_data, context={"request": request}
                     )
                     var_serializer.is_valid(raise_exception=True)
                     var_serializer.save()
                     created.append(var_serializer.data)
             except Exception as e:
-                errors.append({
-                    'key': key,
-                    'error': str(e)
-                })
+                errors.append({"key": key, "error": str(e)})
 
-        return Response({
-            'created': created,
-            'updated': updated,
-            'errors': errors,
-            'summary': {
-                'created_count': len(created),
-                'updated_count': len(updated),
-                'error_count': len(errors)
-            }
-        }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+        return Response(
+            {
+                "created": created,
+                "updated": updated,
+                "errors": errors,
+                "summary": {
+                    "created_count": len(created),
+                    "updated_count": len(updated),
+                    "error_count": len(errors),
+                },
+            },
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=["post"])
     def validate_key(self, request):
         """
         验证变量键是否可用
@@ -522,45 +483,33 @@ class GlobalVariableViewSet(viewsets.ModelViewSet):
             "scope": "user"
         }
         """
-        key = request.data.get('key')
-        scope = request.data.get('scope', 'user')
+        key = request.data.get("key")
+        scope = request.data.get("scope", "user")
 
         if not key:
-            return Response(
-                {'error': '请提供变量键'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "请提供变量键"}, status=status.HTTP_400_BAD_REQUEST)
 
         # 检查格式
         import keyword
         import re
 
-        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', key):
-            return Response({
-                'valid': False,
-                'message': '变量键只能包含字母、数字、下划线，且必须以字母或下划线开头'
-            })
+        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", key):
+            return Response(
+                {
+                    "valid": False,
+                    "message": "变量键只能包含字母、数字、下划线，且必须以字母或下划线开头",
+                }
+            )
 
         if keyword.iskeyword(key):
-            return Response({
-                'valid': False,
-                'message': f'"{key}" 是Python保留字，不能作为变量键'
-            })
+            return Response({"valid": False, "message": f'"{key}" 是Python保留字，不能作为变量键'})
 
         # 检查是否已存在
         exists = GlobalVariable.objects.filter(
-            key=key,
-            created_by=request.user,
-            scope=scope
+            key=key, created_by=request.user, scope=scope
         ).exists()
 
         if exists:
-            return Response({
-                'valid': False,
-                'message': f'变量键 "{key}" 在当前作用域下已存在'
-            })
+            return Response({"valid": False, "message": f'变量键 "{key}" 在当前作用域下已存在'})
 
-        return Response({
-            'valid': True,
-            'message': '变量键可用'
-        })
+        return Response({"valid": True, "message": "变量键可用"})

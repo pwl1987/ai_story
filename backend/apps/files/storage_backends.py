@@ -80,17 +80,14 @@ class LocalStorageBackend(BaseStorageBackend):
 
     def __init__(self, config=None):
         super().__init__(config)
-        self.root = config.get('root', settings.STORAGE_ROOT)
-        self.base_url = config.get('base_url', settings.STORAGE_URL)
+        self.root = config.get("root", settings.STORAGE_ROOT)
+        self.base_url = config.get("base_url", settings.STORAGE_URL)
 
         # 确保根目录存在
         os.makedirs(self.root, exist_ok=True)
 
         # 使用Django的FileSystemStorage
-        self.storage = FileSystemStorage(
-            location=self.root,
-            base_url=self.base_url
-        )
+        self.storage = FileSystemStorage(location=self.root, base_url=self.base_url)
 
     def save(self, file, file_path):
         """
@@ -142,12 +139,12 @@ class S3StorageBackend(BaseStorageBackend):
         super().__init__(config)
 
         # 从环境变量或配置中获取S3配置
-        self.bucket_name = config.get('bucket_name') or os.getenv('AWS_S3_BUCKET_NAME')
-        self.access_key = config.get('access_key') or os.getenv('AWS_ACCESS_KEY_ID')
-        self.secret_key = config.get('secret_key') or os.getenv('AWS_SECRET_ACCESS_KEY')
-        self.region = config.get('region') or os.getenv('AWS_S3_REGION', 'us-east-1')
-        self.endpoint_url = config.get('endpoint_url') or os.getenv('AWS_S3_ENDPOINT_URL')
-        self.custom_domain = config.get('custom_domain') or os.getenv('AWS_S3_CUSTOM_DOMAIN')
+        self.bucket_name = config.get("bucket_name") or os.getenv("AWS_S3_BUCKET_NAME")
+        self.access_key = config.get("access_key") or os.getenv("AWS_ACCESS_KEY_ID")
+        self.secret_key = config.get("secret_key") or os.getenv("AWS_SECRET_ACCESS_KEY")
+        self.region = config.get("region") or os.getenv("AWS_S3_REGION", "us-east-1")
+        self.endpoint_url = config.get("endpoint_url") or os.getenv("AWS_S3_ENDPOINT_URL")
+        self.custom_domain = config.get("custom_domain") or os.getenv("AWS_S3_CUSTOM_DOMAIN")
 
         # 初始化S3存储
         self.storage = S3Boto3Storage(
@@ -212,14 +209,14 @@ class OSSStorageBackend(BaseStorageBackend):
         try:
             import oss2
         except ImportError:
-            raise ImportError('oss2库未安装，请运行: uv pip install oss2')
+            raise ImportError("oss2库未安装，请运行: uv pip install oss2")
 
         # 从环境变量或配置中获取OSS配置
-        self.bucket_name = config.get('bucket_name') or os.getenv('ALIYUN_OSS_BUCKET_NAME')
-        self.access_key = config.get('access_key') or os.getenv('ALIYUN_ACCESS_KEY_ID')
-        self.secret_key = config.get('secret_key') or os.getenv('ALIYUN_ACCESS_KEY_SECRET')
-        self.endpoint = config.get('endpoint') or os.getenv('ALIYUN_OSS_ENDPOINT')
-        self.custom_domain = config.get('custom_domain') or os.getenv('ALIYUN_OSS_CUSTOM_DOMAIN')
+        self.bucket_name = config.get("bucket_name") or os.getenv("ALIYUN_OSS_BUCKET_NAME")
+        self.access_key = config.get("access_key") or os.getenv("ALIYUN_ACCESS_KEY_ID")
+        self.secret_key = config.get("secret_key") or os.getenv("ALIYUN_ACCESS_KEY_SECRET")
+        self.endpoint = config.get("endpoint") or os.getenv("ALIYUN_OSS_ENDPOINT")
+        self.custom_domain = config.get("custom_domain") or os.getenv("ALIYUN_OSS_CUSTOM_DOMAIN")
 
         # 创建Auth实例
         self.auth = oss2.Auth(self.access_key, self.secret_key)
@@ -287,9 +284,9 @@ class StorageBackendFactory:
 
     # 存储类型映射
     BACKEND_MAP = {
-        'local': LocalStorageBackend,
-        's3': S3StorageBackend,
-        'oss': OSSStorageBackend,
+        "local": LocalStorageBackend,
+        "s3": S3StorageBackend,
+        "oss": OSSStorageBackend,
         # 未来可以扩展：
         # 'cos': COSStorageBackend,  # 腾讯云
         # 'azure': AzureStorageBackend,  # Azure
@@ -308,13 +305,15 @@ class StorageBackendFactory:
         """
         # 从环境变量读取默认存储类型
         if storage_type is None:
-            storage_type = os.getenv('DEFAULT_STORAGE_BACKEND', 'local')
+            storage_type = os.getenv("DEFAULT_STORAGE_BACKEND", "local")
 
         # 获取存储后端类
         backend_class = cls.BACKEND_MAP.get(storage_type)
 
         if backend_class is None:
-            raise ValueError(f'不支持的存储类型: {storage_type}，支持的类型: {list(cls.BACKEND_MAP.keys())}')
+            raise ValueError(
+                f"不支持的存储类型: {storage_type}，支持的类型: {list(cls.BACKEND_MAP.keys())}"
+            )
 
         # 创建并返回实例
         return backend_class(config)
@@ -327,8 +326,8 @@ class StorageBackendFactory:
 
         :return: 存储后端实例
         """
-        storage_type = getattr(settings, 'DEFAULT_STORAGE_BACKEND', 'local')
-        storage_backends = getattr(settings, 'STORAGE_BACKENDS', {})
+        storage_type = getattr(settings, "DEFAULT_STORAGE_BACKEND", "local")
+        storage_backends = getattr(settings, "STORAGE_BACKENDS", {})
         storage_config = storage_backends.get(storage_type, {})
 
         return cls.create_backend(storage_type, storage_config)

@@ -1,6 +1,7 @@
 """
 Mock客户端完整测试 - 修复版
 """
+
 import pytest
 
 from core.ai_client.mock_image2video_client import MockImage2VideoClient
@@ -14,23 +15,23 @@ class TestMockClients:
 
     @pytest.fixture
     def mock_llm(self):
-        return MockLLMClient(api_url='http://mock', api_key='key', model_name='llm')
+        return MockLLMClient(api_url="http://mock", api_key="key", model_name="llm")
 
     @pytest.fixture
     def mock_t2i(self):
-        return MockText2ImageClient(api_url='http://mock', api_key='key', model_name='sdxl')
+        return MockText2ImageClient(api_url="http://mock", api_key="key", model_name="sdxl")
 
     @pytest.fixture
     def mock_i2v(self):
-        return MockImage2VideoClient(api_url='http://mock', api_key='key', model_name='runway')
+        return MockImage2VideoClient(api_url="http://mock", api_key="key", model_name="runway")
 
     # Mock LLM Client 测试
     @pytest.mark.asyncio
     async def test_mock_llm_generate(self, mock_llm):
         """测试Mock LLM生成"""
-        response = await mock_llm.generate(prompt='测试')
+        response = await mock_llm.generate(prompt="测试")
         assert response.success is True
-        assert response.text != ''
+        assert response.text != ""
 
     @pytest.mark.asyncio
     async def test_mock_llm_validate(self, mock_llm):
@@ -42,9 +43,9 @@ class TestMockClients:
     @pytest.mark.asyncio
     async def test_mock_t2i_generate(self, mock_t2i):
         """测试Mock文生图"""
-        response = await mock_t2i.generate(prompt='测试')
+        response = await mock_t2i.generate(prompt="测试")
         assert response.success is True
-        assert 'urls' in response.data or 'images' in response.data
+        assert "urls" in response.data or "images" in response.data
 
     @pytest.mark.asyncio
     async def test_mock_t2i_validate(self, mock_t2i):
@@ -57,12 +58,10 @@ class TestMockClients:
     async def test_mock_i2v_generate(self, mock_i2v):
         """测试Mock图生视频"""
         response = await mock_i2v.generate(
-            image_url='http://test.jpg',
-            camera_movement='推进',
-            duration=5
+            image_url="http://test.jpg", camera_movement="推进", duration=5
         )
         assert response.success is True
-        assert 'video_url' in response.data or 'videos' in response.data
+        assert "video_url" in response.data or "videos" in response.data
 
     @pytest.mark.asyncio
     async def test_mock_i2v_validate(self, mock_i2v):

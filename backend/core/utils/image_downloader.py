@@ -24,9 +24,7 @@ class ImageDownloader:
         self.max_file_size = 50 * 1024 * 1024  # 最大文件大小(50MB)
 
     def download_image(
-        self,
-        image_url: str,
-        subfolder: str = "generated_images"
+        self, image_url: str, subfolder: str = "generated_images"
     ) -> Tuple[bool, str, dict]:
         """
         下载图片到本地
@@ -40,7 +38,7 @@ class ImageDownloader:
         """
         try:
             # 验证URL
-            if not image_url or not image_url.startswith(('http://', 'https://')):
+            if not image_url or not image_url.startswith(("http://", "https://")):
                 return False, "", {"error": "无效的图片URL"}
 
             # 发送HTTP请求获取图片
@@ -49,22 +47,20 @@ class ImageDownloader:
                 stream=True,
                 timeout=self.download_timeout,
                 headers={
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                }
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                },
             )
 
             response.raise_for_status()
 
             # 检查文件大小
-            content_length = response.headers.get('content-length')
+            content_length = response.headers.get("content-length")
             if content_length and int(content_length) > self.max_file_size:
-                return False, "", {
-                    "error": f"文件过大: {int(content_length) / 1024 / 1024:.1f}MB"
-                }
+                return False, "", {"error": f"文件过大: {int(content_length) / 1024 / 1024:.1f}MB"}
 
             # 检查Content-Type
-            content_type = response.headers.get('content-type', '')
-            if not content_type.startswith('image/'):
+            content_type = response.headers.get("content-type", "")
+            if not content_type.startswith("image/"):
                 return False, "", {"error": f"非图片格式: {content_type}"}
 
             # 生成文件名和路径
@@ -97,7 +93,7 @@ class ImageDownloader:
                 "width": width,
                 "height": height,
                 "content_type": content_type,
-                "filename": filename
+                "filename": filename,
             }
 
             logger.info(f"图片下��成功: {image_url} -> {saved_path}")
@@ -123,13 +119,13 @@ class ImageDownloader:
         # 优先从Content-Type获取
         if content_type:
             type_map = {
-                'image/jpeg': '.jpg',
-                'image/jpg': '.jpg',
-                'image/png': '.png',
-                'image/gif': '.gif',
-                'image/webp': '.webp',
-                'image/bmp': '.bmp',
-                'image/tiff': '.tiff'
+                "image/jpeg": ".jpg",
+                "image/jpg": ".jpg",
+                "image/png": ".png",
+                "image/gif": ".gif",
+                "image/webp": ".webp",
+                "image/bmp": ".bmp",
+                "image/tiff": ".tiff",
             }
             if content_type.lower() in type_map:
                 return type_map[content_type.lower()]
@@ -137,21 +133,21 @@ class ImageDownloader:
         # 从URL路径获取
         parsed_url = urlparse(url)
         path = parsed_url.path.lower()
-        if path.endswith(('.jpg', '.jpeg')):
-            return '.jpg'
-        elif path.endswith('.png'):
-            return '.png'
-        elif path.endswith('.gif'):
-            return '.gif'
-        elif path.endswith('.webp'):
-            return '.webp'
-        elif path.endswith('.bmp'):
-            return '.bmp'
-        elif path.endswith('.tiff', '.tif'):
-            return '.tiff'
+        if path.endswith((".jpg", ".jpeg")):
+            return ".jpg"
+        elif path.endswith(".png"):
+            return ".png"
+        elif path.endswith(".gif"):
+            return ".gif"
+        elif path.endswith(".webp"):
+            return ".webp"
+        elif path.endswith(".bmp"):
+            return ".bmp"
+        elif path.endswith(".tiff", ".tif"):
+            return ".tiff"
 
         # 默认使用.jpg
-        return '.jpg'
+        return ".jpg"
 
     def _validate_image_content(self, content: bytes) -> bool:
         """验证图片内容（检查文件头）"""
@@ -161,16 +157,16 @@ class ImageDownloader:
         # 检查常见图片格式的文件头
         image_signatures = [
             # JPEG
-            b'\xFF\xD8\xFF',
+            b"\xff\xd8\xff",
             # PNG
-            b'\x89\x50\x4E\x47\x0D\x0A\x1A\x0A',
+            b"\x89\x50\x4e\x47\x0d\x0a\x1a\x0a",
             # GIF
-            b'GIF87a',
-            b'GIF89a',
+            b"GIF87a",
+            b"GIF89a",
             # WebP
-            b'RIFF',
+            b"RIFF",
             # BMP
-            b'BM',
+            b"BM",
         ]
 
         return any(content.startswith(sig) for sig in image_signatures)

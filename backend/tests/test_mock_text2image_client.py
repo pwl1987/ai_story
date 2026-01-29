@@ -1,6 +1,7 @@
 """
 Mock Text2Image客户端单元测试
 """
+
 import pytest
 
 from core.ai_client.mock_text2image_client import MockText2ImageClient
@@ -14,47 +15,37 @@ class TestMockText2ImageClient:
     def client(self):
         """创建Mock客户端实例"""
         return MockText2ImageClient(
-            api_url='http://localhost:8000/api/mock/text2image/',
-            api_key='mock_key',
-            model_name='mock_sdxl'
+            api_url="http://localhost:8000/api/mock/text2image/",
+            api_key="mock_key",
+            model_name="mock_sdxl",
         )
 
     def test_initialization(self, client):
         """测试客户端初始化"""
-        assert client.api_url == 'http://localhost:8000/api/mock/text2image/'
-        assert client.api_key == 'mock_key'
-        assert client.model_name == 'mock_sdxl'
+        assert client.api_url == "http://localhost:8000/api/mock/text2image/"
+        assert client.api_key == "mock_key"
+        assert client.model_name == "mock_sdxl"
 
     @pytest.mark.asyncio
     async def test_generate_success(self, client):
         """测试图片生成成功场景"""
         response = await client.generate(
-            prompt='A peaceful small town at dawn',
-            width=1024,
-            height=1024
+            prompt="A peaceful small town at dawn", width=1024, height=1024
         )
 
         assert response.success is True
-        assert response.data.get('image_url') is not None
-        assert response.data['image_url'].startswith('http://')
+        assert response.data.get("image_url") is not None
+        assert response.data["image_url"].startswith("http://")
 
     @pytest.mark.asyncio
     async def test_generate_different_sizes(self, client):
         """测试不同尺寸的图片生成"""
         # 1024x1024
-        response1 = client.generate(
-            prompt='测试',
-            width=1024,
-            height=1024
-        )
+        response1 = client.generate(prompt="测试", width=1024, height=1024)
         assert response1.success is True
 
         # 512x512
-        response2 = client.generate(
-            prompt='测试',
-            width=512,
-            height=512
-        )
+        response2 = client.generate(prompt="测试", width=512, height=512)
         assert response2.success is True
 
     @pytest.mark.asyncio

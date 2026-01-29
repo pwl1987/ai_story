@@ -13,7 +13,7 @@ from faker import Faker
 from apps.projects.models import Project, ProjectModelConfig, ProjectStage
 
 User = get_user_model()
-fake = Faker(['zh_CN'])
+fake = Faker(["zh_CN"])
 
 
 class UserFactory(factory.django.DjangoModelFactory):
@@ -21,7 +21,7 @@ class UserFactory(factory.django.DjangoModelFactory):
 
     class Meta:
         model = User
-        django_get_or_create = ('username',)
+        django_get_or_create = ("username",)
 
     username = factory.Sequence(lambda n: f"user{n}")
     email = factory.LazyAttribute(lambda obj: f"{obj.username}@example.com")
@@ -39,8 +39,8 @@ class ProjectFactory(factory.django.DjangoModelFactory):
     description = factory.LazyFunction(lambda: fake.text(max_nb_chars=200))
     original_topic = factory.LazyFunction(lambda: fake.sentence(nb_words=10))
 
-    status = 'draft'
-    jianying_draft_path = ''
+    status = "draft"
+    jianying_draft_path = ""
 
     user = factory.SubFactory(UserFactory)
     prompt_template_set = None  # 可选字段,设为None
@@ -55,15 +55,15 @@ class ProjectStageFactory(factory.django.DjangoModelFactory):
     id = factory.LazyFunction(uuid.uuid4)
     project = factory.SubFactory(ProjectFactory)
 
-    stage_type = 'rewrite'
-    status = 'pending'
+    stage_type = "rewrite"
+    status = "pending"
 
     input_data = {}
     output_data = {}
 
     retry_count = 0
     max_retries = 3
-    error_message = ''
+    error_message = ""
 
 
 class ProjectModelConfigFactory(factory.django.DjangoModelFactory):
@@ -75,4 +75,4 @@ class ProjectModelConfigFactory(factory.django.DjangoModelFactory):
     id = factory.LazyFunction(uuid.uuid4)
     project = factory.SubFactory(ProjectFactory)
 
-    load_balance_strategy = 'weighted'
+    load_balance_strategy = "weighted"

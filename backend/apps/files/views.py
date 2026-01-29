@@ -55,24 +55,24 @@ class FileUploadViewSet(viewsets.ModelViewSet):
         queryset = UploadedFile.objects.filter(user=self.request.user)
 
         # 文件类型筛选
-        file_type = self.request.query_params.get('file_type')
+        file_type = self.request.query_params.get("file_type")
         if file_type:
             queryset = queryset.filter(file_type=file_type)
 
         # 状态筛选
-        is_active = self.request.query_params.get('is_active')
+        is_active = self.request.query_params.get("is_active")
         if is_active is not None:
-            queryset = queryset.filter(is_active=is_active == 'true')
+            queryset = queryset.filter(is_active=is_active == "true")
 
-        return queryset.select_related('user', 'project')
+        return queryset.select_related("user", "project")
 
     def get_serializer_class(self):
         """
         根据action返回不同的序列化器
         """
-        if self.action == 'list':
+        if self.action == "list":
             return UploadedFileListSerializer
-        elif self.action == 'upload':
+        elif self.action == "upload":
             return FileUploadSerializer
         return UploadedFileSerializer
 
@@ -80,7 +80,7 @@ class FileUploadViewSet(viewsets.ModelViewSet):
         """
         创建文件记录时自动设置用户
         """
-        serializer.save(user=self.request.user, uploaded_from='api')
+        serializer.save(user=self.request.user, uploaded_from="api")
 
     def destroy(self, request, *args, **kwargs):
         """
@@ -99,9 +99,9 @@ class FileUploadViewSet(viewsets.ModelViewSet):
         # 删除数据库记录
         instance.delete()
 
-        return Response({'message': '文件已删除'}, status=status.HTTP_200_OK)
+        return Response({"message": "文件已删除"}, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=['post'], url_path='upload')
+    @action(detail=False, methods=["post"], url_path="upload")
     def upload(self, request):
         """
         上传文件
@@ -125,46 +125,42 @@ class FileUploadViewSet(viewsets.ModelViewSet):
         serializer = FileUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        uploaded_file = serializer.validated_data['file']
-        file_type = serializer.validated_data.get('file_type', 'other')
-        project_id = serializer.validated_data.get('project')
+        uploaded_file = serializer.validated_data["file"]
+        file_type = serializer.validated_data.get("file_type", "other")
+        project_id = serializer.validated_data.get("project")
 
         # 检查用户配额
         quota, _created = FileQuota.objects.get_or_create(user=request.user)
         allowed, message = quota.check_quota(uploaded_file.size)
         if not allowed:
-            return Response({
-                'error': message
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": message}, status=status.HTTP_400_BAD_REQUEST)
 
         # 自动检测文件类型
         ext = os.path.splitext(uploaded_file.name)[1].lower()
         if ext in UploadedFile.IMAGE_EXTENSIONS:
-            file_type = 'image'
+            file_type = "image"
         elif ext in UploadedFile.VIDEO_EXTENSIONS:
-            file_type = 'video'
+            file_type = "video"
         elif ext in UploadedFile.DOCUMENT_EXTENSIONS:
-            file_type = 'document'
+            file_type = "document"
         elif ext in UploadedFile.AUDIO_EXTENSIONS:
-            file_type = 'audio'
+            file_type = "audio"
         else:
-            file_type = 'other'
+            file_type = "other"
 
         # 计算文件哈希
         file_hash = self._calculate_file_hash(uploaded_file)
 
         # 检查是否已存在相同文件
         existing_file = UploadedFile.objects.filter(
-            user=request.user,
-            file_hash=file_hash,
-            original_filename=uploaded_file.name
+            user=request.user, file_hash=file_hash, original_filename=uploaded_file.name
         ).first()
 
         if existing_file:
-            return Response({
-                'message': '文件已存在',
-                'file': UploadedFileSerializer(existing_file).data
-            }, status=status.HTTP_200_OK)
+            return Response(
+                {"message": "文件已存在", "file": UploadedFileSerializer(existing_file).data},
+                status=status.HTTP_200_OK,
+            )
 
         # 创建文件记录
         uploaded_file_obj = UploadedFile.objects.create(
@@ -175,18 +171,18 @@ class FileUploadViewSet(viewsets.ModelViewSet):
             file_size=uploaded_file.size,
             file_hash=file_hash,
             project_id=project_id,
-            uploaded_from='api'
+            uploaded_from="api",
         )
 
         # 更新用户配额
         quota.update_usage(uploaded_file.size, increment=True)
 
-        return Response({
-            'message': '文件上传成功',
-            'file': UploadedFileSerializer(uploaded_file_obj).data
-        }, status=status.HTTP_201_CREATED)
+        return Response(
+            {"message": "文件上传成功", "file": UploadedFileSerializer(uploaded_file_obj).data},
+            status=status.HTTP_201_CREATED,
+        )
 
-    @action(detail=True, methods=['get'], url_path='download')
+    @action(detail=True, methods=["get"], url_path="download")
     def download(self, request, pk=None):
         """
         下载文件
@@ -195,25 +191,26 @@ class FileUploadViewSet(viewsets.ModelViewSet):
         try:
             uploaded_file = self.get_object()
 
-            if not uploaded_file.file or not uploaded_file.file.storage.exists(uploaded_file.file.name):
-                return Response({
-                    'error': '文件不存在'
-                }, status=status.HTTP_404_NOT_FOUND)
+            if not uploaded_file.file or not uploaded_file.file.storage.exists(
+                uploaded_file.file.name
+            ):
+                return Response({"error": "文件不存在"}, status=status.HTTP_404_NOT_FOUND)
 
             # 返回文件响应
             response = FileResponse(
-                uploaded_file.file.open('rb'),
-                content_type=uploaded_file.mime_type
+                uploaded_file.file.open("rb"), content_type=uploaded_file.mime_type
             )
-            response['Content-Disposition'] = f'attachment; filename="{uploaded_file.original_filename}"'
+            response["Content-Disposition"] = (
+                f'attachment; filename="{uploaded_file.original_filename}"'
+            )
             return response
 
         except Exception as e:
-            return Response({
-                'error': f'下载失败: {e!s}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": f"下载失败: {e!s}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-    @action(detail=False, methods=['get'], url_path='quota')
+    @action(detail=False, methods=["get"], url_path="quota")
     def quota(self, request):
         """
         获取用户配额信息
@@ -235,7 +232,7 @@ class FileUploadViewSet(viewsets.ModelViewSet):
         serializer = FileQuotaSerializer(quota)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], url_path='statistics')
+    @action(detail=False, methods=["get"], url_path="statistics")
     def statistics(self, request):
         """
         获取文件统计信息
@@ -258,7 +255,7 @@ class FileUploadViewSet(viewsets.ModelViewSet):
 
         # 总文件数和总大小
         total_files = queryset.count()
-        total_size = queryset.aggregate(total=Sum('file_size'))['total'] or 0
+        total_size = queryset.aggregate(total=Sum("file_size"))["total"] or 0
 
         # 按类型统计
         by_type = {}
@@ -267,13 +264,9 @@ class FileUploadViewSet(viewsets.ModelViewSet):
             if count > 0:
                 by_type[file_type] = count
 
-        return Response({
-            'total_files': total_files,
-            'total_size': total_size,
-            'by_type': by_type
-        })
+        return Response({"total_files": total_files, "total_size": total_size, "by_type": by_type})
 
-    @action(detail=True, methods=['get'], url_path='preview')
+    @action(detail=True, methods=["get"], url_path="preview")
     def preview(self, request, pk=None):
         """
         获取文件预览
@@ -289,29 +282,25 @@ class FileUploadViewSet(viewsets.ModelViewSet):
 
             # 生成预览
             preview_path = preview_service.get_preview(
-                uploaded_file.file_type,
-                uploaded_file.file.name
+                uploaded_file.file_type, uploaded_file.file.name
             )
 
             if preview_path is None:
-                return Response({
-                    'error': '该文件类型不支持预览'
-                }, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"error": "该文件类型不支持预览"}, status=status.HTTP_400_BAD_REQUEST
+                )
 
             # 返回预览图URL
             preview_url = f"{settings.STORAGE_URL}{preview_path}"
 
-            return Response({
-                'preview_url': preview_url,
-                'file_type': uploaded_file.file_type
-            })
+            return Response({"preview_url": preview_url, "file_type": uploaded_file.file_type})
 
         except Exception as e:
-            return Response({
-                'error': f'生成预览失败: {e!s}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": f"生成预览失败: {e!s}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-    @action(detail=False, methods=['post'], url_path='batch-delete')
+    @action(detail=False, methods=["post"], url_path="batch-delete")
     def batch_delete(self, request):
         """
         批量删除文件
@@ -322,18 +311,15 @@ class FileUploadViewSet(viewsets.ModelViewSet):
             "file_ids": ["uuid1", "uuid2", "uuid3"]
         }
         """
-        file_ids = request.data.get('file_ids', [])
+        file_ids = request.data.get("file_ids", [])
 
         if not file_ids:
-            return Response({
-                'error': '请提供要删除的文件ID列表'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "请提供要删除的文件ID列表"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         # 只能删除自己的文件
-        queryset = UploadedFile.objects.filter(
-            id__in=file_ids,
-            user=request.user
-        )
+        queryset = UploadedFile.objects.filter(id__in=file_ids, user=request.user)
 
         deleted_count = 0
         total_size_freed = 0
@@ -353,11 +339,13 @@ class FileUploadViewSet(viewsets.ModelViewSet):
         # 批量删除数据库记录
         queryset.delete()
 
-        return Response({
-            'message': f'成功删除 {deleted_count} 个文件',
-            'deleted_count': deleted_count,
-            'total_size_freed': total_size_freed
-        })
+        return Response(
+            {
+                "message": f"成功删除 {deleted_count} 个文件",
+                "deleted_count": deleted_count,
+                "total_size_freed": total_size_freed,
+            }
+        )
 
     def _calculate_file_hash(self, file):
         """
@@ -385,6 +373,7 @@ class FilePreviewView(APIView):
 
     GET /api/v1/files/{id}/preview/
     """
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request, pk=None):
@@ -394,23 +383,26 @@ class FilePreviewView(APIView):
         try:
             uploaded_file = UploadedFile.objects.get(pk=pk, user=request.user)
 
-            if not uploaded_file.file or not uploaded_file.file.storage.exists(uploaded_file.file.name):
-                raise Http404('文件不存在')
+            if not uploaded_file.file or not uploaded_file.file.storage.exists(
+                uploaded_file.file.name
+            ):
+                raise Http404("文件不存在")
 
             # 返回文件响应（inline）
             response = FileResponse(
-                uploaded_file.file.open('rb'),
-                content_type=uploaded_file.mime_type
+                uploaded_file.file.open("rb"), content_type=uploaded_file.mime_type
             )
-            response['Content-Disposition'] = f'inline; filename="{uploaded_file.original_filename}"'
+            response["Content-Disposition"] = (
+                f'inline; filename="{uploaded_file.original_filename}"'
+            )
             return response
 
         except UploadedFile.DoesNotExist:
-            raise Http404('文件不存在')
+            raise Http404("文件不存在")
         except Exception as e:
-            return Response({
-                'error': f'预览失败: {e!s}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": f"预览失败: {e!s}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class PublicFileView(APIView):
@@ -420,6 +412,7 @@ class PublicFileView(APIView):
 
     GET /api/v1/files/public/{file_hash}/
     """
+
     permission_classes = [AllowAny]
 
     def get(self, request, file_hash=None):
@@ -429,16 +422,19 @@ class PublicFileView(APIView):
         try:
             uploaded_file = UploadedFile.objects.get(file_hash=file_hash, is_active=True)
 
-            if not uploaded_file.file or not uploaded_file.file.storage.exists(uploaded_file.file.name):
-                raise Http404('文件不存在')
+            if not uploaded_file.file or not uploaded_file.file.storage.exists(
+                uploaded_file.file.name
+            ):
+                raise Http404("文件不存在")
 
             # 返回文件响应
             response = FileResponse(
-                uploaded_file.file.open('rb'),
-                content_type=uploaded_file.mime_type
+                uploaded_file.file.open("rb"), content_type=uploaded_file.mime_type
             )
-            response['Content-Disposition'] = f'inline; filename="{uploaded_file.original_filename}"'
+            response["Content-Disposition"] = (
+                f'inline; filename="{uploaded_file.original_filename}"'
+            )
             return response
 
         except UploadedFile.DoesNotExist:
-            raise Http404('文件不存在')
+            raise Http404("文件不存在")
