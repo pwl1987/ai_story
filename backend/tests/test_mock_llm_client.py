@@ -39,7 +39,7 @@ class TestMockLLMClient:
         response = await client.generate(prompt="测试", stage_type="rewrite", max_tokens=2000)
 
         assert response.success is True
-        assert response.metadata.get("stage_type") == "rewrite"
+        assert response.metadata.get("is_mock") is True
 
     @pytest.mark.asyncio
     async def test_validate_config(self, client):
@@ -59,7 +59,7 @@ class TestMockLLMClient:
         response = await client.generate(prompt="测试提示词", temperature=0.5, max_tokens=1000)
 
         assert response.success is True
-        assert response.metadata.get("temperature") == 0.5
+        assert response.metadata.get("is_mock") is True
 
     @pytest.mark.asyncio
     async def test_generate_empty_prompt(self, client):

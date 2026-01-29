@@ -37,7 +37,7 @@ class TestMockText2ImageClient:
         # 修复断言：Mock客户端返回image_urls数组，不是单个image_url
         assert response.data.get("image_urls") is not None
         assert len(response.data["image_urls"]) > 0
-        assert response.data["image_urls"][0].startswith("http://")
+        assert response.data["image_urls"][0].startswith(("http://", "https://"))
 
     @pytest.mark.asyncio
     async def test_generate_different_sizes(self, client):
@@ -53,11 +53,11 @@ class TestMockText2ImageClient:
     @pytest.mark.asyncio
     async def test_validate_config(self, client):
         """测试配置验证"""
-        result = client.validate_config()
+        result = await client.validate_config()
         assert result is True
 
     @pytest.mark.asyncio
     async def test_health_check(self, client):
         """测试健康检查"""
-        result = client.health_check()
+        result = await client.health_check()
         assert result is True

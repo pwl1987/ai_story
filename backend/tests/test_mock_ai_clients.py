@@ -109,9 +109,9 @@ class TestMockText2ImageClient:
         )
 
         assert response.success is True
-        assert "urls" in response.data
-        assert len(response.data["urls"]) == 1
-        assert "https://picsum.photos" in response.data["urls"][0]
+        assert "image_urls" in response.data
+        assert len(response.data["image_urls"]) == 1
+        assert "https://picsum.photos" in response.data["image_urls"][0]
         assert response.metadata["is_mock"] is True
 
     @pytest.mark.unit
@@ -121,7 +121,7 @@ class TestMockText2ImageClient:
         response = await mock_image_client.generate(prompt="Test prompt", sample_count=3)
 
         assert response.success is True
-        assert len(response.data["urls"]) == 3
+        assert len(response.data["image_urls"]) == 3
         assert len(response.data["images"]) == 3
 
         # 验证每张图片都有必要字段

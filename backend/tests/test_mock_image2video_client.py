@@ -34,35 +34,35 @@ class TestMockImage2VideoClient:
         )
 
         assert response.success is True
-        assert response.data.get("video_url") is not None
-        assert response.data["video_url"].startswith("http://")
-        assert response.data.get("duration") == 5
+        assert response.data.get("url") is not None
+        assert response.data["url"].startswith(("http://", "https://"))
+        assert response.metadata.get("duration") == 5
 
     @pytest.mark.asyncio
     async def test_generate_different_durations(self, client):
         """测试不同时长"""
         # 5秒视频
-        response1 = client.generate(
+        response1 = await client.generate(
             image_url="http://example.com/image.jpg", camera_movement="推进", duration=5
         )
         assert response1.success is True
-        assert response1.data["duration"] == 5
+        assert response1.metadata.get("duration") == 5
 
         # 10秒视频
-        response2 = client.generate(
+        response2 = await client.generate(
             image_url="http://example.com/image.jpg", camera_movement="平移", duration=10
         )
         assert response2.success is True
-        assert response2.data["duration"] == 10
+        assert response2.metadata.get("duration") == 10
 
     @pytest.mark.asyncio
     async def test_validate_config(self, client):
         """测试配置验证"""
-        result = client.validate_config()
+        result = await client.validate_config()
         assert result is True
 
     @pytest.mark.asyncio
     async def test_health_check(self, client):
         """测试健康检查"""
-        result = client.health_check()
+        result = await client.health_check()
         assert result is True

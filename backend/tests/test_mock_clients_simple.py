@@ -45,7 +45,7 @@ class TestMockClientsBasic:
         """测试Mock文生图"""
         response = await mock_t2i.generate(prompt="测试")
         assert response.success is True
-        assert "urls" in response.data or "image_url" in response.data
+        assert "image_urls" in response.data
 
     @pytest.mark.asyncio
     async def test_mock_t2i_validate(self, mock_t2i):
@@ -61,7 +61,7 @@ class TestMockClientsBasic:
             image_url="http://test.jpg", camera_movement="推进", duration=5
         )
         assert response.success is True
-        assert "video_url" in response.data or "urls" in response.data
+        assert "url" in response.data
 
     @pytest.mark.asyncio
     async def test_mock_i2v_validate(self, mock_i2v):
