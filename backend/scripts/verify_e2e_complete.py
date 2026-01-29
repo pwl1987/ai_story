@@ -59,9 +59,20 @@ class E2EVerifier:
             print(f"  响应: {response.text}")
             return False
 
-        data = response.json()
-        self.token = data.get("token") or data.get("access")
-        self.user_id = data.get("user_id")
+        resp_data = response.json()
+        # 支持多种响应格式
+        if "data" in resp_data and "tokens" in resp_data["data"]:
+            # 新格式: {data: {tokens: {access: ...}}}
+            self.token = resp_data["data"]["tokens"].get("access")
+            self.user_id = resp_data["data"]["user"].get("id")
+        elif "data" in resp_data:
+            # 格式: {data: {token: ...}}
+            self.token = resp_data["data"].get("token") or resp_data["data"].get("access")
+            self.user_id = resp_data["data"].get("user_id")
+        else:
+            # 直接格式: {token: ...} 或 {access: ...}
+            self.token = resp_data.get("token") or resp_data.get("access")
+            self.user_id = resp_data.get("user_id")
 
         print("✓ 登录成功")
         print(f"  Token: {self.token[:20]}...")
