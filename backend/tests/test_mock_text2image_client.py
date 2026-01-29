@@ -34,18 +34,20 @@ class TestMockText2ImageClient:
         )
 
         assert response.success is True
-        assert response.data.get("image_url") is not None
-        assert response.data["image_url"].startswith("http://")
+        # 修复断言：Mock客户端返回image_urls数组，不是单个image_url
+        assert response.data.get("image_urls") is not None
+        assert len(response.data["image_urls"]) > 0
+        assert response.data["image_urls"][0].startswith("http://")
 
     @pytest.mark.asyncio
     async def test_generate_different_sizes(self, client):
         """测试不同尺寸的图片生成"""
         # 1024x1024
-        response1 = client.generate(prompt="测试", width=1024, height=1024)
+        response1 = await client.generate(prompt="测试", width=1024, height=1024)
         assert response1.success is True
 
         # 512x512
-        response2 = client.generate(prompt="测试", width=512, height=512)
+        response2 = await client.generate(prompt="测试", width=512, height=512)
         assert response2.success is True
 
     @pytest.mark.asyncio
