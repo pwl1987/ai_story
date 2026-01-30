@@ -47,6 +47,60 @@ class PromptTemplateSetAdmin(admin.ModelAdmin):
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
 
+    def has_change_permission(self, request, obj=None):
+        """
+        检查用户是否有change权限
+
+        Epic 8 Story 8.8: 资源所有权与审计日志
+
+        Args:
+            request: HttpRequest对象
+            obj: 模型实例（可选）
+
+        Returns:
+            bool: True如果有权限，False否则
+
+        权限规则:
+        - obj=None: 返回True（显示列表页）
+        - obj存在: 创建者或superuser可以编辑
+        """
+        if obj is None:
+            return True
+
+        # superuser可以绕过所有限制
+        if request.user.is_superuser:
+            return True
+
+        # 创建者可以编辑
+        return obj.can_edit(request.user)
+
+    def has_delete_permission(self, request, obj=None):
+        """
+        检查用户是否有delete权限
+
+        Epic 8 Story 8.8: 资源所有权与审计日志
+
+        Args:
+            request: HttpRequest对象
+            obj: 模型实例（可选）
+
+        Returns:
+            bool: True如果有权限，False否则
+
+        权限规则:
+        - obj=None: 返回True（显示列表页）
+        - obj存在: 创建者或superuser可以删除
+        """
+        if obj is None:
+            return True
+
+        # superuser可以绕过所有限制
+        if request.user.is_superuser:
+            return True
+
+        # 创建者可以删除
+        return obj.created_by == request.user
+
 
 @admin.register(PromptTemplate)
 class PromptTemplateAdmin(admin.ModelAdmin):

@@ -11,13 +11,19 @@ Story 8.1: StaffAdminSite实施与验证 - 验收测试
 2. 所有模型注册验证
 3. Admin界面自定义
 4. 数据隔离验证
+
+Story 8.8: 资源所有权与审计日志 - Admin权限测试
+测试范围:
+1. Admin层面权限检查
+2. has_change_permission方法
+3. has_delete_permission方法
+4. superuser绕过限制
 """
 
 import pytest
 from django.contrib import admin
 from django.contrib.auth.models import User
-from django.test import Client, TestCase
-from django.urls import reverse
+from django.test import Client, RequestFactory, TestCase
 
 from apps.content.models import (
     CameraMovement,
@@ -27,9 +33,11 @@ from apps.content.models import (
     Storyboard,
 )
 from apps.files.models import FileQuota, UploadedFile
+from apps.models.admin import ModelProviderAdmin
 from apps.models.models import ModelProvider, ModelUsageLog
-from apps.prompts.models import GlobalVariable, PromptTemplate, PromptTemplateSet
 from apps.projects.models import Project, ProjectModelConfig, ProjectStage
+from apps.prompts.admin import PromptTemplateSetAdmin
+from apps.prompts.models import GlobalVariable, PromptTemplate, PromptTemplateSet
 
 
 class StaffAdminSiteTest(TestCase):
@@ -39,21 +47,13 @@ class StaffAdminSiteTest(TestCase):
     def setUpTestData(cls):
         """创建测试数据（类级别，只运行一次）"""
         cls.superuser = User.objects.create_superuser(
-            username="admin",
-            email="admin@example.com",
-            password="adminpass123"
+            username="admin", email="admin@example.com", password="adminpass123"
         )
         cls.staff_user = User.objects.create_user(
-            username="staff",
-            email="staff@example.com",
-            password="staffpass123",
-            is_staff=True
+            username="staff", email="staff@example.com", password="staffpass123", is_staff=True
         )
         cls.normal_user = User.objects.create_user(
-            username="normal",
-            email="normal@example.com",
-            password="normalpass123",
-            is_staff=False
+            username="normal", email="normal@example.com", password="normalpass123", is_staff=False
         )
 
     def setUp(self):
@@ -96,9 +96,7 @@ class ModelRegistrationTest(TestCase):
     def setUpTestData(cls):
         """创建测试数据"""
         cls.superuser = User.objects.create_superuser(
-            username="admin",
-            email="admin@example.com",
-            password="adminpass123"
+            username="admin", email="admin@example.com", password="adminpass123"
         )
 
     def setUp(self):
@@ -141,17 +139,14 @@ class ModelRegistrationTest(TestCase):
         for model in expected_models:
             self.assertTrue(
                 staff_admin_site.is_registered(model),
-                f"模型 {model.__name__} 未注册到StaffAdminSite"
+                f"模型 {model.__name__} 未注册到StaffAdminSite",
             )
 
     def test_user_model_registered(self):
         """测试：User模型已注册到StaffAdminSite"""
         from config.admin import staff_admin_site
 
-        self.assertTrue(
-            staff_admin_site.is_registered(User),
-            "User模型未注册到StaffAdminSite"
-        )
+        self.assertTrue(staff_admin_site.is_registered(User), "User模型未注册到StaffAdminSite")
 
     def test_admin_models_accessible(self):
         """测试：所有注册的模型在Admin界面可访问"""
@@ -170,7 +165,7 @@ class ModelRegistrationTest(TestCase):
             self.assertIn(
                 response.status_code,
                 [200, 302],  # 200正常或302重定向（如果没有数据）
-                f"Admin页面 {url} 访问失败，状态码: {response.status_code}"
+                f"Admin页面 {url} 访问失败，状态码: {response.status_code}",
             )
 
 
@@ -181,10 +176,7 @@ class AdminSiteCustomizationTest(TestCase):
     def setUpTestData(cls):
         """创建测试数据"""
         cls.staff_user = User.objects.create_user(
-            username="staff",
-            email="staff@example.com",
-            password="staffpass123",
-            is_staff=True
+            username="staff", email="staff@example.com", password="staffpass123", is_staff=True
         )
 
     def setUp(self):
@@ -197,9 +189,7 @@ class AdminSiteCustomizationTest(TestCase):
         from config.admin import staff_admin_site
 
         self.assertEqual(
-            staff_admin_site.site_header,
-            "AI Story 管理后台",
-            "Admin site_header未正确设置"
+            staff_admin_site.site_header, "AI Story 管理后台", "Admin site_header未正确设置"
         )
 
     def test_admin_site_title(self):
@@ -207,9 +197,7 @@ class AdminSiteCustomizationTest(TestCase):
         from config.admin import staff_admin_site
 
         self.assertEqual(
-            staff_admin_site.site_title,
-            "AI Story Admin",
-            "Admin site_title未正确设置"
+            staff_admin_site.site_title, "AI Story Admin", "Admin site_title未正确设置"
         )
 
     def test_admin_index_title(self):
@@ -219,7 +207,7 @@ class AdminSiteCustomizationTest(TestCase):
         self.assertEqual(
             staff_admin_site.index_title,
             "欢迎使用 AI Story 管理后台",
-            "Admin index_title未正确设置"
+            "Admin index_title未正确设置",
         )
 
     def test_customization_displayed_on_page(self):
@@ -239,21 +227,15 @@ class DataIsolationTest(TestCase):
             email="staff1@example.com",
             password="staffpass123",
             is_staff=True,
-            is_superuser=True  # 添加superuser权限以便访问所有Admin页面
+            is_superuser=True,  # 添加superuser权限以便访问所有Admin页面
         )
         cls.staff_user2 = User.objects.create_user(
-            username="staff2",
-            email="staff2@example.com",
-            password="staffpass123",
-            is_staff=True
+            username="staff2", email="staff2@example.com", password="staffpass123", is_staff=True
         )
 
         # 创建测试数据
         cls.project1 = Project.objects.create(
-            name="Project 1",
-            user=cls.staff_user,
-            original_topic="Test topic 1",
-            status="draft"
+            name="Project 1", user=cls.staff_user, original_topic="Test topic 1", status="draft"
         )
 
     def setUp(self):
@@ -284,16 +266,10 @@ class AdminSecurityTest(TestCase):
     def setUpTestData(cls):
         """创建测试数据"""
         cls.staff_user = User.objects.create_user(
-            username="staff",
-            email="staff@example.com",
-            password="staffpass123",
-            is_staff=True
+            username="staff", email="staff@example.com", password="staffpass123", is_staff=True
         )
         cls.normal_user = User.objects.create_user(
-            username="normal",
-            email="normal@example.com",
-            password="normalpass123",
-            is_staff=False
+            username="normal", email="normal@example.com", password="normalpass123", is_staff=False
         )
 
     def test_csrf_protection_enabled(self):
@@ -310,10 +286,13 @@ class AdminSecurityTest(TestCase):
         self.assertIn(response.status_code, [302, 403])
 
 
-@pytest.mark.parametrize("username,is_staff,expected_status", [
-    ("staff_user", True, 200),
-    ("normal_user", False, 302),  # Django重定向到登录页
-])
+@pytest.mark.parametrize(
+    "username,is_staff,expected_status",
+    [
+        ("staff_user", True, 200),
+        ("normal_user", False, 302),  # Django重定向到登录页
+    ],
+)
 @pytest.mark.django_db  # 需要数据库访问
 def test_admin_access_permission(username, is_staff, expected_status):
     """参数化测试：Admin访问权限"""
@@ -321,7 +300,7 @@ def test_admin_access_permission(username, is_staff, expected_status):
         username=username,
         email=f"{username}@example.com",
         password="testpass123",
-        is_staff=is_staff
+        is_staff=is_staff,
     )
 
     client = Client()
@@ -329,3 +308,175 @@ def test_admin_access_permission(username, is_staff, expected_status):
     response = client.get("/admin/")
 
     assert response.status_code == expected_status
+
+
+# ============================================================================
+# Story 8.8: 资源所有权与审计日志 - Admin权限测试
+# ============================================================================
+
+
+class AdminOwnershipPermissionTestSuite(TestCase):
+    """Admin所有权权限测试套件 - 验证Admin层面权限检查"""
+
+    @classmethod
+    def setUpTestData(cls):
+        """创建测试数据"""
+        cls.admin = User.objects.create_superuser(
+            username="admin", email="admin@example.com", password="adminpass123"
+        )
+
+        cls.staff_user = User.objects.create_user(
+            username="staff", email="staff@example.com", password="staffpass123", is_staff=True
+        )
+
+        cls.normal_user = User.objects.create_user(
+            username="normal", email="normal@example.com", password="normalpass123"
+        )
+
+        # 系统级模型（管理员创建）
+        cls.system_model = ModelProvider.objects.create(
+            name="系统模型",
+            provider_type="llm",
+            executor_class="core.ai_client.openai_client.OpenAIClient",
+            api_url="https://api.openai.com/v1",
+            api_key="sk-test",
+            model_name="gpt-4",
+            is_system_default=True,
+            created_by=cls.admin,
+        )
+
+        # 用户级模型（普通用户创建）
+        cls.user_model = ModelProvider.objects.create(
+            name="用户模型",
+            provider_type="llm",
+            executor_class="core.ai_client.openai_client.OpenAIClient",
+            api_url="https://api.openai.com/v1",
+            api_key="sk-test",
+            model_name="gpt-4",
+            is_system_default=False,
+            created_by=cls.normal_user,
+        )
+
+        # 系统级提示词集（管理员创建）
+        cls.system_prompt_set = PromptTemplateSet.objects.create(
+            name="系统提示词集",
+            description="系统级默认提示词集",
+            is_system_default=True,
+            created_by=cls.admin,
+        )
+
+        # 用户级提示词集（普通用户创建）
+        cls.user_prompt_set = PromptTemplateSet.objects.create(
+            name="用户提示词集",
+            description="用户自定义提示词集",
+            is_system_default=False,
+            created_by=cls.normal_user,
+        )
+
+    def test_model_provider_admin_has_change_permission_for_creator(self):
+        """测试：ModelProviderAdmin - 创建者有change权限"""
+        admin_instance = ModelProviderAdmin(ModelProvider, admin.site)
+        factory = RequestFactory()
+        request = factory.get("/admin/models/modelprovider/")
+        request.user = self.normal_user
+
+        # 创建者可以编辑自己的资源
+        has_permission = admin_instance.has_change_permission(request, self.user_model)
+
+        self.assertTrue(has_permission, "创建者应该有change权限")
+
+    def test_model_provider_admin_no_change_permission_for_non_creator(self):
+        """测试：ModelProviderAdmin - 非创建者无change权限"""
+        admin_instance = ModelProviderAdmin(ModelProvider, admin.site)
+        factory = RequestFactory()
+        request = factory.get("/admin/models/modelprovider/")
+        request.user = self.normal_user
+
+        # 非创建者不能编辑系统资源
+        has_permission = admin_instance.has_change_permission(request, self.system_model)
+
+        self.assertFalse(has_permission, "非创建者不应该有change权限")
+
+    def test_model_provider_admin_superuser_bypass(self):
+        """测试：ModelProviderAdmin - superuser可以绕过限制"""
+        admin_instance = ModelProviderAdmin(ModelProvider, admin.site)
+        factory = RequestFactory()
+        request = factory.get("/admin/models/modelprovider/")
+        request.user = self.admin
+
+        # superuser可以编辑任何资源（即使不是创建者）
+        has_permission = admin_instance.has_change_permission(request, self.user_model)
+
+        self.assertTrue(has_permission, "Superuser应该可以绕过限制")
+
+    def test_model_provider_admin_has_delete_permission_for_creator(self):
+        """测试：ModelProviderAdmin - 创建者有delete权限"""
+        admin_instance = ModelProviderAdmin(ModelProvider, admin.site)
+        factory = RequestFactory()
+        request = factory.get("/admin/models/modelprovider/")
+        request.user = self.normal_user
+
+        # 创建者可以删除自己的资源
+        has_permission = admin_instance.has_delete_permission(request, self.user_model)
+
+        self.assertTrue(has_permission, "创建者应该有delete权限")
+
+    def test_model_provider_admin_no_delete_permission_for_non_creator(self):
+        """测试：ModelProviderAdmin - 非创建者无delete权限"""
+        admin_instance = ModelProviderAdmin(ModelProvider, admin.site)
+        factory = RequestFactory()
+        request = factory.get("/admin/models/modelprovider/")
+        request.user = self.normal_user
+
+        # 非创建者不能删除系统资源
+        has_permission = admin_instance.has_delete_permission(request, self.system_model)
+
+        self.assertFalse(has_permission, "非创建者不应该有delete权限")
+
+    def test_model_provider_admin_superuser_bypass_delete(self):
+        """测试：ModelProviderAdmin - superuser可以绕过删除限制"""
+        admin_instance = ModelProviderAdmin(ModelProvider, admin.site)
+        factory = RequestFactory()
+        request = factory.get("/admin/models/modelprovider/")
+        request.user = self.admin
+
+        # superuser可以删除任何资源
+        has_permission = admin_instance.has_delete_permission(request, self.user_model)
+
+        self.assertTrue(has_permission, "Superuser应该可以绕过限制")
+
+    def test_prompt_template_set_admin_has_change_permission_for_creator(self):
+        """测试：PromptTemplateSetAdmin - 创建者有change权限"""
+        admin_instance = PromptTemplateSetAdmin(PromptTemplateSet, admin.site)
+        factory = RequestFactory()
+        request = factory.get("/admin/prompts/prompttemplateset/")
+        request.user = self.normal_user
+
+        # 创建者可以编辑自己的资源
+        has_permission = admin_instance.has_change_permission(request, self.user_prompt_set)
+
+        self.assertTrue(has_permission, "创建者应该有change权限")
+
+    def test_prompt_template_set_admin_no_change_permission_for_non_creator(self):
+        """测试：PromptTemplateSetAdmin - 非创建者无change权限"""
+        admin_instance = PromptTemplateSetAdmin(PromptTemplateSet, admin.site)
+        factory = RequestFactory()
+        request = factory.get("/admin/prompts/prompttemplateset/")
+        request.user = self.normal_user
+
+        # 非创建者不能编辑系统资源
+        has_permission = admin_instance.has_change_permission(request, self.system_prompt_set)
+
+        self.assertFalse(has_permission, "非创建者不应该有change权限")
+
+    def test_prompt_template_set_admin_superuser_bypass(self):
+        """测试：PromptTemplateSetAdmin - superuser可以绕过限制"""
+        admin_instance = PromptTemplateSetAdmin(PromptTemplateSet, admin.site)
+        factory = RequestFactory()
+        request = factory.get("/admin/prompts/prompttemplateset/")
+        request.user = self.admin
+
+        # superuser可以编辑任何资源
+        has_permission = admin_instance.has_change_permission(request, self.user_prompt_set)
+
+        self.assertTrue(has_permission, "Superuser应该可以绕过限制")
