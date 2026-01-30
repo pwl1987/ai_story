@@ -5,11 +5,33 @@ Django Admin配置 - Story 8.1: StaffAdminSite实施与验证
 
 Epic 8: 管理员后台系统增强
 Story 8.1: StaffAdminSite实施与验证
+Story 8.2: 用户管理Admin功能增强
+Story 8.3: 密码重置功能
 """
 
-from django.contrib.admin import AdminSite
+# ruff: noqa: E402 - 模块级导入必须在类定义之后，避免循环导入
+
+import logging
+import random
+import string
+
+from django.contrib.admin import AdminSite, StackedInline
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
+
+from apps.users.models import UserProfile
+
+logger = logging.getLogger(__name__)
+
+
+class UserProfileInline(StackedInline):
+    """UserProfile内联Admin"""
+
+    model = UserProfile
+    can_delete = False
+    verbose_name_plural = "扩展信息"
+
 
 # Import Admin classes from all apps
 from apps.content.admin import (
@@ -88,6 +110,9 @@ class StaffAdminSite(AdminSite):
 
 class UserAdmin(DjangoUserAdmin):
     """用户管理Admin - Story 8.2: 增强功能"""
+
+    # 添加UserProfile inline
+    inlines = [UserProfileInline]
 
     # 优化列表显示
     list_display = [
@@ -182,12 +207,66 @@ class UserAdmin(DjangoUserAdmin):
 
     bulk_remove_staff.short_description = "批量移除管理员权限"
 
+    def password_reset_action(self, request, queryset):
+        """重置选中用户的密码
+
+        Epic 8: 管理员后台系统增强
+        Story 8.3: 密码重置功能
+
+        功能:
+        - 生成12位临时随机密码（包含大小写字母和数字）
+        - 设置must_change_password=True
+        - 显示临时密码给管理员（只显示一次）
+        - 记录操作日志
+
+        安全考虑:
+        - 临时密码只显示一次在Admin消息中
+        - 临时密码不在日志中明文记录
+        """
+        reset_results = []
+
+        for user in queryset:
+            # 生成12位临时随机密码（包含大小写字母和数字）
+            temp_password = "".join(random.choices(string.ascii_letters + string.digits, k=12))
+
+            # 设置密码
+            user.password = make_password(temp_password)
+
+            # 设置强制修改标志
+            user.profile.must_change_password = True
+            user.profile.save()
+            user.save()
+
+            reset_results.append({"user": user.username, "password": temp_password})
+
+        # 构建消息（包含临时密码）
+        password_list = "\n".join([f"{r['user']}: {r['password']}" for r in reset_results])
+        self.message_user(
+            request,
+            f"成功重置 {len(reset_results)} 个用户的密码。\n\n临时密码（请妥善保管，只显示一次）:\n{password_list}",
+            level="success",
+        )
+
+        # 记录日志（不包含明文密码）
+        logger.info(
+            "Password reset action performed",
+            extra={
+                "action": "password_reset",
+                "performed_by": request.user.username,
+                "user_count": len(reset_results),
+                "usernames": [r["user"] for r in reset_results],
+            },
+        )
+
+    password_reset_action.short_description = "重置选中用户的密码"
+
     # 自定义批量操作（必须在方法定义之后）
     actions = [
         bulk_enable_users,
         bulk_disable_users,
         bulk_add_staff,
         bulk_remove_staff,
+        password_reset_action,
     ]
 
 

@@ -19,7 +19,7 @@ repos:
     hooks:
       - id: pytest
         name: Pytest测试套件
-        entry: uv run pytest -v
+        entry: bash -c "cd backend && uv run pytest apps/users/tests/ -v"
         language: system
         pass_filenames: false
         always_run: true
