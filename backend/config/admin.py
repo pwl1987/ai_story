@@ -7,7 +7,6 @@ Epic 8: 管理员后台系统增强
 Story 8.1: StaffAdminSite实施与验证
 """
 
-from django.contrib import admin
 from django.contrib.admin import AdminSite
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.contrib.auth.models import User
@@ -31,18 +30,18 @@ from apps.files.admin import FileQuotaAdmin, UploadedFileAdmin
 from apps.files.models import FileQuota, UploadedFile
 from apps.models.admin import ModelProviderAdmin, ModelUsageLogAdmin
 from apps.models.models import ModelProvider, ModelUsageLog
-from apps.prompts.admin import (
-    GlobalVariableAdmin,
-    PromptTemplateAdmin,
-    PromptTemplateSetAdmin,
-)
-from apps.prompts.models import GlobalVariable, PromptTemplate, PromptTemplateSet
 from apps.projects.admin import (
     ProjectAdmin,
     ProjectModelConfigAdmin,
     ProjectStageAdmin,
 )
 from apps.projects.models import Project, ProjectModelConfig, ProjectStage
+from apps.prompts.admin import (
+    GlobalVariableAdmin,
+    PromptTemplateAdmin,
+    PromptTemplateSetAdmin,
+)
+from apps.prompts.models import GlobalVariable, PromptTemplate, PromptTemplateSet
 
 
 class StaffAdminSite(AdminSite):
@@ -88,12 +87,108 @@ class StaffAdminSite(AdminSite):
 
 
 class UserAdmin(DjangoUserAdmin):
-    """用户管理Admin - Story 8.2"""
+    """用户管理Admin - Story 8.2: 增强功能"""
 
-    list_display = ["username", "email", "is_staff", "is_active", "date_joined"]
-    list_filter = ["is_staff", "is_active", "date_joined"]
-    search_fields = ["username", "email"]
+    # 优化列表显示
+    list_display = [
+        "username",
+        "email",
+        "first_name",
+        "last_name",
+        "is_staff",
+        "is_superuser",
+        "is_active",
+        "date_joined",
+        "last_login",
+    ]
+
+    # 优化过滤器
+    list_filter = ["is_staff", "is_superuser", "is_active", "date_joined"]
+
+    # 优化搜索字段
+    search_fields = ["username", "email", "first_name", "last_name"]
+
+    # 默认排序
     ordering = ["-date_joined"]
+
+    # 字段集组织
+    fieldsets = (
+        (
+            "基本信息",
+            {"fields": ("username", "email", "first_name", "last_name")},
+        ),
+        (
+            "权限信息",
+            {
+                "fields": (
+                    "is_staff",
+                    "is_superuser",
+                    "is_active",
+                    "groups",
+                    "user_permissions",
+                )
+            },
+        ),
+        (
+            "重要日期",
+            {
+                "fields": ("last_login", "date_joined"),
+                "classes": ("collapse",),
+            },
+        ),
+    )
+
+    def bulk_enable_users(self, request, queryset):
+        """批量启用用户"""
+        updated = queryset.update(is_active=True)
+        self.message_user(
+            request,
+            f"成功启用 {updated} 个用户。",
+            level="success",
+        )
+
+    bulk_enable_users.short_description = "批量启用选中的用户"
+
+    def bulk_disable_users(self, request, queryset):
+        """批量禁用用户"""
+        updated = queryset.update(is_active=False)
+        self.message_user(
+            request,
+            f"成功禁用 {updated} 个用户。",
+            level="warning",
+        )
+
+    bulk_disable_users.short_description = "批量禁用选中的用户"
+
+    def bulk_add_staff(self, request, queryset):
+        """批量添加staff权限"""
+        updated = queryset.update(is_staff=True)
+        self.message_user(
+            request,
+            f"成功为 {updated} 个用户添加管理员权限。",
+            level="success",
+        )
+
+    bulk_add_staff.short_description = "批量添加管理员权限"
+
+    def bulk_remove_staff(self, request, queryset):
+        """批量移除staff权限"""
+        updated = queryset.update(is_staff=False)
+        self.message_user(
+            request,
+            f"成功移除 {updated} 个用户的管理员权限。",
+            level="warning",
+        )
+
+    bulk_remove_staff.short_description = "批量移除管理员权限"
+
+    # 自定义批量操作（必须在方法定义之后）
+    actions = [
+        bulk_enable_users,
+        bulk_disable_users,
+        bulk_add_staff,
+        bulk_remove_staff,
+    ]
 
 
 # 创建StaffAdminSite实例
