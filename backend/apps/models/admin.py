@@ -53,6 +53,7 @@ class ModelProviderAdminForm(forms.ModelForm):
 class ModelProviderAdmin(admin.ModelAdmin):
     form = ModelProviderAdminForm
     list_display = [
+        "system_resource_badge",
         "name",
         "provider_type",
         "executor_class",
@@ -60,11 +61,18 @@ class ModelProviderAdmin(admin.ModelAdmin):
         "priority",
         "created_at",
     ]
-    list_filter = ["provider_type", "is_active"]
+    list_filter = ["provider_type", "is_active", "is_system_default"]
     search_fields = ["name", "model_name", "executor_class"]
 
     fieldsets = (
         ("基本信息", {"fields": ("name", "provider_type", "is_active", "priority")}),
+        (
+            "Epic 8 Story 8.5: 系统资源配置",
+            {
+                "fields": ("is_system_default", "created_by"),
+                "description": "系统级默认资源对所有用户可见，但只有创建者可以编辑",
+            },
+        ),
         ("API配置", {"fields": ("api_url", "api_key", "model_name", "timeout")}),
         (
             "执行器配置",
@@ -91,9 +99,36 @@ class ModelProviderAdmin(admin.ModelAdmin):
             },
         ),
     )
+    readonly_fields = ["created_by"]
+
+    def system_resource_badge(self, obj):
+        """
+        显示系统资源标记
+
+        Epic 8 Story 8.5: 系统资源视觉标记
+
+        Returns:
+            str: HTML格式的标记
+        """
+        from django.utils.html import format_html
+
+        if obj.is_system_default:
+            return format_html('<span style="color: #D4AF37; font-weight: bold;">🌟 系统级</span>')
+        return format_html('<span style="color: #808080;">👤 用户级</span>')
+
+    system_resource_badge.short_description = "资源类型"
 
     def save_model(self, request, obj, form, change):
-        """保存前自动设置默认执行器"""
+        """
+        保存模型
+
+        Epic 8 Story 8.5: 自动设置created_by
+        """
+        # 如果是新创建的对象，自动设置created_by为当前用户
+        if not change:
+            obj.created_by = request.user
+
+        # 保存前自动设置默认执行器
         if not obj.executor_class:
             obj.executor_class = obj.get_default_executor()
         super().save_model(request, obj, form, change)

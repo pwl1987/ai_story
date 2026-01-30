@@ -1,10 +1,14 @@
 """
 模型管理领域模型
 遵循依赖倒置原则(DIP): 依赖抽象的ModelProvider,而非具体实现
+
+Epic 8: 管理员后台系统增强
+Story 8.5: 全局资源配置 - 模型
 """
 
 import uuid
 
+from django.conf import settings
 from django.db import models
 
 
@@ -12,6 +16,11 @@ class ModelProvider(models.Model):
     """
     模型提供商
     职责: 存储AI模型的配置信息
+
+    Epic 8 Story 8.5:
+    - 添加系统级默认资源功能
+    - created_by: 资源创建者
+    - is_system_default: 是否为系统级默认资源
     """
 
     PROVIDER_TYPES = [
@@ -77,6 +86,21 @@ class ModelProvider(models.Model):
     # 额外配置 (JSON格式,存储特定模型的额外参数)
     extra_config = models.JSONField("额外配置", default=dict, blank=True)
 
+    # Epic 8 Story 8.5: 系统级默认资源
+    is_system_default = models.BooleanField(
+        "系统级默认资源",
+        default=False,
+        help_text="系统级默认资源：所有用户可见且不可编辑（除创建者）",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="created_models",
+        verbose_name="创建者",
+        null=True,
+        blank=True,
+    )
+
     created_at = models.DateTimeField("创建时间", auto_now_add=True)
     updated_at = models.DateTimeField("更新时间", auto_now=True)
 
@@ -84,13 +108,37 @@ class ModelProvider(models.Model):
         db_table = "model_providers"
         verbose_name = "模型提供商"
         verbose_name_plural = "模型提供商"
-        ordering = ["-priority", "-created_at"]
+        ordering = ["-is_system_default", "-priority", "-created_at"]
         indexes = [
             models.Index(fields=["provider_type", "is_active", "-priority"]),
+            models.Index(fields=["-is_system_default", "created_by"]),
         ]
 
     def __str__(self):
         return f"{self.name} ({self.get_provider_type_display()})"
+
+    def can_edit(self, user):
+        """
+        检查用户是否可以编辑此模型
+
+        Epic 8 Story 8.5: 权限控制逻辑
+
+        Args:
+            user: User对象
+
+        Returns:
+            bool: True如果用户可以编辑，False否则
+
+        权限规则:
+        - 系统级默认资源：只有创建者可以编辑
+        - 用户级资源：只有创建者可以编辑
+        - 未登录用户：不能编辑
+        """
+        if not user or not user.is_authenticated:
+            return False
+
+        # 只有创建者可以编辑
+        return self.created_by == user
 
     def get_executor_choices(self):
         """
