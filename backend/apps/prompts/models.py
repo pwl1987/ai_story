@@ -1,6 +1,9 @@
 """
 提示词管理领域模型
 遵循开闭原则(OCP): 提示词模板可扩展,无需修改核心代码
+
+Epic 8: 管理员后台系统增强
+Story 8.6: 全局资源配置 - 提示词
 """
 
 import uuid
@@ -15,6 +18,11 @@ class PromptTemplateSet(models.Model):
     """
     提示词集
     职责: 组织和管理提示词模板集合
+
+    Epic 8 Story 8.6:
+    - 添加系统级默认资源功能
+    - created_by: 资源创建者
+    - is_system_default: 是否为系统级默认资源
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -23,8 +31,17 @@ class PromptTemplateSet(models.Model):
     is_active = models.BooleanField("是否激活", default=True)
     is_default = models.BooleanField("是否默认", default=False)
 
+    # Epic 8 Story 8.6: 系统级默认资源
+    is_system_default = models.BooleanField(
+        "系统级默认资源",
+        default=False,
+        help_text="系统级默认资源：所有用户可见且不可编辑（除创建者）",
+    )
     created_by = models.ForeignKey(
-        User, on_delete=models.CASCADE, verbose_name="创建者", related_name="prompt_sets"
+        User,
+        on_delete=models.PROTECT,
+        verbose_name="创建者",
+        related_name="prompt_sets",
     )
 
     created_at = models.DateTimeField("创建时间", auto_now_add=True)
@@ -34,13 +51,37 @@ class PromptTemplateSet(models.Model):
         db_table = "prompt_template_sets"
         verbose_name = "提示词集"
         verbose_name_plural = "提示词集"
-        ordering = ["-created_at"]
+        ordering = ["-is_system_default", "-created_at"]
         indexes = [
             models.Index(fields=["is_active", "is_default"]),
+            models.Index(fields=["-is_system_default", "created_by"]),
         ]
 
     def __str__(self):
         return self.name
+
+    def can_edit(self, user):
+        """
+        检查用户是否可以编辑此提示词集
+
+        Epic 8 Story 8.6: 权限控制逻辑
+
+        Args:
+            user: User对象
+
+        Returns:
+            bool: True如果用户可以编辑，False否则
+
+        权限规则:
+        - 系统级默认资源：只有创建者可以编辑
+        - 用户级资源：只有创建者可以编辑
+        - 未登录用户：不能编辑
+        """
+        if not user or not user.is_authenticated:
+            return False
+
+        # 只有创建者可以编辑
+        return self.created_by == user
 
     def save(self, *args, **kwargs):
         """确保只有一个默认提示词集"""
