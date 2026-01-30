@@ -7,3 +7,8 @@ class UsersConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "apps.users"
     verbose_name = "用户管理"
+
+    def ready(self):
+        """应用启动时导入signals"""
+
+        import apps.users.signals  # noqa: F401
