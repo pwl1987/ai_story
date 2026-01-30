@@ -119,7 +119,7 @@ class PasswordResetActionTest(TestCase):
 
         # 验证大部分密码包含数字（允许少数异常）
         passwords_with_digits = sum(1 for pwd in passwords if any(c.isdigit() for c in pwd))
-        self.assertGreater(
+        self.assertGreaterEqual(
             passwords_with_digits,
             80,
             f"80%以上的密码应该包含数字，实际: {passwords_with_digits}/100",

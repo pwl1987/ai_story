@@ -126,7 +126,17 @@ apiClient.interceptors.response.use(
           showMessage('未授权,请登录');
           break;
         case 403:
-          showMessage('没有权限');
+          // Epic 8 Story 8.4: 检测强制修改密码
+          if (response.data?.error_code === 'MUST_CHANGE_PASSWORD') {
+            // 跳转到修改密码页面
+            if (router.currentRoute.path !== '/change-password') {
+              // 保存原始目标路径，修改密码后跳转回去
+              sessionStorage.setItem('redirect_after_password_change', router.currentRoute.fullPath);
+              router.push('/change-password');
+            }
+          } else {
+            showMessage('没有权限');
+          }
           break;
         case 404:
           showMessage('请求的资源不存在');

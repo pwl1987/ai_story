@@ -255,14 +255,31 @@ const actions = {
 
   /**
    * 修改密码
+   *
+   * Epic 8 Story 8.4: 支持两种场景
+   * 1. 普通修改密码: { old_password, new_password, new_password_confirm }
+   * 2. 强制修改密码: { new_password, new_password_confirm }
    */
   async changePassword({ dispatch }, passwordData) {
     try {
       const response = await authAPI.changePassword(passwordData)
 
-      if (response.success) {
+      if (response.success || response.status === 'success') {
+        // Epic 8 Story 8.4: 修改密码成功后，清除重定向标记并登出
+        const redirectPath = sessionStorage.getItem('redirect_after_password_change')
+
+        // 清除重定向标记
+        sessionStorage.removeItem('redirect_after_password_change')
+
         // 修改密码后重新登录
         await dispatch('logout')
+
+        // 如果有重定向路径，保存到 query 参数中（登录后跳转）
+        if (redirectPath) {
+          console.log('密码修改成功，登录后将跳转到:', redirectPath)
+          // 可以将路径保存到某个地方，登录后使用
+        }
+
         return response
       } else {
         throw new Error(response.message || '修改密码失败')

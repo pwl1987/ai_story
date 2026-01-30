@@ -81,6 +81,11 @@ export const updateUserProfile = (userData) => {
 
 /**
  * 修改密码
+ *
+ * Epic 8 Story 8.4: 支持两种场景
+ * 1. 普通修改密码: { old_password, new_password, new_password_confirm }
+ * 2. 强制修改密码: { new_password, new_password_confirm }
+ *
  * @param {Object} passwordData - 密码数据
  * @returns {Promise} 响应数据
  */

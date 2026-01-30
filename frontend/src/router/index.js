@@ -28,6 +28,16 @@ const routes = [
       requiresGuest: true,
     },
   },
+  {
+    // Epic 8 Story 8.4: 修改密码页面
+    path: '/change-password',
+    name: 'ChangePassword',
+    component: () => import('@/views/auth/ChangePassword.vue'),
+    meta: {
+      title: '修改密码',
+      requiresAuth: true, // 需要登录
+    },
+  },
   // 项目管理路由
   {
     path: '/projects',

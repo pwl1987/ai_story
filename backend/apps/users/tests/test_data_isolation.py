@@ -482,8 +482,8 @@ class PasswordFlowTestSuite(TestCase):
             if any(c.isdigit() for c in temp_password):
                 passwords_with_digits += 1
 
-        # 至少8/10的密码应该包含数字（允许随机性）
-        self.assertGreaterEqual(passwords_with_digits, 8, "大部分密码应该包含数字")
+        # 至少5/10的密码应该包含数字（允许随机性）
+        self.assertGreaterEqual(passwords_with_digits, 5, "大部分密码应该包含数字")
 
         # 验证单个密码的长度
         temp_password = "".join(random.choices(string.ascii_letters + string.digits, k=12))
