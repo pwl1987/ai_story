@@ -40,8 +40,24 @@ class ModelProviderViewSet(viewsets.ModelViewSet):
     ordering = ["-priority", "-created_at"]
 
     def get_queryset(self):
-        """获取所有模型提供商"""
-        return ModelProvider.objects.all().prefetch_related("usage_logs")
+        """
+        获取模型提供商列表
+
+        Epic 8: 数据隔离
+        - 普通用户(is_staff=False): 只能看到自己的 + 系统级资源
+        - 管理员(is_staff=True): 可以看到所有资源
+        """
+        from django.db.models import Q
+
+        user = self.request.user
+        queryset = ModelProvider.objects.prefetch_related("usage_logs")
+
+        if user.is_staff:
+            # 管理员可以看到所有资源
+            return queryset
+        else:
+            # 普通用户只能看到自己的 + 系统级资源
+            return queryset.filter(Q(is_system_default=True) | Q(created_by=user)).distinct()
 
     def get_serializer_class(self):
         """根据动作选择序列化器"""
@@ -211,18 +227,24 @@ class ModelProviderViewSet(viewsets.ModelViewSet):
         """
         按类型分组获取模型提供商
         GET /api/v1/models/providers/by-type/
+
+        Epic 8: 数据隔离 - 普通用户只能看到自己的 + 系统级资源
         """
-        llm_providers = ModelProvider.objects.filter(provider_type="llm", is_active=True).order_by(
-            "-priority"
-        )
+        from django.db.models import Q
 
-        text2image_providers = ModelProvider.objects.filter(
-            provider_type="text2image", is_active=True
-        ).order_by("-priority")
+        user = request.user
 
-        image2video_providers = ModelProvider.objects.filter(
-            provider_type="image2video", is_active=True
-        ).order_by("-priority")
+        # 构建基础查询
+        if user.is_staff:
+            base_query = ModelProvider.objects.filter(is_active=True)
+        else:
+            base_query = ModelProvider.objects.filter(
+                Q(is_system_default=True) | Q(created_by=user), is_active=True
+            ).distinct()
+
+        llm_providers = base_query.filter(provider_type="llm").order_by("-priority")
+        text2image_providers = base_query.filter(provider_type="text2image").order_by("-priority")
+        image2video_providers = base_query.filter(provider_type="image2video").order_by("-priority")
 
         return Response(
             {
@@ -238,10 +260,21 @@ class ModelProviderViewSet(viewsets.ModelViewSet):
         获取简化的模型列表(仅id和name) - 用于下拉选择
         GET /api/v1/models/providers/simple-list/
         Query: ?provider_type=llm
-        """
-        provider_type = request.query_params.get("provider_type")
 
-        queryset = ModelProvider.objects.filter(is_active=True)
+        Epic 8: 数据隔离 - 普通用户只能看到自己的 + 系统级资源
+        """
+        from django.db.models import Q
+
+        provider_type = request.query_params.get("provider_type")
+        user = request.user
+
+        # 构建基础查询
+        if user.is_staff:
+            queryset = ModelProvider.objects.filter(is_active=True)
+        else:
+            queryset = ModelProvider.objects.filter(
+                Q(is_system_default=True) | Q(created_by=user), is_active=True
+            ).distinct()
 
         if provider_type:
             queryset = queryset.filter(provider_type=provider_type)

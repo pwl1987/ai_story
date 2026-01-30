@@ -53,13 +53,17 @@ class PromptTemplateSetViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         过滤查询集
-        非管理员只能看到自己创建的或默认的提示词集
+
+        Epic 8: 数据隔离
+        - 普通用户(is_staff=False): 只能看到自己的 + 系统级资源
+        - 管理员(is_staff=True): 可以看到所有资源
         """
         queryset = super().get_queryset()
         user = self.request.user
 
         if not user.is_staff:
-            queryset = queryset.filter(Q(created_by=user) | Q(is_default=True))
+            # 普通用户只能看到自己的 + 系统级资源
+            queryset = queryset.filter(Q(created_by=user) | Q(is_system_default=True))
 
         return queryset.prefetch_related("templates", "created_by")
 
@@ -161,14 +165,18 @@ class PromptTemplateViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         过滤查询集
-        非管理员只能看到自己创建的提示词集的模板
+
+        Epic 8: 数据隔离
+        - 普通用户(is_staff=False): 只能看到自己创建的 + 系统级资源的模板
+        - 管理员(is_staff=True): 可以看到所有模板
         """
         queryset = super().get_queryset()
         user = self.request.user
 
         if not user.is_staff:
+            # 普通用户只能看到自己的 + 系统级资源的模板
             queryset = queryset.filter(
-                Q(template_set__created_by=user) | Q(template_set__is_default=True)
+                Q(template_set__created_by=user) | Q(template_set__is_system_default=True)
             )
 
         return queryset.select_related("template_set", "model_provider")
