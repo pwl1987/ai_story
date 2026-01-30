@@ -51,6 +51,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.users.middleware.MustChangePasswordMiddleware",  # Epic 8 Story 8.4: 强制修改密码
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "core.middleware.api_response_time.APIResponseTimeMiddleware",  # API错误日志 + 响应时间监控 (Story 2.3 + 2.5)
