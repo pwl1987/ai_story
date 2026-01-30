@@ -5,8 +5,10 @@
 
 from django.conf import settings
 from django.conf.urls.static import static
-from django.contrib import admin
 from django.urls import include, path
+
+# Story 8.1: 使用StaffAdminSite替代默认admin.site
+from config.admin import staff_admin_site
 
 # Epic 7.1: OpenAPI文档自动生成
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
@@ -26,7 +28,7 @@ api_patterns = [
 ]
 
 urlpatterns = api_patterns + [
-    path("admin/", admin.site.urls),
+    path("admin/", staff_admin_site.urls),  # Story 8.1: StaffAdminSite
     path("metrics/", metrics_view),  # Prometheus指标端点 (Epic 2优化)
     path("api/v1/health/", include("health.urls")),  # 健康检查端点 (Story 2.2)
     path("api/v1/projects/", include("apps.projects.urls")),
