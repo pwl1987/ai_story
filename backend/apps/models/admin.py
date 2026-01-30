@@ -5,6 +5,7 @@ from django.contrib import admin
 from django.core.exceptions import ValidationError
 
 from apps.users.admin import AuditLogMixin
+from core.admin_mixins import SystemResourceBadgeMixin
 
 from .models import ModelProvider, ModelUsageLog
 
@@ -52,7 +53,7 @@ class ModelProviderAdminForm(forms.ModelForm):
 
 
 @admin.register(ModelProvider)
-class ModelProviderAdmin(AuditLogMixin, admin.ModelAdmin):
+class ModelProviderAdmin(SystemResourceBadgeMixin, AuditLogMixin, admin.ModelAdmin):
     form = ModelProviderAdminForm
     list_display = [
         "system_resource_badge",
@@ -102,23 +103,6 @@ class ModelProviderAdmin(AuditLogMixin, admin.ModelAdmin):
         ),
     )
     readonly_fields = ["created_by"]
-
-    def system_resource_badge(self, obj):
-        """
-        显示系统资源标记
-
-        Epic 8 Story 8.5: 系统资源视觉标记
-
-        Returns:
-            str: HTML格式的标记
-        """
-        from django.utils.html import format_html
-
-        if obj.is_system_default:
-            return format_html('<span style="color: #D4AF37; font-weight: bold;">🌟 系统级</span>')
-        return format_html('<span style="color: #808080;">👤 用户级</span>')
-
-    system_resource_badge.short_description = "资源类型"
 
     def has_change_permission(self, request, obj=None):
         """
