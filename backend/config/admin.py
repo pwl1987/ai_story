@@ -20,7 +20,8 @@ from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
 
-from apps.users.models import UserProfile
+from apps.users.admin import AuditLogAdmin
+from apps.users.models import AuditLog, UserProfile
 
 logger = logging.getLogger(__name__)
 
@@ -306,6 +307,9 @@ staff_admin_site.register(FileQuota, FileQuotaAdmin)
 # Users (1个模型，UserProfile将在Story 8.4添加)
 staff_admin_site.register(User, UserAdmin)
 
+# Epic 8 Story 8.10: 注册审计日志
+staff_admin_site.register(AuditLog, AuditLogAdmin)
+
 # ============================================================================
-# 注册完成: 17个核心模型已注册到StaffAdminSite
+# 注册完成: 17个核心模型已注册到StaffAdminSite + AuditLog
 # ============================================================================

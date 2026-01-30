@@ -4,6 +4,8 @@ from django import forms
 from django.contrib import admin
 from django.core.exceptions import ValidationError
 
+from apps.users.admin import AuditLogMixin
+
 from .models import ModelProvider, ModelUsageLog
 
 
@@ -50,7 +52,7 @@ class ModelProviderAdminForm(forms.ModelForm):
 
 
 @admin.register(ModelProvider)
-class ModelProviderAdmin(admin.ModelAdmin):
+class ModelProviderAdmin(AuditLogMixin, admin.ModelAdmin):
     form = ModelProviderAdminForm
     list_display = [
         "system_resource_badge",

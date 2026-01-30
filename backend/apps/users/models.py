@@ -30,6 +30,50 @@ class UserProfile(models.Model):
         return f"{self.user.username}的扩展信息"
 
 
+class AuditLog(models.Model):
+    """审计日志模型
+
+    Epic 8 Story 8.10: 操作日志
+
+    记录 Admin 后台的所有操作，用于审计和追踪。
+    """
+
+    ACTION_CHOICES = [
+        ("create", "创建"),
+        ("update", "更新"),
+        ("delete", "删除"),
+        ("view", "查看"),
+    ]
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_logs",
+        verbose_name="操作用户",
+    )
+    action = models.CharField("操作类型", max_length=20, choices=ACTION_CHOICES, db_index=True)
+    model_name = models.CharField("模型名称", max_length=100, db_index=True)
+    object_id = models.CharField("对象ID", max_length=100, db_index=True)
+    object_repr = models.CharField("对象表示", max_length=200)
+    change_message = models.TextField("变更消息", blank=True)
+    created_at = models.DateTimeField("创建时间", auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "审计日志"
+        verbose_name_plural = "审计日志"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["-created_at", "user"]),
+            models.Index(fields=["model_name", "object_id"]),
+            models.Index(fields=["action", "-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} - {self.action} - {self.model_name} ({self.created_at})"
+
+
 class UserProxy(User):
     """
     User Proxy Model - 重写delete方法实现级联删除

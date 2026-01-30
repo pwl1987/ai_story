@@ -2,11 +2,13 @@
 
 from django.contrib import admin
 
+from apps.users.admin import AuditLogMixin
+
 from .models import GlobalVariable, PromptTemplate, PromptTemplateSet
 
 
 @admin.register(PromptTemplateSet)
-class PromptTemplateSetAdmin(admin.ModelAdmin):
+class PromptTemplateSetAdmin(AuditLogMixin, admin.ModelAdmin):
     list_display = [
         "system_resource_badge",
         "name",
