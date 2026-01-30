@@ -8,7 +8,6 @@ import pytest
 
 from core.pipeline.base import (
     PipelineContext,
-    ProcessingError,
     StageProcessor,
     StageResult,
     ValidationError,
@@ -213,19 +212,10 @@ class TestExceptions:
         assert str(exc_info.value) == "Validation failed"
         assert isinstance(exc_info.value, Exception)
 
-    def test_processing_error(self):
-        """测试ProcessingError异常"""
-        with pytest.raises(ProcessingError) as exc_info:
-            raise ProcessingError("Processing failed")
-
-        assert str(exc_info.value) == "Processing failed"
-        assert isinstance(exc_info.value, Exception)
-
     def test_exception_inheritance(self):
         """测试异常继承关系"""
         # 验证自定义异常继承自Exception
         assert issubclass(ValidationError, Exception)
-        assert issubclass(ProcessingError, Exception)
 
 
 @pytest.mark.unit

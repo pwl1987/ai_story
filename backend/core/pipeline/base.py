@@ -69,6 +69,19 @@ class StageProcessor(ABC):
         pass
 
     @abstractmethod
+    async def process(self, context: PipelineContext) -> StageResult:
+        """
+        执行阶段核心逻辑
+
+        Args:
+            context: 工作流上下文
+
+        Returns:
+            StageResult: 阶段执行结果
+        """
+        pass
+
+    @abstractmethod
     async def on_failure(self, context: PipelineContext, error: Exception):
         """
         失败处理
@@ -92,11 +105,4 @@ class StageProcessor(ABC):
 
 class ValidationError(Exception):
     """验证错误"""
-
-    pass
-
-
-class ProcessingError(Exception):
-    """处理错误"""
-
     pass

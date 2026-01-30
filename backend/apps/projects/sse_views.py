@@ -39,13 +39,22 @@ class ProjectStageSSEView(View):
         Returns:
             StreamingHttpResponse: SSE流式响应
         """
-        # TODO: 添加权限验证
-        # 验证用户是否有权限访问该项目
-        # user = request.user
-        # if not user.is_authenticated:
-        #     return HttpResponse('Unauthorized', status=401)
+        # 权限验证：检查用户是否已登录
+        from django.http import HttpResponse
+        from apps.projects.models import Project
 
-        logger.info(f"SSE连接建立: project_id={project_id}, stage_name={stage_name}")
+        if not request.user.is_authenticated:
+            return HttpResponse("Unauthorized", status=401)
+
+        # 验证用户是否有权限访问该项目
+        try:
+            project = Project.objects.get(id=project_id)
+            if project.user_id != request.user.id:
+                return HttpResponse("Forbidden", status=403)
+        except Project.DoesNotExist:
+            return HttpResponse("Project not found", status=404)
+
+        logger.info(f"SSE连接建立: project_id={project_id}, stage_name={stage_name}, user={request.user.id}")
 
         # 创建事件流生成器
         event_stream = self._create_event_stream(project_id, stage_name)
@@ -176,7 +185,22 @@ class ProjectAllStagesSSEView(View):
         Returns:
             StreamingHttpResponse: SSE流式响应
         """
-        logger.info(f"SSE连接建立(所有阶段): project_id={project_id}")
+        # 权限验证：检查用户是否已登录
+        from django.http import HttpResponse
+        from apps.projects.models import Project
+
+        if not request.user.is_authenticated:
+            return HttpResponse("Unauthorized", status=401)
+
+        # 验证用户是否有权限访问该项目
+        try:
+            project = Project.objects.get(id=project_id)
+            if project.user_id != request.user.id:
+                return HttpResponse("Forbidden", status=403)
+        except Project.DoesNotExist:
+            return HttpResponse("Project not found", status=404)
+
+        logger.info(f"SSE连接建立(所有阶段): project_id={project_id}, user={request.user.id}")
 
         # 创建事件流生成器 (stage_name=None表示订阅所有阶段)
         event_stream = self._create_event_stream(project_id)

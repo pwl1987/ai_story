@@ -7,6 +7,7 @@ Story 5.4重构: 使用ProjectPipeline统一编排工作流
 """
 
 import asyncio
+import concurrent.futures
 import logging
 from typing import Any, Dict
 
@@ -37,8 +38,8 @@ logger = logging.getLogger(__name__)
     default_retry_delay=60,
     acks_late=True,
     reject_on_worker_lost=True,
-    soft_time_limit=600,  # 10分钟软超时
-    time_limit=900,  # 15分钟硬超时
+    soft_time_limit=300,  # 5分钟软超时（优化：LLM响应通常较快）
+    time_limit=600,  # 10分钟硬超时
 )
 def execute_llm_stage(
     self, project_id: str, stage_name: str, input_data: Dict[str, Any], user_id: int
@@ -170,8 +171,8 @@ def execute_llm_stage(
     default_retry_delay=60,
     acks_late=True,
     reject_on_worker_lost=True,
-    soft_time_limit=600,
-    time_limit=900,
+    soft_time_limit=300,  # 5分钟软超时（优化：文生图通常较快）
+    time_limit=600,  # 10分钟硬超时
 )
 def execute_text2image_stage(
     self, project_id: str, storyboard_ids: list = None, user_id: int = None
@@ -285,8 +286,8 @@ def execute_text2image_stage(
     default_retry_delay=60,
     acks_late=True,
     reject_on_worker_lost=True,
-    soft_time_limit=1200,  # 20分钟软超时 (视频生成较慢)
-    time_limit=1500,  # 25分钟硬超时
+    soft_time_limit=900,  # 15分钟软超时（优化：视频生成时间）
+    time_limit=1200,  # 20分钟硬超时
 )
 def execute_image2video_stage(
     self, project_id: str, storyboard_ids: list = None, user_id: int = None
@@ -501,8 +502,8 @@ def generate_jianying_draft(
     default_retry_delay=120,
     acks_late=True,
     reject_on_worker_lost=True,
-    soft_time_limit=1800,  # 30分钟软超时（完整工作流）
-    time_limit=2100,  # 35分钟硬超时
+    soft_time_limit=2700,  # 45分钟软超时（优化：5阶段总和：3×10 + 2×10 = 50分钟，留余量）
+    time_limit=3600,  # 60分钟硬超时
     queue="llm",  # 指定队列，确保Worker能处理
 )
 def execute_full_pipeline(self, project_id: str, user_id: int = None) -> Dict[str, Any]:
@@ -698,7 +699,20 @@ def execute_single_stage(
 
         # 创建Pipeline并执行单个阶段
         pipeline = ProjectPipeline([adapter])
-        context = asyncio.run(pipeline.execute(project_id))
+
+        # 使用线程池执行异步Pipeline（与execute_full_pipeline保持一致）
+        def run_pipeline_sync():
+            """在单独的线程中运行async Pipeline"""
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                return loop.run_until_complete(pipeline.execute(project_id))
+            finally:
+                loop.close()
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(run_pipeline_sync)
+            context = future.result()
 
         # 返回结果
         result = context.get_result(stage_name)
