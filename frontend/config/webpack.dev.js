@@ -5,6 +5,7 @@ module.exports = merge(common, {
   mode: 'development',
   devtool: 'eval-source-map',
   devServer: {
+    host: '0.0.0.0',  // 允许局域网访问
     port: 3000,
     hot: true,
     open: true,
@@ -17,13 +18,13 @@ module.exports = merge(common, {
     },
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: 'http://10.30.5.62:8000',
         changeOrigin: true,
         secure: false,
         logLevel: 'debug',
       },
       '/media': {
-        target: 'http://127.0.0.1:8000',
+        target: 'http://10.30.5.62:8000',
         changeOrigin: true,
         secure: false,
       },

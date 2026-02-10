@@ -8,6 +8,7 @@ import json
 
 from celery.result import AsyncResult
 from django.conf import settings
+from django.db import models
 from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -18,13 +19,14 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Project, ProjectModelConfig, ProjectStage
+from .models import Project, ProjectModelConfig, ProjectStage, ProjectTemplate
 from .serializers import (
     ProjectCreateSerializer,
     ProjectDetailSerializer,
     ProjectListSerializer,
     ProjectModelConfigSerializer,
     ProjectStageSerializer,
+    ProjectTemplateCRUDSerializer,
     ProjectTemplateSerializer,
     ProjectUpdateSerializer,
     StageExecuteSerializer,
@@ -959,6 +961,161 @@ class ProjectStageViewSet(viewsets.ReadOnlyModelViewSet):
         return ProjectStage.objects.filter(project__user=self.request.user).select_related(
             "project"
         )
+
+
+class ProjectModelConfigViewSet(viewsets.ModelViewSet):
+    """
+    项目模型配置ViewSet
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProjectModelConfigSerializer
+
+    def get_queryset(self):
+        """只返回当前用户项目的配置"""
+        return (
+            ProjectModelConfig.objects.filter(project__user=self.request.user)
+            .select_related("project")
+            .prefetch_related(
+                "rewrite_providers",
+                "storyboard_providers",
+                "image_providers",
+                "camera_providers",
+                "video_providers",
+            )
+        )
+
+
+class ProjectTemplateViewSet(viewsets.ModelViewSet):
+    """
+    Story 11.4.3: 项目模板ViewSet
+    提供模板CRUD操作和权限控制
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProjectTemplateCRUDSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ["is_system_template"]
+    ordering = ["-created_at"]
+
+    def get_queryset(self):
+        """
+        返回模板列表：
+        - 系统预置模板：所有用户可见
+        - 用户自定义模板：仅创建者和管理员可见
+        """
+        from django.contrib.auth import get_user_model
+
+        get_user_model()
+
+        queryset = ProjectTemplate.objects.filter(
+            models.Q(is_system_template=True) | models.Q(created_by=self.request.user)
+        ).select_related("created_by")
+
+        return queryset
+
+    def get_permissions(self):
+        """
+        权限控制：
+        - 系统预置模板：仅管理员可修改/删除
+        - 用户模板：仅创建者可修改/删除
+        """
+        if self.action in ["update", "partial_update", "destroy"]:
+            if self.kwargs.get("pk"):
+                try:
+                    template = ProjectTemplate.objects.get(pk=self.kwargs["pk"])
+                    if template.is_system_template and not self.request.user.is_superuser:
+                        from rest_framework.permissions import IsAdminUser
+
+                        return [IsAdminUser()]
+                    if template.created_by != self.request.user:
+                        from rest_framework.permissions import IsAuthenticated
+
+                        return [IsAuthenticated()]  # Will be denied in perform_update/destroy
+                except ProjectTemplate.DoesNotExist:
+                    pass
+        return super().get_permissions()
+
+    def perform_update(self, serializer):
+        """
+        更新前检查权限
+        系统预置模板不允许修改
+        """
+        template = self.get_object()
+        if template.is_system_template and not self.request.user.is_superuser:
+            from rest_framework.exceptions import PermissionDenied
+
+            raise PermissionDenied("系统预置模板不允许修改")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        """
+        删除前检查权限
+        系统预置模板不允许删除（模型层面也有保护）
+        """
+        if instance.is_system_template:
+            from rest_framework.exceptions import PermissionDenied
+
+            raise PermissionDenied("系统预置模板不允许删除")
+        if instance.created_by != self.request.user and not self.request.user.is_superuser:
+            from rest_framework.exceptions import PermissionDenied
+
+            raise PermissionDenied("只能删除自己创建的模板")
+        instance.delete()
+
+    @action(detail=True, methods=["post"])
+    def apply(self, request, pk=None):
+        """
+        应用模板到项目
+        POST /api/v1/project-templates/{id}/apply/
+        """
+        template = self.get_object()
+        project_id = request.data.get("project_id")
+
+        if not project_id:
+            return Response({"error": "缺少project_id参数"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            project = Project.objects.get(id=project_id, user=request.user)
+        except Project.DoesNotExist:
+            return Response({"error": "项目不存在或无权访问"}, status=status.HTTP_404_NOT_FOUND)
+
+        # 应用模板参数到项目
+        parameters = template.parameters
+        update_data = {}
+
+        if "prompt_template_set" in parameters:
+            update_data["prompt_template_set_id"] = parameters["prompt_template_set"]
+        if "proxy_config" in parameters:
+            update_data["proxy_config_id"] = parameters["proxy_config"]
+
+        # 更新项目
+        for key, value in update_data.items():
+            setattr(project, key, value)
+        project.save()
+
+        # 更新模型配置
+        if "llm_provider" in parameters:
+            project.model_config.rewrite_providers.set(
+                [parameters["llm_provider"]]
+                if isinstance(parameters["llm_provider"], int)
+                else parameters["llm_provider"]
+            )
+        if "image_provider" in parameters:
+            project.model_config.image_providers.set(
+                [parameters["image_provider"]]
+                if isinstance(parameters["image_provider"], int)
+                else parameters["image_provider"]
+            )
+        if "video_provider" in parameters:
+            project.model_config.video_providers.set(
+                [parameters["video_provider"]]
+                if isinstance(parameters["video_provider"], int)
+                else parameters["video_provider"]
+            )
+
+        serializer = ProjectDetailSerializer(project)
+        return Response(serializer.data)
 
 
 class ProjectModelConfigViewSet(viewsets.ModelViewSet):

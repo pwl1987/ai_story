@@ -7,6 +7,10 @@ import prompts from './modules/prompts';
 import models from './modules/models';
 import content from './modules/content';
 import ui from './modules/ui';
+import artworks from './modules/artworks';
+import engines from './modules/engines';
+import progress from './modules/progress';
+import batchOperations from './modules/batchOperations';
 
 Vue.use(Vuex);
 
@@ -38,5 +42,9 @@ export default new Vuex.Store({
     models,
     content,
     ui,
+    artworks,
+    engines,
+    progress,
+    batchOperations,
   },
 });

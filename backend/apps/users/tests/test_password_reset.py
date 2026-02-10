@@ -217,3 +217,96 @@ class PasswordResetSecurityTest(TestCase):
         # 验证旧密码不再有效
         test_user = User.objects.get(username="testuser")
         self.assertFalse(test_user.check_password("testpass123"), "旧密码应该不再有效")
+
+
+class PasswordResetActionWithoutProfileTest(TestCase):
+    """测试：用户没有UserProfile时的密码重置功能（Bug修复回归测试）"""
+
+    @classmethod
+    def setUpTestData(cls):
+        """创建测试数据 - 故意不创建UserProfile"""
+        cls.superuser = User.objects.create_superuser(
+            username="admin", email="admin@example.com", password="adminpass123"
+        )
+        # 创建用户但不创建UserProfile（模拟bug场景）
+        cls.user_without_profile = User.objects.create_user(
+            username="testadmin",  # 使用实际报错时的用户名
+            email="testadmin@example.com",
+            password="oldpass123",
+        )
+
+    def test_password_reset_creates_profile_if_missing(self):
+        """测试：当用户没有profile时，密码重置应该自动创建profile"""
+        from django.contrib.messages.storage.fallback import FallbackStorage
+        from django.test import RequestFactory
+        from apps.users.models import UserProfile
+
+        # 确保用户没有profile
+        self.assertFalse(
+            hasattr(self.user_without_profile, "profile")
+            or UserProfile.objects.filter(user=self.user_without_profile).exists(),
+            "测试用户应该没有UserProfile",
+        )
+
+        user_admin = UserAdmin(User, site)
+        factory = RequestFactory()
+        request = factory.post("/admin/auth/user/")
+        request.user = self.superuser
+
+        # 设置message storage
+        request.session = "session"
+        messages = FallbackStorage(request)
+        request._messages = messages
+
+        # 执行密码重置
+        queryset = User.objects.filter(username="testadmin")
+        user_admin.password_reset_action(request, queryset)
+
+        # 验证：profile已自动创建
+        self.user_without_profile.refresh_from_db()
+        self.assertTrue(
+            UserProfile.objects.filter(user=self.user_without_profile).exists(),
+            "密码重置应该自动创建UserProfile",
+        )
+
+        # 验证：must_change_password标志已设置
+        profile = UserProfile.objects.get(user=self.user_without_profile)
+        self.assertTrue(profile.must_change_password, "must_change_password应该被设置为True")
+
+        # 验证：密码已修改
+        self.assertFalse(
+            self.user_without_profile.check_password("oldpass123"), "旧密码应该不再有效"
+        )
+
+    def test_password_reset_mixed_users_with_and_without_profile(self):
+        """测试：批量重置混合用户（有profile和无profile）"""
+        from django.contrib.messages.storage.fallback import FallbackStorage
+        from django.test import RequestFactory
+        from apps.users.models import UserProfile
+
+        # 创建有profile的用户
+        user_with_profile = User.objects.create_user(
+            username="userwithprofile", email="userwithprofile@example.com", password="pass123"
+        )
+        UserProfile.objects.create(user=user_with_profile)
+
+        user_admin = UserAdmin(User, site)
+        factory = RequestFactory()
+        request = factory.post("/admin/auth/user/")
+        request.user = self.superuser
+
+        # 设置message storage
+        request.session = "session"
+        messages = FallbackStorage(request)
+        request._messages = messages
+
+        # 批量重置两个用户
+        queryset = User.objects.filter(username__in=["testadmin", "userwithprofile"])
+        user_admin.password_reset_action(request, queryset)
+
+        # 验证：两个用户都成功重置
+        for user in User.objects.filter(username__in=["testadmin", "userwithprofile"]):
+            profile = UserProfile.objects.get(user=user)
+            self.assertTrue(
+                profile.must_change_password, f"{user.username}的must_change_password应该为True"
+            )

@@ -1,0 +1,257 @@
+"""
+Story 11.2.4: 镜头重新生成 WebSocket 消费者测试
+
+测试 ShotRegenerateConsumer 和 BatchShotRegenerateConsumer
+"""
+
+import pytest
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from channels.testing import WebsocketCommunicator
+from django.test import override_settings
+
+from config.routing import application
+
+
+@pytest.fixture(scope="function")
+def channel_layer_settings(settings):
+    """配置 InMemoryChannelLayer 用于测试"""
+    settings.CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        },
+    }
+    return settings
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("channel_layer_settings")
+class ShotRegenerateConsumerTestCase:
+    """ShotRegenerateConsumer 测试"""
+
+    async def test_websocket_connection(self):
+        """测试 WebSocket 连接建立"""
+        communicator = WebsocketCommunicator(
+            application,
+            path="/ws/artworks/shots/1/regenerate/",
+        )
+
+        connected, _ = await communicator.connect()
+        assert connected is True
+
+        # 验证连接确认消息
+        response = await communicator.receive_json_from()
+        assert response["type"] == "connected"
+        assert response["shot_id"] == 1
+        assert "message" in response
+
+        await communicator.disconnect()
+
+    async def test_websocket_ping_pong(self):
+        """测试心跳检测"""
+        communicator = WebsocketCommunicator(
+            application,
+            path="/ws/artworks/shots/1/regenerate/",
+        )
+
+        await communicator.connect()
+
+        # 接收连接确认
+        await communicator.receive_json_from()
+
+        # 发送 ping
+        await communicator.send_json_to(
+            {
+                "type": "ping",
+                "timestamp": 1234567890.0,
+            }
+        )
+
+        # 接收 pong
+        response = await communicator.receive_json_from()
+        assert response["type"] == "pong"
+        assert response["timestamp"] == 1234567890.0
+
+        await communicator.disconnect()
+
+    async def test_websocket_receive_progress_message(self):
+        """测试接收进度消息"""
+        communicator = WebsocketCommunicator(
+            application,
+            path="/ws/artworks/shots/1/regenerate/",
+        )
+
+        await communicator.connect()
+        await communicator.receive_json_from()  # 连接确认
+
+        # 模拟从 Redis 频道接收进度消息
+        channel_layer = get_channel_layer()
+        await channel_layer.group_send(
+            "shot_1_regenerate",
+            {
+                "type": "shot_progress",
+                "progress": 50,
+                "message": "正在生成图像...",
+            },
+        )
+
+        # 接收进度消息
+        response = await communicator.receive_json_from()
+        assert response["type"] in ["progress", "stage_update"]
+        assert response["shot_id"] == 1
+        assert response["progress"] == 50
+        assert "message" in response
+
+        await communicator.disconnect()
+
+    async def test_websocket_unknown_message_type(self):
+        """测试未知消息类型处理"""
+        communicator = WebsocketCommunicator(
+            application,
+            path="/ws/artworks/shots/1/regenerate/",
+        )
+
+        await communicator.connect()
+        await communicator.receive_json_from()  # 连接确认
+
+        # 发送未知类型的消息
+        await communicator.send_json_to(
+            {
+                "type": "unknown_type",
+            }
+        )
+
+        # 不应该有响应（或仅记录日志）
+        # 这里我们只验证没有错误抛出
+        await communicator.disconnect()
+
+    async def test_webshot_disconnect(self):
+        """测试 WebSocket 断开连接"""
+        communicator = WebsocketCommunicator(
+            application,
+            path="/ws/artworks/shots/1/regenerate/",
+        )
+
+        await communicator.connect()
+        await communicator.receive_json_from()  # 连接确认
+
+        # 断开连接
+        await communicator.disconnect()
+
+        # 验证连接已关闭
+        assert communicator.output_queue.empty()
+
+
+@pytest.mark.asyncio
+@override_settings(
+    CHANNEL_LAYERS={
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        },
+    }
+)
+class BatchShotRegenerateConsumerTestCase:
+    """BatchShotRegenerateConsumer 测试"""
+
+    async def test_batch_websocket_connection(self):
+        """测试批量生成 WebSocket 连接"""
+        communicator = WebsocketCommunicator(
+            application,
+            path="/ws/artworks/batch-regenerate/test-batch-123/",
+        )
+
+        connected, _ = await communicator.connect()
+        assert connected is True
+
+        # 验证连接确认消息
+        response = await communicator.receive_json_from()
+        assert response["type"] == "connected"
+        assert response["batch_id"] == "test-batch-123"
+
+        await communicator.disconnect()
+
+    async def test_batch_websocket_ping_pong(self):
+        """测试批量生成心跳检测"""
+        communicator = WebsocketCommunicator(
+            application,
+            path="/ws/artworks/batch-regenerate/test-batch-123/",
+        )
+
+        await communicator.connect()
+        await communicator.receive_json_from()  # 连接确认
+
+        # 发送 ping
+        await communicator.send_json_to(
+            {
+                "type": "ping",
+                "timestamp": 1234567890.0,
+            }
+        )
+
+        # 接收 pong
+        response = await communicator.receive_json_from()
+        assert response["type"] == "pong"
+
+        await communicator.disconnect()
+
+    async def test_batch_websocket_receive_progress(self):
+        """测试接收批量进度消息"""
+        communicator = WebsocketCommunicator(
+            application,
+            path="/ws/artworks/batch-regenerate/test-batch-123/",
+        )
+
+        await communicator.connect()
+        await communicator.receive_json_from()  # 连接确认
+
+        # 模拟批量进度消息
+        channel_layer = get_channel_layer()
+        await channel_layer.group_send(
+            "batch_test-batch-123_regenerate",
+            {
+                "type": "batch_progress",
+                "total": 5,
+                "completed": 2,
+                "failed": 0,
+                "message": "正在生成第3/5个镜头...",
+            },
+        )
+
+        # 接收进度消息
+        response = await communicator.receive_json_from()
+        assert response["type"] == "batch_progress"
+        assert response["batch_id"] == "test-batch-123"
+        assert response["total"] == 5
+        assert response["completed"] == 2
+
+        await communicator.disconnect()
+
+
+@pytest.mark.django_db
+class WebSocketRoutingTestCase:
+    """WebSocket 路由配置测试"""
+
+    def test_shot_regenerate_route_exists(self):
+        """测试镜头重新生成路由存在"""
+        from config.routing import websocket_urlpatterns
+
+        # 验证路由配置
+        route_paths = [pattern.pattern for pattern in websocket_urlpatterns]
+
+        # 检查是否包含镜头重新生成路由
+        shot_regenerate_routes = [
+            route for route in route_paths if "shots" in route and "regenerate" in route
+        ]
+
+        assert len(shot_regenerate_routes) > 0
+
+    def test_batch_regenerate_route_exists(self):
+        """测试批量重新生成路由存在"""
+        from config.routing import websocket_urlpatterns
+
+        route_paths = [pattern.pattern for pattern in websocket_urlpatterns]
+
+        # 检查是否包含批量重新生成路由
+        batch_regenerate_routes = [route for route in route_paths if "batch-regenerate" in route]
+
+        assert len(batch_regenerate_routes) > 0

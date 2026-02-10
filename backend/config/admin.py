@@ -66,6 +66,10 @@ from apps.prompts.admin import (
 )
 from apps.prompts.models import GlobalVariable, PromptTemplate, PromptTemplateSet
 
+# Epic 9: 代理管理系统
+from apps.proxy.admin import ProxyConfigAdmin, ProxyUsageLogAdmin
+from apps.proxy.models import ProxyConfig, ProxyUsageLog
+
 
 class StaffAdminSite(AdminSite):
     """
@@ -233,9 +237,13 @@ class UserAdmin(DjangoUserAdmin):
             # 设置密码
             user.password = make_password(temp_password)
 
-            # 设置强制修改标志
-            user.profile.must_change_password = True
-            user.profile.save()
+            # 设置强制修改标志（安全处理缺失的profile）
+            profile, created = UserProfile.objects.get_or_create(
+                user=user, defaults={"must_change_password": True}
+            )
+            if not created:
+                profile.must_change_password = True
+                profile.save()
             user.save()
 
             reset_results.append({"user": user.username, "password": temp_password})
@@ -306,6 +314,10 @@ staff_admin_site.register(FileQuota, FileQuotaAdmin)
 
 # Users (1个模型，UserProfile将在Story 8.4添加)
 staff_admin_site.register(User, UserAdmin)
+
+# Epic 9 Story 9.1: 代理管理系统
+staff_admin_site.register(ProxyConfig, ProxyConfigAdmin)
+staff_admin_site.register(ProxyUsageLog, ProxyUsageLogAdmin)
 
 # Epic 8 Story 8.10: 注册审计日志
 staff_admin_site.register(AuditLog, AuditLogAdmin)

@@ -32,6 +32,7 @@ class ModelProvider(models.Model):
     # 执行器选项定义
     LLM_EXECUTORS = [
         ("core.ai_client.openai_client.OpenAIClient", "OpenAI兼容客户端"),
+        ("core.ai_client.ollama_client.OllamaClient", "Ollama本地LLM客户端"),
         ("core.ai_client.mock_llm_client.MockLLMClient", "Mock LLM客户端（测试用）"),
     ]
 
@@ -101,6 +102,22 @@ class ModelProvider(models.Model):
         blank=True,
     )
 
+    # Epic 9 Story 9.13: 代理配置集成
+    proxy_config = models.ForeignKey(
+        "proxy.ProxyConfig",
+        on_delete=models.SET_NULL,  # 代理删除时设为NULL，不影响模型配置
+        null=True,
+        blank=True,
+        verbose_name="代理配置",
+        related_name="model_providers",
+        help_text="选择用于此模型API请求的代理（可选）",
+    )
+    use_proxy = models.BooleanField(
+        "启用代理",
+        default=False,
+        help_text="是否启用代理进行API请求",
+    )
+
     created_at = models.DateTimeField("创建时间", auto_now_add=True)
     updated_at = models.DateTimeField("更新时间", auto_now=True)
 
@@ -112,6 +129,7 @@ class ModelProvider(models.Model):
         indexes = [
             models.Index(fields=["provider_type", "is_active", "-priority"]),
             models.Index(fields=["-is_system_default", "created_by"]),
+            models.Index(fields=["use_proxy", "proxy_config"]),  # Epic 9 Story 9.13: 代理查询优化
         ]
 
     def __str__(self):
@@ -178,6 +196,41 @@ class ModelProvider(models.Model):
 
         valid_executors = [choice[0] for choice in self.get_executor_choices()]
         return self.executor_class in valid_executors
+
+    def get_proxy_url(self) -> str:
+        """
+        获取代理URL（如果启用代理）
+
+        Epic 9 Story 9.13: 代理集成
+
+        Returns:
+            str: 代理URL，如 'http://user:pass@host:port'
+            None: 未启用代理、未配置代理或代理未激活
+
+        Note:
+            此方法会检查：
+            1. use_proxy 是否为 True
+            2. proxy_config 是否已配置
+            3. 代理是否激活（is_active=True）
+            如果任一条件不满足，返回 None
+        """
+        # 检查是否启用代理
+        if not self.use_proxy:
+            return None
+
+        # 检查是否配置了代理
+        if not self.proxy_config:
+            return None
+
+        # 检查代理是否激活
+        if not self.proxy_config.is_active:
+            return None
+
+        # 获取代理 URL
+        try:
+            return self.proxy_config.get_proxy_url()
+        except Exception:
+            return None
 
 
 class ModelUsageLog(models.Model):

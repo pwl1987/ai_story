@@ -72,8 +72,13 @@ module.exports = {
       'process.env': {
         NODE_ENV: JSON.stringify(process.env.NODE_ENV || 'development'),
         BASE_URL: JSON.stringify('/'),
-        VUE_APP_API_URL: JSON.stringify(process.env.VUE_APP_API_URL || 'http://localhost:8000'),
-        VUE_APP_WS_URL: JSON.stringify(process.env.VUE_APP_WS_URL || 'ws://localhost:8000'),
+        // 从 .env 文件读取，或使用默认值
+        VUE_APP_API_BASE_URL: JSON.stringify(process.env.VUE_APP_API_BASE_URL || 'http://10.30.5.62:8000/api/v1'),
+        VUE_APP_WS_URL: JSON.stringify(process.env.VUE_APP_WS_URL || '10.30.5.62:8000'),
+        VUE_APP_TITLE: JSON.stringify(process.env.VUE_APP_TITLE || 'AI Story'),
+        VUE_APP_ENV: JSON.stringify(process.env.VUE_APP_ENV || 'development'),
+        VUE_APP_ENABLE_WEBSOCKET: JSON.stringify(process.env.VUE_APP_ENABLE_WEBSOCKET || 'true'),
+        VUE_APP_ENABLE_MOCK: JSON.stringify(process.env.VUE_APP_ENABLE_MOCK || 'false'),
       },
     }),
   ],

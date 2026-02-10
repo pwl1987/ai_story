@@ -1,342 +1,182 @@
 <template>
-  <div class="storyboard-viewer">
-    <!-- 视图切换工具栏 -->
-    <div class="flex justify-between items-center mb-4">
+  <div class="storyboard-viewer" tabindex="0" @keydown="handleKeydown">
+    <!-- 模式切换工具栏 -->
+    <div class="flex flex-wrap justify-between items-center gap-4 mb-6 bg-base-100 rounded-lg p-4 border border-base-300">
       <div class="flex items-center gap-3">
+        <div class="text-xs text-base-content/60 font-medium uppercase tracking-wide">视图模式</div>
         <div class="btn-group">
           <button
             class="btn btn-sm"
-            :class="{ 'btn-active': viewMode === 'cards' }"
-            @click="viewMode = 'cards'"
+            :class="{ 'btn-active': mode === 'view' }"
+            @click="setMode('view')"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1v-3z" />
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
-            卡片视图
+            查看模式
           </button>
           <button
             class="btn btn-sm"
-            :class="{ 'btn-active': viewMode === 'markdown' }"
-            @click="viewMode = 'markdown'"
+            :class="{ 'btn-active': mode === 'edit' }"
+            @click="setMode('edit')"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
             </svg>
-            Markdown格式
+            编辑模式
+          </button>
+          <button
+            class="btn btn-sm"
+            :class="{ 'btn-active': mode === 'quick' }"
+            @click="setMode('quick')"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+            </svg>
+            快速预览
+          </button>
+          <button
+            class="btn btn-sm"
+            :class="{ 'btn-active': mode === 'markdown' }"
+            @click="setMode('markdown')"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+            </svg>
+            Markdown
           </button>
         </div>
+      </div>
 
-        <!-- 新增空白卡片按钮 -->
+      <!-- 右侧操作区 -->
+      <div class="flex items-center gap-3">
+        <!-- 统计信息 -->
+        <div v-if="scenes && scenes.length > 0" class="flex items-center gap-2">
+          <div class="badge badge-primary">共 {{ scenes.length }} 个分镜</div>
+          <div v-if="hasUnsavedChanges" class="badge badge-warning gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            有未保存更改
+          </div>
+        </div>
+
+        <!-- 批量操作按钮 (编辑模式下显示) -->
+        <template v-if="mode === 'edit' && selectedScenes.size > 0">
+          <div class="divider divider-horizontal mx-0"></div>
+          <div class="badge badge-info">已选 {{ selectedScenes.size }} 个</div>
+          <div class="btn-group btn-group-xs">
+            <button class="btn btn-xs" @click="batchUpdateShotType" title="批量修改镜头类型">
+              批量修改类型
+            </button>
+            <button class="btn btn-xs btn-error" @click="batchDelete" title="批量删除">
+              批量删除
+            </button>
+          </div>
+          <button class="btn btn-xs btn-ghost" @click="clearSelection" title="取消选择">
+            取消选择
+          </button>
+        </template>
+
+        <!-- 操作按钮 -->
+        <div v-if="mode !== 'markdown'" class="divider divider-horizontal mx-0"></div>
         <button
-          v-if="viewMode === 'cards'"
+          v-if="mode === 'edit' || mode === 'quick'"
           class="btn btn-sm btn-primary gap-2"
           @click="addBlankCard"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
-          新增空白卡片
+          新增分镜
         </button>
-      </div>
-
-      <!-- 统计信息 -->
-      <div v-if="scenes && scenes.length > 0" class="badge badge-primary badge-lg">
-        共 {{ scenes.length }} 个分镜
+        <button
+          v-if="mode === 'edit'"
+          class="btn btn-sm btn-ghost gap-2"
+          :class="{ 'btn-active': isMultiSelectMode }"
+          @click="toggleMultiSelectMode"
+          title="多选模式 (M)"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012 2h2a2 2 0 012-2m-6 6a2 2 0 012 2h2a2 2 0 012-2m-6 6a2 2 0 012 2h2a2 2 0 012-2" />
+          </svg>
+          多选
+        </button>
+        <button
+          v-if="mode === 'markdown'"
+          class="btn btn-sm btn-ghost gap-2"
+          @click="copyMarkdown"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          复制文本
+        </button>
       </div>
     </div>
 
-    <!-- 卡片视图 -->
-    <div v-if="viewMode === 'cards'" class="cards-container">
-      <div v-if="scenes && scenes.length > 0" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    <!-- 快捷键提示 -->
+    <div v-if="mode === 'edit' && showKeyboardHints" class="alert alert-sm bg-base-200 mb-4">
+      <div class="flex items-center gap-4 text-xs">
+        <span class="font-semibold">快捷键：</span>
+        <kbd class="kbd kbd-xs">Ctrl+N</kbd> <span>新增</span>
+        <kbd class="kbd kbd-xs">Ctrl+S</kbd> <span>保存</span>
+        <kbd class="kbd kbd-xs">Ctrl+A</kbd> <span>全选</span>
+        <kbd class="kbd kbd-xs">Esc</kbd> <span>取消选择</span>
+        <kbd class="kbd kbd-xs">Delete</kbd> <span>删除选中</span>
+        <kbd class="kbd kbd-xs">M</kbd> <span>多选模式</span>
+        <button class="btn btn-xs btn-ghost ml-auto" @click="showKeyboardHints = false">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+    <button v-else-if="mode === 'edit'" class="btn btn-xs btn-ghost gap-1 mb-4" @click="showKeyboardHints = true">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      快捷键提示
+    </button>
+
+    <!-- 查看模式 - 只读卡片 -->
+    <div v-if="mode === 'view'" class="cards-container">
+      <div v-if="scenes && scenes.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <div
           v-for="(scene, index) in scenes"
           :key="scene.scene_number"
-          class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow duration-300"
+          class="card bg-base-100 shadow-lg hover:shadow-xl transition-shadow"
         >
-          <!-- 卡片头部 -->
           <div class="card-body p-4">
             <div class="flex justify-between items-center mb-3">
-              <div class="badge badge-lg badge-secondary">
-                场景 {{ scene.scene_number }}
-              </div>
-              <div class="flex items-center gap-2">
-                <!-- 镜头类型 - 可编辑 -->
-                <select
-                  v-if="isSceneEditable(scene) && isEditing(scene.scene_number, 'shot_type')"
-                  v-model="scene.shot_type"
-                  class="select select-xs select-bordered"
-                  @change="saveEdit(scene.scene_number, 'shot_type')"
-                >
-                  <option value="标准镜头">标准镜头</option>
-                  <option value="特写">特写</option>
-                  <option value="中景">中景</option>
-                  <option value="远景">远景</option>
-                  <option value="全景">全景</option>
-                  <option value="俯视">俯视</option>
-                  <option value="仰视">仰视</option>
-                </select>
-                <div
-                  v-else
-                  class="badge badge-outline cursor-pointer"
-                  :class="{ 'hover:badge-primary': isSceneEditable(scene) }"
-                  @click="isSceneEditable(scene) && toggleEditMode(scene.scene_number, 'shot_type')"
-                  :title="isSceneEditable(scene) ? '点击编辑镜头类型' : ''"
-                >
-                  {{ scene.shot_type || '标准镜头' }}
-                </div>
-                <!-- 在此位置插入卡片按钮 -->
-                <div class="dropdown dropdown-end">
-                  <label tabindex="0" class="btn btn-xs btn-ghost gap-1" title="插入卡片">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                  </label>
-                  <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-40">
-                    <li><a @click="insertBlankCard(index, 'before')">在此之前插入</a></li>
-                    <li><a @click="insertBlankCard(index, 'after')">在此之后插入</a></li>
-                  </ul>
-                </div>
-                <!-- 删除卡片按钮 -->
-                <button
-                  v-if="scenes.length > 1"
-                  class="btn btn-xs btn-ghost btn-error gap-1"
-                  @click="removeCard(index)"
-                  title="删除此卡片"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-                <!-- AI生成执行按钮 -->
-                <button
-                  class="btn btn-xs btn-primary gap-1"
-                  :class="{ 'loading': executingScenes[scene.scene_number] }"
-                  :disabled="executingScenes[scene.scene_number] || !projectId"
-                  @click="executeSceneGeneration(scene.scene_number)"
-                  title="执行AI生成图片"
-                >
-                  <svg v-if="!executingScenes[scene.scene_number]" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  {{ executingScenes[scene.scene_number] ? '生成中...' : '执行' }}
-                </button>
-              </div>
+              <div class="badge badge-lg">场景 {{ scene.scene_number }}</div>
+              <div class="badge badge-ghost">{{ scene.shot_type || '标准镜头' }}</div>
             </div>
 
-            <!-- 图片列表 -->
-            <div v-if="!scene.video_urls || scene.video_urls.length === 0">
             <div v-if="scene.urls && scene.urls.length > 0" class="mb-3">
-              <div class="text-xs font-semibold text-base-content/60 mb-2 flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                生成图片 ({{ getSelectedImageIndex(scene.scene_number) + 1 }}/{{ scene.urls.length }})
-              </div>
-
-              <!-- 当前选中的图片预览 -->
-              <div class="relative rounded-lg overflow-hidden bg-base-200 mb-2">
-                <img
-                  :src="getSelectedImage(scene.scene_number)"
-                  :alt="`场景 ${scene.scene_number} - 图片 ${getSelectedImageIndex(scene.scene_number) + 1}`"
-                  class="w-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                  @click="openImageModal(scene.scene_number)"
-                />
-                <div class="absolute top-2 right-2 badge badge-sm bg-black/50 text-white border-0">
-                  {{ getSelectedImageIndex(scene.scene_number) + 1 }}/{{ scene.urls.length }}
-                </div>
-              </div>
-
-              <!-- 图片缩略图选择器 -->
-              <div v-if="scene.urls.length > 1" class="flex gap-2 overflow-x-auto pb-2">
-                <div
-                  v-for="(url, index) in scene.urls"
-                  :key="index"
-                  class="flex-shrink-0 cursor-pointer rounded border-2 transition-all"
-                  :class="getSelectedImageIndex(scene.scene_number) === index ? 'border-primary ring-2 ring-primary/50' : 'border-base-300 hover:border-primary/50'"
-                  @click="selectImage(scene.scene_number, index)"
-                >
-                  <img
-                    :src="url.url"
-                    :alt="`缩略图 ${index + 1}`"
-                    class="w-16 h-16 object-cover rounded"
-                  />
-                </div>
-              </div>
+              <img :src="scene.urls[0].url" class="w-full h-32 object-cover rounded-lg" />
             </div>
+            <div v-else-if="scene.video_urls && scene.video_urls.length > 0" class="mb-3">
+              <video :src="scene.video_urls[0].url" class="w-full h-32 object-cover rounded-lg" preload="metadata"></video>
             </div>
-            <!-- 视频列表 -->
-            <div v-if="scene.video_urls && scene.video_urls.length > 0" class="mb-3">
-              <div class="text-xs font-semibold text-base-content/60 mb-2 flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                生成视频 ({{ getSelectedVideoIndex(scene.scene_number) + 1 }}/{{ scene.video_urls.length }})
-              </div>
 
-              <!-- 当前选中的视频预览 -->
-              <div class="relative rounded-lg overflow-hidden bg-base-200 mb-2">
-                <video
-                  :src="getSelectedVideo(scene.scene_number)"
-                  class="w-full cursor-pointer hover:opacity-90 transition-opacity"
-                  controls
-                  preload="metadata"
-                >
-                  您的浏览器不支持视频播放
-                </video>
-                <div class="absolute top-2 right-2 badge badge-sm bg-black/50 text-white border-0">
-                  {{ getSelectedVideoIndex(scene.scene_number) + 1 }}/{{ scene.video_urls.length }}
-                </div>
+            <div class="space-y-2 text-sm">
+              <div class="truncate" :title="scene.narration">
+                <span class="font-semibold text-base-content/60">旁白：</span>{{ scene.narration }}
               </div>
-
-              <!-- 视频缩略图选择器 -->
-              <div v-if="scene.video_urls.length > 1" class="flex gap-2 overflow-x-auto pb-2">
-                <div
-                  v-for="(video, index) in scene.video_urls"
-                  :key="index"
-                  class="flex-shrink-0 cursor-pointer rounded border-2 transition-all relative"
-                  :class="getSelectedVideoIndex(scene.scene_number) === index ? 'border-primary ring-2 ring-primary/50' : 'border-base-300 hover:border-primary/50'"
-                  @click="selectVideo(scene.scene_number, index)"
-                >
-                  <video
-                    :src="video.url"
-                    class="w-16 h-16 object-cover rounded"
-                    preload="metadata"
-                  ></video>
-                  <!-- 播放图标叠加层 -->
-                  <div class="absolute inset-0 flex items-center justify-center bg-black/30 rounded">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </div>
-                </div>
+              <div class="line-clamp-2 text-base-content/70" :title="scene.visual_prompt">
+                {{ scene.visual_prompt }}
               </div>
             </div>
 
-            <!-- 旁白 -->
-            <div class="mb-3">
-              <div class="text-xs font-semibold text-base-content/60 mb-1 flex items-center justify-between">
-                <div class="flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                  </svg>
-                  旁白文本
-                </div>
-                <button
-                  class="btn btn-xs btn-ghost gap-1"
-                  @click="toggleEditMode(scene.scene_number, 'narration')"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                  {{ isEditing(scene.scene_number, 'narration') ? '完成' : '编辑' }}
-                </button>
-              </div>
-              <textarea
-                v-if="isEditing(scene.scene_number, 'narration')"
-                v-model="scene.narration"
-                class="textarea textarea-bordered w-full text-sm"
-                rows="3"
-                @blur="saveEdit(scene.scene_number, 'narration')"
-              ></textarea>
-              <p v-else class="text-sm leading-relaxed">{{ scene.narration }}</p>
-            </div>
-
-            <!-- 视觉描述 -->
-            <div class="mb-3">
-              <div class="text-xs font-semibold text-base-content/60 mb-1 flex items-center justify-between">
-                <div class="flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  视觉提示词
-                </div>
-                <div class="flex items-center gap-1">
-                  <button
-                    class="btn btn-xs btn-ghost gap-1"
-                    @click="toggleEditMode(scene.scene_number, 'visual_prompt')"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                    {{ isEditing(scene.scene_number, 'visual_prompt') ? '完成' : '编辑' }}
-                  </button>
-                  <button class="btn btn-xs btn-ghost gap-1" @click="copyPrompt(scene.visual_prompt)">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    复制
-                  </button>
-                </div>
-              </div>
-              <textarea
-                v-if="isEditing(scene.scene_number, 'visual_prompt')"
-                v-model="scene.visual_prompt"
-                class="textarea textarea-bordered w-full text-sm"
-                rows="5"
-                @blur="saveEdit(scene.scene_number, 'visual_prompt')"
-              ></textarea>
-              <div v-else class="collapse collapse-arrow bg-base-200 rounded-lg">
-                <input type="checkbox" />
-                <div class="collapse-title text-xs font-medium">
-                  点击展开完整描述
-                </div>
-                <div class="collapse-content text-xs">
-                  <p class="leading-relaxed whitespace-pre-wrap">{{ scene.visual_prompt }}</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- 运镜提示词 -->
-            <div v-if="scene.camera_movement || isSceneEditable(scene)" class="mb-3">
-              <div class="text-xs font-semibold text-base-content/60 mb-1 flex items-center justify-between">
-                <div class="flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  运镜提示词
-                </div>
-                <div class="flex items-center gap-1">
-                  <button
-                    class="btn btn-xs btn-ghost gap-1"
-                    @click="toggleEditMode(scene.scene_number, 'camera_movement')"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                    {{ isEditing(scene.scene_number, 'camera_movement') ? '完成' : '编辑' }}
-                  </button>
-                  <button v-if="scene.camera_movement" class="btn btn-xs btn-ghost gap-1" @click="copyPrompt(scene.camera_movement)">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    复制
-                  </button>
-                </div>
-              </div>
-              <textarea
-                v-if="isEditing(scene.scene_number, 'camera_movement')"
-                v-model="scene.camera_movement"
-                class="textarea textarea-bordered w-full text-sm"
-                rows="4"
-                placeholder="请输入运镜描述..."
-                @blur="saveEdit(scene.scene_number, 'camera_movement')"
-              ></textarea>
-              <div v-else-if="scene.camera_movement" class="collapse collapse-arrow bg-base-200 rounded-lg">
-                <input type="checkbox" />
-                <div class="collapse-title text-xs font-medium">
-                  点击展开完整描述
-                </div>
-                <div class="collapse-content text-xs">
-                  <p class="leading-relaxed whitespace-pre-wrap">{{ scene.camera_movement }}</p>
-                </div>
-              </div>
-              <p v-else class="text-xs text-base-content/40 italic">暂无运镜描述</p>
+            <div class="card-actions justify-end mt-3">
+              <div class="text-xs text-base-content/50">切换到编辑模式进行修改</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 空状态 -->
       <div v-else class="text-center py-12">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
@@ -346,115 +186,362 @@
       </div>
     </div>
 
-    <!-- Markdown视图 -->
-    <div v-else-if="viewMode === 'markdown'" class="markdown-container">
-      <div class="relative">
-        <!-- 复制按钮 -->
-        <button
-          class="btn btn-sm absolute top-2 right-2 z-10"
-          @click="copyMarkdown"
+    <!-- 编辑模式 - 完整编辑功能 -->
+    <div v-else-if="mode === 'edit'" class="cards-container">
+      <div v-if="scenes && scenes.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div
+          v-for="(scene, index) in scenes"
+          :key="scene.scene_number"
+          class="card bg-base-100 shadow-xl transition-all duration-300"
+          :class="{
+            'ring-2 ring-primary ring-offset-2': hasSceneChanges(scene.scene_number),
+            'ring-2 ring-accent ring-offset-2': selectedScenes.has(scene.scene_number),
+            'cursor-move': isDragging,
+            'opacity-50': isDragging && draggedScene === scene.scene_number
+          }"
+          draggable="true"
+          @dragstart="onDragStart($event, scene, index)"
+          @dragend="onDragEnd"
+          @dragover.prevent
+          @drop="onDrop($event, index)"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-          复制文本
-        </button>
+          <div class="card-body p-4">
+            <!-- 多选复选框 -->
+            <div v-if="isMultiSelectMode" class="absolute top-3 left-3 z-10">
+              <input
+                type="checkbox"
+                class="checkbox checkbox-xs"
+                :checked="selectedScenes.has(scene.scene_number)"
+                @change="toggleSceneSelection(scene.scene_number, $event)"
+                @click.stop
+              />
+            </div>
 
-        <!-- Markdown内容块 -->
-        <div class="mockup-code bg-neutral text-neutral-content overflow-auto max-h-[600px] max-w-full">
-          <pre class="text-sm whitespace-pre-wrap break-words px-6 py-4"><code>{{ formattedMarkdown }}</code></pre>
+            <!-- 卡片头部 -->
+            <div class="flex justify-between items-center mb-3">
+              <div class="flex items-center gap-2">
+                <div class="badge badge-lg badge-secondary">场景 {{ scene.scene_number }}</div>
+                <div v-if="hasSceneChanges(scene.scene_number)" class="badge badge-warning gap-1 animate-pulse">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01" />
+                  </svg>
+                  未保存
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <!-- 拖拽手柄 -->
+                <div class="cursor-move text-base-content/40 hover:text-base-content/60" title="拖拽排序">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+                  </svg>
+                </div>
+                <!-- 镜头类型选择 -->
+                <select
+                  v-model="scene.shot_type"
+                  class="select select-xs select-bordered"
+                  @change="markSceneChanged(scene.scene_number)"
+                >
+                  <option value="标准镜头">标准镜头</option>
+                  <option value="特写">特写</option>
+                  <option value="中景">中景</option>
+                  <option value="远景">远景</option>
+                  <option value="全景">全景</option>
+                  <option value="俯视">俯视</option>
+                  <option value="仰视">仰视</option>
+                </select>
+                <!-- 操作菜单 -->
+                <div class="dropdown dropdown-end">
+                  <label tabindex="0" class="btn btn-xs btn-ghost">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                    </svg>
+                  </label>
+                  <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-40">
+                    <li><a @click="insertBlankCard(index, 'before')">在此之前插入</a></li>
+                    <li><a @click="insertBlankCard(index, 'after')">在此之后插入</a></li>
+                    <li><a @click="duplicateCard(index)">复制此分镜</a></li>
+                    <div class="divider my-0"></div>
+                    <li v-if="scenes.length > 1"><a class="text-error" @click="removeCard(index)">删除</a></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- 图片/视频选择器 -->
+            <div v-if="scene.urls && scene.urls.length > 0" class="mb-3">
+              <div class="text-xs font-semibold text-base-content/60 mb-2">
+                生成图片 ({{ getSelectedImageIndex(scene.scene_number) + 1 }}/{{ scene.urls.length }})
+              </div>
+              <div class="relative rounded-lg overflow-hidden bg-base-200 mb-2">
+                <img
+                  :src="getSelectedImage(scene.scene_number)"
+                  class="w-full h-32 object-cover cursor-pointer hover:opacity-90"
+                  @click="openImageModal(scene.scene_number)"
+                />
+              </div>
+              <div v-if="scene.urls.length > 1" class="flex gap-2 overflow-x-auto pb-2">
+                <div
+                  v-for="(url, idx) in scene.urls"
+                  :key="idx"
+                  class="flex-shrink-0 cursor-pointer rounded border-2"
+                  :class="getSelectedImageIndex(scene.scene_number) === idx ? 'border-primary' : 'border-base-300 hover:border-primary/50'"
+                  @click="selectImage(scene.scene_number, idx)"
+                >
+                  <img :src="url.url" class="w-12 h-12 object-cover rounded" />
+                </div>
+              </div>
+            </div>
+
+            <div v-if="scene.video_urls && scene.video_urls.length > 0" class="mb-3">
+              <div class="text-xs font-semibold text-base-content/60 mb-2">生成视频</div>
+              <video :src="getSelectedVideo(scene.scene_number)" class="w-full h-32 object-cover rounded-lg" controls preload="metadata"></video>
+            </div>
+
+            <!-- 旁白编辑 -->
+            <div class="mb-3">
+              <div class="text-xs font-semibold text-base-content/60 mb-1">
+                旁白文本
+                <span v-if="isFieldEditing(scene.scene_number, 'narration')" class="text-primary ml-1">(编辑中)</span>
+              </div>
+              <textarea
+                v-model="scene.narration"
+                class="textarea textarea-bordered textarea-xs w-full"
+                rows="2"
+                placeholder="请输入旁白文本..."
+                @focus="setFieldEditing(scene.scene_number, 'narration', true)"
+                @blur="handleFieldBlur(scene.scene_number, 'narration')"
+              ></textarea>
+            </div>
+
+            <!-- 视觉提示词编辑 -->
+            <div class="mb-3">
+              <div class="text-xs font-semibold text-base-content/60 mb-1">
+                视觉提示词
+                <span v-if="isFieldEditing(scene.scene_number, 'visual_prompt')" class="text-primary ml-1">(编辑中)</span>
+              </div>
+              <textarea
+                v-model="scene.visual_prompt"
+                class="textarea textarea-bordered textarea-xs w-full"
+                rows="3"
+                placeholder="请输入视觉描述..."
+                @focus="setFieldEditing(scene.scene_number, 'visual_prompt', true)"
+                @blur="handleFieldBlur(scene.scene_number, 'visual_prompt')"
+              ></textarea>
+            </div>
+
+            <!-- 运镜描述编辑 -->
+            <div class="mb-3">
+              <div class="text-xs font-semibold text-base-content/60 mb-1">运镜描述</div>
+              <textarea
+                v-model="scene.camera_movement"
+                class="textarea textarea-bordered textarea-xs w-full"
+                rows="2"
+                placeholder="请输入运镜描述..."
+                @focus="setFieldEditing(scene.scene_number, 'camera_movement', true)"
+                @blur="handleFieldBlur(scene.scene_number, 'camera_movement')"
+              ></textarea>
+            </div>
+
+            <!-- AI生成按钮 -->
+            <button
+              class="btn btn-xs btn-primary w-full gap-1"
+              :class="{ 'loading': executingScenes[scene.scene_number] }"
+              :disabled="executingScenes[scene.scene_number] || !projectId"
+              @click="executeSceneGeneration(scene.scene_number)"
+            >
+              <svg v-if="!executingScenes[scene.scene_number]" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              {{ executingScenes[scene.scene_number] ? '生成中...' : '执行AI生成' }}
+            </button>
+          </div>
         </div>
       </div>
+
+      <div v-else class="text-center py-12">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+        </svg>
+        <p class="text-base-content/60">暂无分镜数据</p>
+        <button class="btn btn-primary mt-4" @click="addBlankCard">创建第一个分镜</button>
+      </div>
     </div>
+
+    <!-- 快速预览模式 -->
+    <div v-else-if="mode === 'quick'" class="cards-container">
+      <div v-if="scenes && scenes.length > 0" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+        <div
+          v-for="(scene, index) in scenes"
+          :key="scene.scene_number"
+          class="card bg-base-100 shadow hover:shadow-md transition-shadow cursor-pointer"
+          @click="quickEditScene(scene)"
+        >
+          <div class="card-body p-3">
+            <div class="flex justify-between items-center mb-2">
+              <div class="badge badge-sm">{{ scene.scene_number }}</div>
+              <div class="text-xs text-base-content/60">{{ scene.shot_type || '标准' }}</div>
+            </div>
+            <div class="mb-2">
+              <div v-if="scene.urls && scene.urls.length > 0" class="h-20 bg-base-200 rounded overflow-hidden">
+                <img :src="scene.urls[0].url" class="w-full h-full object-cover" />
+              </div>
+              <div v-else class="h-20 bg-base-200 rounded flex items-center justify-center text-base-content/40 text-xs">
+                无图片
+              </div>
+            </div>
+            <p class="text-xs line-clamp-2 text-base-content/80">{{ scene.narration }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="text-center py-12">
+        <p class="text-base-content/60">暂无分镜数据</p>
+      </div>
+    </div>
+
+    <!-- Markdown模式 -->
+    <div v-else-if="mode === 'markdown'" class="markdown-container">
+      <div class="mockup-code bg-neutral text-neutral-content">
+        <pre class="text-sm whitespace-pre-wrap px-6 py-4"><code>{{ formattedMarkdown }}</code></pre>
+      </div>
+    </div>
+
+    <!-- 保存状态提示 -->
+    <div v-if="showSaveNotification" class="toast toast-top toast-end z-50">
+      <div class="alert alert-success shadow-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>已自动保存</span>
+      </div>
+    </div>
+
+    <!-- 批量修改镜头类型对话框 -->
+    <dialog ref="batchUpdateModal" class="modal">
+      <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">批量修改镜头类型</h3>
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">选择新的镜头类型</span>
+          </label>
+          <select v-model="batchShotType" class="select select-bordered w-full">
+            <option value="标准镜头">标准镜头</option>
+            <option value="特写">特写</option>
+            <option value="中景">中景</option>
+            <option value="远景">远景</option>
+            <option value="全景">全景</option>
+            <option value="俯视">俯视</option>
+            <option value="仰视">仰视</option>
+          </select>
+        </div>
+        <div class="modal-action">
+          <button class="btn btn-ghost" @click="closeBatchUpdateModal">取消</button>
+          <button class="btn btn-primary" @click="confirmBatchUpdate">确定</button>
+        </div>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+      </form>
+    </dialog>
   </div>
 </template>
 
 <script>
 import projectApi from '@/api/projects';
-import WSClient from '@/utils/wsClient';
 import { createProjectStageSSE, SSE_EVENT_TYPES } from '@/services/sseService';
 
 export default {
   name: 'StoryboardViewer',
   props: {
-    // 可以接收原始JSON字符串、对象或数组
+    // 分镜场景数据 (props 避免与 computed 同名，使用 scenesData)
+    scenesData: {
+      type: Array,
+      default: () => [],
+    },
+    // 兼容旧版本的 data prop
     data: {
       type: [String, Object, Array],
       default: null,
     },
-    // 项目ID - 用于执行AI生成
+    // 项目ID
     projectId: {
       type: String,
       default: null,
     },
+    // 阶段类型 (如 'storyboard', 'image_generation' 等)
     stageType: {
       type: String,
-      required: true,
-      validator: (value) => ['rewrite', 'storyboard', 'image_generation', 'camera_movement', 'video_generation'].includes(value),
+      default: 'storyboard',
+    },
+    // 阶段对象 (兼容)
+    stage: {
+      type: Object,
+      default: null,
+    },
+    // 是否可编辑
+    canEdit: {
+      type: Boolean,
+      default: false,
     },
   },
   data() {
     return {
-      viewMode: 'cards', // 'cards' 或 'json'
-      selectedImages: {}, // 记录每个场景选择的图片索引,格式: { scene_number: imageIndex }
-      selectedVideos: {}, // 记录每个场景选择的视频索引,格式: { scene_number: videoIndex }
-      executingScenes: {}, // 记录正在执行的场景,格式: { scene_number: boolean }
-      localScenes: [], // 本地场景数据副本，用于支持新增空白卡片
-      editingFields: {}, // 记录正在编辑的字段,格式: { 'scene_number_field': true }
+      // 模式: view | edit | quick | markdown
+      mode: 'view',
+
+      selectedImages: {},
+      selectedVideos: {},
+      executingScenes: {},
+      localScenes: [],
+
+      // 编辑状态追踪
+      editingFields: {},
+      changedScenes: new Set(),
+
+      // 多选模式
+      isMultiSelectMode: false,
+      selectedScenes: new Set(),
+
+      // 拖拽状态
+      isDragging: false,
+      draggedScene: null,
+      draggedIndex: null,
+
+      // UI状态
+      showSaveNotification: false,
+      saveNotificationTimer: null,
+      showKeyboardHints: false,
+      debounceTimer: null,
+
+      // 批量操作
+      batchShotType: '标准镜头',
     };
   },
-  created() {
-  },
-  beforeDestroy() {
-    this.disconnectSSE();
-  },
-  watch: {
-    // 监听 data prop 的变化
-    data: {
-      deep: true,
-      handler(newData, oldData) {
-        console.log('[StoryboardViewer] data prop 更新:', {
-          newData,
-          oldData,
-          scenes: this.scenes
-        });
-        // 当外部数据更新时，清空本地修改（如果需要保留本地修改，可以注释掉这行）
-        // this.localScenes = [];
-      }
-    },
-    // 监听 projectId 变化，重新连接 WebSocket
-    projectId(newId, oldId) {
-      if (newId !== oldId) {
-        console.log('[StoryboardViewer] projectId 变化，重新连接 WebSocket');
-      }
-    }
-  },
   computed: {
-    // 解析场景数据
-    scenes() {
-      // 如果有本地修改的数据，优先使用本地数据
+    // 显示场景：优先使用本地编辑数据，否则使用 prop 传入的数据
+    displayScenes() {
+      // 如果有本地编辑数据，返回本地数据
       if (this.localScenes.length > 0) {
         return this.localScenes;
       }
 
-      if (!this.data) return [];
-      try {
-        let parsedData = this.data;
+      // 否则，使用 prop 传入的场景数据
+      // 支持两种 prop：scenesData (新) 或 data (旧，兼容)
+      const sourceData = (this.scenesData && this.scenesData.length > 0) ? this.scenesData : this.data;
 
-        // 如果是字符串,尝试解析为JSON
-        if (typeof this.data === 'string') {
-          parsedData = JSON.parse(this.data);
+      if (!sourceData) return [];
+
+      try {
+        let parsedData = sourceData;
+        if (typeof sourceData === 'string') {
+          parsedData = JSON.parse(sourceData);
         }
 
-        // 支持多种数据格式
         if (Array.isArray(parsedData)) {
-          // 直接是数组
           return parsedData;
         } else if (parsedData.scenes && Array.isArray(parsedData.scenes)) {
-          // 包含scenes字段的对象
           return parsedData.scenes;
         } else if (parsedData.storyboards && Array.isArray(parsedData.storyboards)) {
-          // 包含storyboards字段的对象
           return parsedData.storyboards;
         }
 
@@ -465,42 +552,28 @@ export default {
       }
     },
 
-    // 格式化的JSON字符串
-    formattedJSON() {
-      if (!this.data) return '{}';
-
-      try {
-        let dataToFormat = this.data;
-
-        // 如果已经是字符串,���解析再格式化以确保格式统一
-        if (typeof this.data === 'string') {
-          dataToFormat = JSON.parse(this.data);
-        }
-
-        return JSON.stringify(dataToFormat, null, 2);
-      } catch (error) {
-        // 如果解析失败,返回原始字符串
-        return typeof this.data === 'string' ? this.data : JSON.stringify(this.data, null, 2);
-      }
+    // 兼容旧代码，使用 displayScenes
+    scenes() {
+      return this.displayScenes;
     },
 
-    // 格式化的Markdown字符串
+    hasUnsavedChanges() {
+      return this.changedScenes.size > 0;
+    },
+
     formattedMarkdown() {
-      if (!this.scenes || this.scenes.length === 0) {
+      if (!this.displayScenes || this.displayScenes.length === 0) {
         return '暂无分镜数据';
       }
 
-      return this.scenes.map((scene) => {
+      return this.displayScenes.map((scene) => {
         const sceneNumber = scene.scene_number || '未知';
         const narration = scene.narration || '无';
         const shotType = scene.shot_type || '标准镜头';
         const visualPrompt = scene.visual_prompt || '无';
         const cameraMovement = scene.camera_movement || null;
 
-        let markdown = `场景 ${sceneNumber}
-文案: ${narration}
-镜头类型: ${shotType}
-画面描述: ${visualPrompt}`;
+        let markdown = `场景 ${sceneNumber}\n文案: ${narration}\n镜头类型: ${shotType}\n画面描述: ${visualPrompt}`;
 
         if (cameraMovement) {
           markdown += `\n运镜描述: ${cameraMovement}`;
@@ -510,49 +583,305 @@ export default {
       }).join('\n\n---\n\n');
     },
   },
+  watch: {
+    data: {
+      deep: true,
+      handler(newData) {
+        console.log('[StoryboardViewer] data prop 更新');
+      }
+    },
+  },
+  beforeDestroy() {
+    this.disconnectSSE();
+    if (this.saveNotificationTimer) {
+      clearTimeout(this.saveNotificationTimer);
+    }
+    // 移除键盘事件监听
+    document.removeEventListener('keydown', this.handleKeydown);
+  },
+  mounted() {
+    // 添加键盘事件监听
+    document.addEventListener('keydown', this.handleKeydown);
+  },
   methods: {
-    // 新增空白卡片（添加到末尾）
-    addBlankCard() {
-      this.insertBlankCard(this.scenes.length - 1, 'after');
+    // ========== 键盘快捷键 ==========
+    handleKeydown(event) {
+      // 只在编辑模式下响应快捷键
+      if (this.mode !== 'edit') return;
+
+      // Ctrl+N - 新增分镜
+      if (event.ctrlKey && event.key === 'n') {
+        event.preventDefault();
+        this.addBlankCard();
+        return;
+      }
+
+      // Ctrl+S - 保存
+      if (event.ctrlKey && event.key === 's') {
+        event.preventDefault();
+        this.saveChanges();
+        this.$message?.success('已保存');
+        return;
+      }
+
+      // Ctrl+A - 全选
+      if (event.ctrlKey && event.key === 'a') {
+        event.preventDefault();
+        this.selectAll();
+        return;
+      }
+
+      // Esc - 取消选择或退出多选模式
+      if (event.key === 'Escape') {
+        if (this.isMultiSelectMode || this.selectedScenes.size > 0) {
+          this.clearSelection();
+          return;
+        }
+      }
+
+      // Delete - 删除选中的分镜
+      if (event.key === 'Delete' && this.selectedScenes.size > 0) {
+        event.preventDefault();
+        this.batchDelete();
+        return;
+      }
+
+      // M - 多选模式
+      if (event.key === 'm' && !event.ctrlKey && !event.metaKey) {
+        // 检查是否在输入框中
+        if (event.target.tagName !== 'TEXTAREA' && event.target.tagName !== 'INPUT') {
+          this.toggleMultiSelectMode();
+          return;
+        }
+      }
     },
 
-    // 在指定位置插入空白卡片
-    insertBlankCard(index, position) {
-      // 如果本地数据为空，先从原始数据初始化
+    // ========== 多选操作 ==========
+    toggleMultiSelectMode() {
+      this.isMultiSelectMode = !this.isMultiSelectMode;
+      if (!this.isMultiSelectMode) {
+        this.clearSelection();
+      }
+      console.log('[StoryboardViewer] 多选模式:', this.isMultiSelectMode);
+    },
+
+    toggleSceneSelection(sceneNumber, event) {
+      if (event.target.checked) {
+        this.selectedScenes.add(sceneNumber);
+      } else {
+        this.selectedScenes.delete(sceneNumber);
+      }
+    },
+
+    selectAll() {
+      this.isMultiSelectMode = true;
+      this.scenes.forEach(scene => {
+        this.selectedScenes.add(scene.scene_number);
+      });
+      this.$message?.info(`已选择 ${this.scenes.length} 个分镜`);
+    },
+
+    clearSelection() {
+      this.selectedScenes.clear();
+      if (!this.isMultiSelectMode) {
+        this.isMultiSelectMode = false;
+      }
+    },
+
+    batchDelete() {
+      if (this.selectedScenes.size === 0) return;
+
+      const count = this.selectedScenes.size;
+      if (confirm(`确定要删除选中的 ${count} 个分镜吗？`)) {
+        // 确保本地数据已初始化
+        if (this.localScenes.length === 0 && this.scenes.length > 0) {
+          this.localScenes = JSON.parse(JSON.stringify(this.scenes));
+        }
+
+        // 过滤掉选中的场景
+        this.localScenes = this.localScenes.filter(
+          scene => !this.selectedScenes.has(scene.scene_number)
+        );
+
+        // 重新编号
+        this.reorderSceneNumbers();
+
+        this.clearSelection();
+        this.saveChanges();
+        this.$message?.success(`已删除 ${count} 个分镜`);
+      }
+    },
+
+    batchUpdateShotType() {
+      if (this.selectedScenes.size === 0) return;
+
+      // 打开批量修改对话框
+      this.$refs.batchUpdateModal?.showModal();
+    },
+
+    closeBatchUpdateModal() {
+      this.$refs.batchUpdateModal?.close();
+    },
+
+    confirmBatchUpdate() {
+      // 确保本地数据已初始化
       if (this.localScenes.length === 0 && this.scenes.length > 0) {
         this.localScenes = JSON.parse(JSON.stringify(this.scenes));
       }
 
-      // 计算插入位置
-      let insertIndex;
-      if (position === 'before') {
-        insertIndex = index;
-      } else if (position === 'after') {
-        insertIndex = index + 1;
-      } else {
-        insertIndex = this.localScenes.length; // 默认添加到末尾
+      // 更新所有选中场景的镜头类型
+      this.localScenes.forEach(scene => {
+        if (this.selectedScenes.has(scene.scene_number)) {
+          scene.shot_type = this.batchShotType;
+          this.changedScenes.add(scene.scene_number);
+        }
+      });
+
+      this.clearSelection();
+      this.saveChanges();
+      this.closeBatchUpdateModal();
+      this.$message?.success(`已批量修改为 ${this.batchShotType}`);
+    },
+
+    // ========== 拖拽排序 ==========
+    onDragStart(event, scene, index) {
+      this.isDragging = true;
+      this.draggedScene = scene.scene_number;
+      this.draggedIndex = index;
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', index);
+    },
+
+    onDragEnd() {
+      this.isDragging = false;
+      this.draggedScene = null;
+      this.draggedIndex = null;
+    },
+
+    onDrop(event, dropIndex) {
+      event.preventDefault();
+
+      if (this.draggedIndex === null || this.draggedIndex === dropIndex) {
+        return;
       }
 
-      // 计算新的场景编号（基于插入位置）
+      // 确保本地数据已初始化
+      if (this.localScenes.length === 0 && this.scenes.length > 0) {
+        this.localScenes = JSON.parse(JSON.stringify(this.scenes));
+      }
+
+      const draggedScene = this.localScenes[this.draggedIndex];
+
+      // 移除拖拽的元素
+      this.localScenes.splice(this.draggedIndex, 1);
+
+      // 插入到新位置
+      this.localScenes.splice(dropIndex, 0, draggedScene);
+
+      // 重新编号
+      this.reorderSceneNumbers();
+
+      this.saveChanges();
+      this.$message?.success('排序已更新');
+    },
+
+    reorderSceneNumbers() {
+      this.localScenes.forEach((scene, index) => {
+        scene.scene_number = index + 1;
+      });
+    },
+
+    // ========== 模式切换 ==========
+    setMode(newMode) {
+      this.mode = newMode;
+      console.log('[StoryboardViewer] 切换模式:', newMode);
+
+      if (newMode === 'edit' && this.localScenes.length === 0 && this.scenes.length > 0) {
+        this.localScenes = JSON.parse(JSON.stringify(this.scenes));
+      }
+
+      // 退出编辑模式时清除选择状态
+      if (newMode !== 'edit') {
+        this.clearSelection();
+        this.isMultiSelectMode = false;
+      }
+    },
+
+    // ========== 编辑状态追踪 ==========
+    setFieldEditing(sceneNumber, field, isEditing) {
+      const key = `${sceneNumber}_${field}`;
+      this.$set(this.editingFields, key, isEditing);
+    },
+
+    isFieldEditing(sceneNumber, field) {
+      const key = `${sceneNumber}_${field}`;
+      return this.editingFields[key] === true;
+    },
+
+    hasSceneChanges(sceneNumber) {
+      return this.changedScenes.has(sceneNumber);
+    },
+
+    markSceneChanged(sceneNumber) {
+      if (this.localScenes.length === 0 && this.scenes.length > 0) {
+        this.localScenes = JSON.parse(JSON.stringify(this.scenes));
+      }
+      this.changedScenes.add(sceneNumber);
+      this.debouncedSave();
+    },
+
+    // ========== 自动保存 ==========
+    handleFieldBlur(sceneNumber, field) {
+      const key = `${sceneNumber}_${field}`;
+      this.$set(this.editingFields, key, false);
+      this.markSceneChanged(sceneNumber);
+    },
+
+    debouncedSave() {
+      if (this.debounceTimer) clearTimeout(this.debounceTimer);
+      this.debounceTimer = setTimeout(() => {
+        this.saveChanges();
+      }, 500);
+    },
+
+    saveChanges() {
+      if (this.localScenes.length > 0) {
+        console.log('[StoryboardViewer] 自动保存:', this.localScenes.length, '个场景');
+        this.$emit('scenes-updated', this.localScenes);
+        this.changedScenes.clear();
+
+        this.showSaveNotification = true;
+        if (this.saveNotificationTimer) clearTimeout(this.saveNotificationTimer);
+        this.saveNotificationTimer = setTimeout(() => {
+          this.showSaveNotification = false;
+        }, 2000);
+      }
+    },
+
+    // ========== 卡片操作 ==========
+    addBlankCard() {
+      this.insertBlankCard(this.scenes.length - 1, 'after');
+    },
+
+    insertBlankCard(index, position) {
+      if (this.localScenes.length === 0 && this.scenes.length > 0) {
+        this.localScenes = JSON.parse(JSON.stringify(this.scenes));
+      }
+
+      let insertIndex = position === 'before' ? index : index + 1;
+
       let newSceneNumber;
       if (this.localScenes.length === 0) {
         newSceneNumber = 1;
       } else if (insertIndex === 0) {
-        // 插入到最前面
-        newSceneNumber = this.localScenes[0].scene_number - 1;
-        if (newSceneNumber < 1) newSceneNumber = 1;
+        newSceneNumber = Math.max(1, this.localScenes[0].scene_number - 1);
       } else if (insertIndex >= this.localScenes.length) {
-        // 插入到最后面
-        const maxSceneNumber = Math.max(...this.localScenes.map(s => s.scene_number || 0));
-        newSceneNumber = maxSceneNumber + 1;
+        const maxNum = Math.max(...this.localScenes.map(s => s.scene_number || 0));
+        newSceneNumber = maxNum + 1;
       } else {
-        // 插入到中间，使用前后场景编号的平均值（小数）
-        const prevNumber = this.localScenes[insertIndex - 1].scene_number;
-        const nextNumber = this.localScenes[insertIndex].scene_number;
-        newSceneNumber = (prevNumber + nextNumber) / 2;
+        newSceneNumber = (this.localScenes[insertIndex - 1].scene_number + this.localScenes[insertIndex].scene_number) / 2;
       }
 
-      // 创建空白卡片模板
       const blankCard = {
         scene_number: newSceneNumber,
         narration: '请输入旁白文本...',
@@ -563,233 +892,113 @@ export default {
         video_urls: [],
       };
 
-      // 插入到指定位置
       this.localScenes.splice(insertIndex, 0, blankCard);
+      this.changedScenes.add(newSceneNumber);
+      this.saveChanges();
 
-      // 重新排序场景编号（确保编号连续）
-      this.reorderSceneNumbers();
-
-      // 触发事件通知父组件数据已更新
-      this.$emit('scenes-updated', this.localScenes);
-
-      const positionText = position === 'before' ? '之前' : '之后';
-      this.$message?.success(`已在场景 ${this.localScenes[insertIndex === 0 ? 0 : insertIndex - 1].scene_number} ${positionText}插入新场景`);
+      this.$message?.success(`已添加场景 ${newSceneNumber}`);
     },
 
-    // 重新排序场景编号
-    reorderSceneNumbers() {
-      this.localScenes.forEach((scene, index) => {
-        scene.scene_number = index + 1;
-      });
-    },
-
-    // 删除卡片
-    removeCard(index) {
-      // 如果本地数据为空，先从原始数据初始化
+    duplicateCard(index) {
       if (this.localScenes.length === 0 && this.scenes.length > 0) {
         this.localScenes = JSON.parse(JSON.stringify(this.scenes));
-        console.log('[StoryboardViewer] 删除前初始化本地场景数据');
       }
 
-      // 至少保留一个场景
+      const scene = this.localScenes[index];
+      const newScene = JSON.parse(JSON.stringify(scene));
+
+      const maxNum = Math.max(...this.localScenes.map(s => s.scene_number || 0));
+      newScene.scene_number = maxNum + 1;
+      newScene.urls = [];
+      newScene.video_urls = [];
+
+      this.localScenes.splice(index + 1, 0, newScene);
+      this.changedScenes.add(newScene.scene_number);
+      this.saveChanges();
+
+      this.$message?.success(`已复制场景 ${scene.scene_number}`);
+    },
+
+    removeCard(index) {
+      if (this.localScenes.length === 0 && this.scenes.length > 0) {
+        this.localScenes = JSON.parse(JSON.stringify(this.scenes));
+      }
+
       if (this.localScenes.length <= 1) {
         this.$message?.warning('至少需要保留一个场景');
         return;
       }
 
-      // 获取要删除的场景信息
-      const sceneToRemove = this.localScenes[index];
-      const sceneNumber = sceneToRemove.scene_number;
-
-      // 确认删除
-      if (confirm(`确定要删除场景 ${sceneNumber} 吗？此操作不可恢复。`)) {
-        // 从数组中删除
+      const scene = this.localScenes[index];
+      if (confirm(`确定要删除场景 ${scene.scene_number} 吗？`)) {
         this.localScenes.splice(index, 1);
-
-        // 重新排序场景编号
-        this.reorderSceneNumbers();
-
-        // 清除该场景的编辑状态
-        Object.keys(this.editingFields).forEach(key => {
-          if (key.startsWith(`${sceneNumber}_`)) {
-            this.$delete(this.editingFields, key);
-          }
-        });
-
-        // 触发事件通知父组件数据已更新
-        this.$emit('scenes-updated', this.localScenes);
-
-        this.$message?.success(`已删除场景 ${sceneNumber}`);
-
-        console.log('[StoryboardViewer] 删除场景:', sceneNumber);
+        this.saveChanges();
+        this.$message?.success(`已删除场景 ${scene.scene_number}`);
       }
     },
 
-    // 判断场景是否可编辑（所有场景都可编辑）
-    isSceneEditable(scene) {
-      // 所有场景都可以编辑
-      return true;
+    quickEditScene(scene) {
+      this.setMode('edit');
+      this.$nextTick(() => {
+        console.log('[StoryboardViewer] 快速编辑场景:', scene.scene_number);
+      });
     },
 
-    // 切换编辑模式
-    toggleEditMode(sceneNumber, field) {
-      // 如果本地数据为空，先从原始数据初始化（进入编辑模式）
-      if (this.localScenes.length === 0 && this.scenes.length > 0) {
-        this.localScenes = JSON.parse(JSON.stringify(this.scenes));
-        console.log('[StoryboardViewer] 初始化本地场景数据，进入编辑模式');
-      }
-
-      const key = `${sceneNumber}_${field}`;
-      if (this.editingFields[key]) {
-        // 如果正在编辑，则保存并退出编辑模式
-        this.saveEdit(sceneNumber, field);
-      } else {
-        // 进入编辑模式
-        this.$set(this.editingFields, key, true);
-      }
-    },
-
-    // 判断字段是否正在编辑
-    isEditing(sceneNumber, field) {
-      const key = `${sceneNumber}_${field}`;
-      return this.editingFields[key] === true;
-    },
-
-    // 保存编辑
-    saveEdit(sceneNumber, field) {
-      const key = `${sceneNumber}_${field}`;
-      this.$set(this.editingFields, key, false);
-
-      // 确保本地数据已初始化
-      if (this.localScenes.length === 0 && this.scenes.length > 0) {
-        this.localScenes = JSON.parse(JSON.stringify(this.scenes));
-        console.log('[StoryboardViewer] 保存时初始化本地场景数据');
-      }
-
-      // 触发事件通知父组件数据已更新
-      if (this.localScenes.length > 0) {
-        console.log('[StoryboardViewer] 保存编辑，触发 scenes-updated 事件:', this.localScenes);
-        this.$emit('scenes-updated', this.localScenes);
-      } else {
-        console.warn('[StoryboardViewer] 本地场景数据为空，无法保存编辑');
-      }
-
-      console.log(`[StoryboardViewer] 保存编辑: 场景 ${sceneNumber}, 字段 ${field}`);
-    },
-
-    // 获取当前场景选中的图片索引(默认第一张)
+    // ========== 图片/视频选择 ==========
     getSelectedImageIndex(sceneNumber) {
-      if (this.selectedImages[sceneNumber] !== undefined) {
-        return this.selectedImages[sceneNumber];
-      }
-      return 0; // 默认选择第一张
+      return this.selectedImages[sceneNumber] !== undefined
+        ? this.selectedImages[sceneNumber]
+        : 0;
     },
 
-    // 获取当前场景选中的图片URL
     getSelectedImage(sceneNumber) {
       const scene = this.scenes.find(s => s.scene_number === sceneNumber);
-      if (!scene || !scene.urls || scene.urls.length === 0) {
-        return '';
-      }
+      if (!scene || !scene.urls || scene.urls.length === 0) return '';
       const index = this.getSelectedImageIndex(sceneNumber);
-      return scene.urls[index].url || scene.urls[0].url;
+      return scene.urls[index]?.url || scene.urls[0]?.url;
     },
 
-    // 选择指定索引的图片
     selectImage(sceneNumber, imageIndex) {
       this.$set(this.selectedImages, sceneNumber, imageIndex);
     },
 
-    // 获取当前场景选中的视频索引(默认第一个)
     getSelectedVideoIndex(sceneNumber) {
-      if (this.selectedVideos[sceneNumber] !== undefined) {
-        return this.selectedVideos[sceneNumber];
-      }
-      return 0; // 默认选择第一个
+      return this.selectedVideos[sceneNumber] !== undefined
+        ? this.selectedVideos[sceneNumber]
+        : 0;
     },
 
-    // 获取当前场景选中的视频URL
     getSelectedVideo(sceneNumber) {
       const scene = this.scenes.find(s => s.scene_number === sceneNumber);
-      if (!scene || !scene.video_urls || scene.video_urls.length === 0) {
-        return '';
-      }
+      if (!scene || !scene.video_urls || scene.video_urls.length === 0) return '';
       const index = this.getSelectedVideoIndex(sceneNumber);
-      return scene.video_urls[index].url || scene.video_urls[0].url;
+      return scene.video_urls[index]?.url || scene.video_urls[0]?.url;
     },
 
-    // 选择指定索引的视频
     selectVideo(sceneNumber, videoIndex) {
       this.$set(this.selectedVideos, sceneNumber, videoIndex);
     },
 
-    // 打开图片查看模态框(可选功能,暂时只是占位)
     openImageModal(sceneNumber) {
-      // TODO: 实现图片放大查看功能
-      console.log('打开场景', sceneNumber, '的图片查看器');
+      console.log('[StoryboardViewer] 打开图片查看器:', sceneNumber);
     },
 
-    // 复制提示词到剪贴板
-    async copyPrompt(prompt) {
-      try {
-        await navigator.clipboard.writeText(prompt);
-        this.$message?.success('提示词已复制到剪贴板');
-      } catch (error) {
-        console.error('复制失败:', error);
-        this.$message?.error('复制失败,请手动复制');
-      }
-    },
-
-    // 复制JSON到剪贴板
-    async copyJSON() {
-      try {
-        await navigator.clipboard.writeText(this.formattedJSON);
-        this.$message?.success('JSON已复制到剪贴板');
-      } catch (error) {
-        console.error('复制失败:', error);
-        this.$message?.error('复制失败,请手动复制');
-      }
-    },
-    getStageName() {
-      const names = {
-        rewrite: '文案改写',
-        storyboard: '分镜生成',
-        image_generation: '文生图',
-        camera_movement: '运镜生成',
-        video_generation: '图生视频',
-      };
-      return names[this.stageType] || this.stageType;
-    },
-    // 复制Markdown到剪贴板
-    async copyMarkdown() {
-      try {
-        await navigator.clipboard.writeText(this.formattedMarkdown);
-        this.$message?.success('文本已复制到剪贴板');
-      } catch (error) {
-        console.error('复制失败:', error);
-        this.$message?.error('复制失败,请手动复制');
-      }
-    },
-
-    // 执行单个场景的AI生成
+    // ========== AI生成 ==========
     async executeSceneGeneration(sceneNumber) {
       if (!this.projectId) {
-        this.$message?.error('缺少项目ID,无法执行生成');
+        this.$message?.error('缺少项目ID');
         return;
       }
 
-      // 查找对应的场景数据
       const scene = this.scenes.find(s => s.scene_number === sceneNumber);
       if (!scene) {
-        this.$message?.error(`未找到场景 ${sceneNumber} 的数据`);
+        this.$message?.error(`未找到场景 ${sceneNumber}`);
         return;
       }
 
-      // 设置加载状态
       this.$set(this.executingScenes, sceneNumber, true);
 
       try {
-        // 准备输入数据 - 单个场景的分镜数据
         const inputData = {
           storyboard_ids: [sceneNumber],
           narration: scene.narration,
@@ -797,162 +1006,61 @@ export default {
           shot_type: scene.shot_type,
           camera_movement: scene.camera_movement,
         };
+
         this.connectSSE();
-        // 调用API执行图片生成阶段
-        const response = await projectApi.executeStage(
+
+        await projectApi.executeStage(
           this.projectId,
           this.stageType,
           inputData
         );
 
-        this.$message?.success(`场景 ${sceneNumber} AI生成已启动，请等待实时更新`);
-
-        // WebSocket 会自动监听完成消息并触发刷新
-
+        this.$message?.success(`场景 ${sceneNumber} AI生成已启动`);
       } catch (error) {
         console.error('执行场景生成失败:', error);
         const errorMsg = error.response?.data?.error || error.message || '生成失败';
         this.$message?.error(`场景 ${sceneNumber} 生成失败: ${errorMsg}`);
-        // 清除加载状态
         this.$set(this.executingScenes, sceneNumber, false);
       }
     },
 
-
-    // 处理阶段更新事件
-    handleStageUpdate(data) {
-      console.log('[StoryboardViewer] 收到阶段更新:', data);
-
-      // 如果是处理中状态，更新进度
-      if (data.status === 'processing') {
-        console.log('[StoryboardViewer] 阶段处理中...');
-        // 可以在这里显示进度条或加载状态
-      }
-    },
-        /**
-     * 连接 SSE 流
-     */
-     connectSSE() {
-      // 断开已有连接
+    // ========== SSE连接 ==========
+    connectSSE() {
       this.disconnectSSE();
 
-      console.log('[StageContent] 连接 SSE:', this.projectId, this.stageType);
-
-      // 创建 SSE 客户端
       this.sseClient = createProjectStageSSE(this.projectId, this.stageType, {
-        autoReconnect: false, // 不自动重连，避免重复执行
+        autoReconnect: false,
       });
 
-      // 监听事件
       this.sseClient
-        .on(SSE_EVENT_TYPES.OPEN, () => {
-          console.log('[StageContent] SSE 连接已建立');
-        })
-        .on(SSE_EVENT_TYPES.CONNECTED, (data) => {
-          console.log('[StageContent] SSE 连接成功:', data);
-        })
-        .on(SSE_EVENT_TYPES.TOKEN, (data) => {
-          // 实时更新输出文本
-          console.log('[StageContent] 收到 token:', data);
-          if (data.full_text !== undefined) {
-            this.localOutputData = data.full_text;
-            // 自动滚动到底部
-            this.$nextTick(() => {
-              const textarea = this.$refs.outputTextarea;
-              if (textarea) {
-                textarea.scrollTop = textarea.scrollHeight;
-              }
-            });
-          }
-        })
-        .on(SSE_EVENT_TYPES.STAGE_UPDATE, (data) => {
-          console.log('[StageContent] 阶段更新:', data);
-          if (data.progress !== undefined) {
-            this.streamProgress = data.progress;
-          }
-        })
-        .on(SSE_EVENT_TYPES.PROGRESS, (data) => {
-          console.log('[StageContent] 进度更新:', data);
-          if (data.progress !== undefined) {
-            this.streamProgress = data.progress;
-          }
-        })
         .on(SSE_EVENT_TYPES.DONE, (data) => {
-          console.log('[StageContent] 生成完成:', data);
-          // 更新最终输出
-          if (data.full_text !== undefined) {
-            this.localOutputData = data.full_text;
-          } else if (data.result !== undefined) {
-            this.localOutputData = typeof data.result === 'string'
-              ? data.result
-              : JSON.stringify(data.result, null, 2);
-          }
-          this.streamProgress = 100;
-          this.isStreaming = false;
-
-          // 延迟通知父组件刷新数据，确保 isStreaming 状态已更新
-          this.$nextTick(() => {
-            this.$emit('stage-completed', {
-              stageType: this.stageType,
-            });
-          });
-
-          // 显示成功提示
-          this.$message?.success(`${this.getStageName()} 生成完成！`);
+          console.log('[StoryboardViewer] 生成完成:', data);
+          this.executingScenes = {};
+          this.$emit('scene-generated', { sceneNumber: null, response: data });
+          this.$message?.success('生成完成！');
         })
         .on(SSE_EVENT_TYPES.ERROR, (data) => {
-          console.error('[StageContent] SSE 错误:', data);
-          this.streamError = data.error || 'SSE 连接错误';
-          this.isStreaming = false;
-
-          // 显示错误提示
-          this.$message?.error(this.streamError);
-        })
-        .on(SSE_EVENT_TYPES.STREAM_END, (data) => {
-          console.log('[StageContent] SSE 流结束:', data);
-          this.isStreaming = false;
-        })
-        .on(SSE_EVENT_TYPES.CLOSE, () => {
-          console.log('[StageContent] SSE 连接关闭');
-          this.isStreaming = false;
+          console.error('[StoryboardViewer] 生成失败:', data);
+          this.executingScenes = {};
+          this.$message?.error(data.error || '生成失败');
         });
     },
 
-    /**
-     * 断开 SSE 连接
-     */
     disconnectSSE() {
       if (this.sseClient) {
-        console.log('[StageContent] 断开 SSE 连接');
         this.sseClient.disconnect();
         this.sseClient = null;
       }
     },
 
-    // 处理阶段完成事件
-    handleStageDone(data) {
-      console.log('[StoryboardViewer] 阶段完成:', data);
-
-      // 清除所有执行状态
-      this.executingScenes = {};
-
-      // 触发父组件刷新数据
-      this.$emit('scene-generated', {
-        sceneNumber: null, // null表示整体刷新
-        response: data,
-      });
-
-      this.$message?.success('生成完成，页面已自动更新');
-    },
-
-    // 处理阶段错误事件
-    handleStageError(data) {
-      console.error('[StoryboardViewer] 阶段失败:', data);
-
-      // 清除所有执行状态
-      this.executingScenes = {};
-
-      this.$message?.error(`生成失败: ${data.error || '未知错误'}`);
+    // ========== 工具方法 ==========
+    async copyMarkdown() {
+      try {
+        await navigator.clipboard.writeText(this.formattedMarkdown);
+        this.$message?.success('已复制到剪贴板');
+      } catch (error) {
+        this.$message?.error('复制失败');
+      }
     },
   },
 };
@@ -962,135 +1070,87 @@ export default {
 .storyboard-viewer {
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
+  outline: none; /* 移除 focus 时默认的轮廓 */
 }
 
 .cards-container {
   width: 100%;
-  max-width: 100%;
 }
 
-.markdown-container {
-  width: 100%;
-  max-width: 100%;
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-/* 优化代码块显示 */
-.mockup-code {
-  border-radius: 0.5rem;
-  max-width: 100%;
-}
-
-.mockup-code code {
-  display: block;
-  padding: 1rem;
-  font-family: 'Courier New', Courier, monospace;
-  word-break: break-word;
-  overflow-wrap: break-word;
-}
-
-/* 卡片hover效果 */
+/* 卡片动画 */
 .card {
-  transition: all 0.3s;
-}
-
-.card:hover {
-  transform: translateY(-0.25rem);
-}
-
-/* 折叠面板样式优化 */
-.collapse-title {
-  min-height: 0;
-  padding: 0.5rem 0.75rem;
-}
-
-.collapse-content {
-  padding: 0 0.75rem 0.5rem 0.75rem;
-}
-
-/* 图片预览样式 */
-.card img {
-  transition: transform 0.3s ease, opacity 0.3s ease;
-}
-
-.card img:hover {
-  transform: scale(1.02);
-}
-
-/* 缩略图容器滚动优化 */
-.overflow-x-auto {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
-}
-
-.overflow-x-auto::-webkit-scrollbar {
-  height: 6px;
-}
-
-.overflow-x-auto::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.overflow-x-auto::-webkit-scrollbar-thumb {
-  background-color: rgba(155, 155, 155, 0.5);
-  border-radius: 3px;
-}
-
-.overflow-x-auto::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(155, 155, 155, 0.7);
-}
-
-/* 缩略图选择器动画 */
-.flex-shrink-0 {
   transition: all 0.2s ease;
 }
 
-.flex-shrink-0:hover {
+.card:hover {
   transform: translateY(-2px);
 }
 
-/* 下拉菜单样式优化 */
-.dropdown-content {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+/* 编辑模式下的选中效果 */
+.ring-2 {
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-.dropdown-content li a {
-  font-size: 0.875rem;
-  padding: 0.5rem 1rem;
+@keyframes pulse-ring {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
-.dropdown-content li a:hover {
-  background-color: rgba(var(--p), 0.1);
+/* 拖拽样式 */
+.cursor-move {
+  cursor: move;
 }
 
-/* 编辑模式样式 */
+.cursor-move:active {
+  cursor: grabbing;
+}
+
+.opacity-50 {
+  opacity: 0.5;
+}
+
+/* 文本区域样式 */
 .textarea {
   transition: all 0.2s ease;
 }
 
 .textarea:focus {
-  border-color: rgba(var(--p), 0.5);
-  box-shadow: 0 0 0 3px rgba(var(--p), 0.1);
+  border-color: hsl(var(--p));
+  box-shadow: 0 0 0 3px hsla(var(--p) / 0.1);
 }
 
-.badge.cursor-pointer:hover {
-  transform: scale(1.05);
-  transition: transform 0.2s ease;
+/* 保存通知动画 */
+.toast {
+  animation: slideIn 0.3s ease;
 }
 
-.select-xs {
-  min-width: 100px;
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
-/* 删除按钮样式 */
-.btn-error:hover {
-  background-color: rgba(239, 68, 68, 0.1);
-  border-color: rgb(239, 68, 68);
-  color: rgb(239, 68, 68);
-}
-
-.btn-error:hover svg {
-  transform: scale(1.1);
-  transition: transform 0.2s ease;
+/* kbd 快捷键样式 */
+.kbd {
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 </style>

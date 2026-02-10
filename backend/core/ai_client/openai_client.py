@@ -19,6 +19,29 @@ class OpenAIClient(LLMClient):
     支持流式和非流式生成
     """
 
+    def generate(
+        self,
+        prompt: str,
+        max_tokens: int = None,
+        temperature: float = None,
+        **kwargs,
+    ) -> AIResponse:
+        """
+        生成文本（同步版本）
+
+        重写基类的异步方法，因为 OpenAIClient 使用同步的 requests 库。
+
+        Args:
+            prompt: 输入提示词
+            max_tokens: 最大token数
+            temperature: 温度参数
+            **kwargs: 其他参数
+
+        Returns:
+            AIResponse: 响应对象
+        """
+        return self._generate_text(prompt, max_tokens, temperature, **kwargs)
+
     def _generate_text(
         self, prompt: str, max_tokens: int = None, temperature: float = None, **kwargs
     ) -> AIResponse:
@@ -47,9 +70,15 @@ class OpenAIClient(LLMClient):
                 result = response.json()
                 latency_ms = int((time.time() - start_time) * 1000)
 
+                # 提取响应内容，支持多种格式：
+                # 1. 标准 OpenAI: message.content
+                # 2. GLM 推理模型: message.reasoning_content
+                message = result["choices"][0]["message"]
+                text = message.get("content") or message.get("reasoning_content") or ""
+
                 return AIResponse(
                     success=True,
-                    text=result["choices"][0]["message"]["content"],
+                    text=text,
                     metadata={
                         "tokens_used": result.get("usage", {}).get("total_tokens", 0),
                         "latency_ms": latency_ms,
@@ -143,10 +172,14 @@ class OpenAIClient(LLMClient):
                             json_str = line[6:]  # 移除 'data: ' 前缀
                             chunk = json.loads(json_str)
 
-                            # 提取内容
+                            # 提取内容，支持多种格式：
+                            # 1. 标准 OpenAI: delta.content
+                            # 2. GLM 推理模型: delta.reasoning_content
                             if "choices" in chunk and len(chunk["choices"]) > 0:
                                 delta = chunk["choices"][0].get("delta", {})
-                                content = delta.get("content", "")
+                                content = (
+                                    delta.get("content") or delta.get("reasoning_content") or ""
+                                )
                                 if content:
                                     full_text += content
                                     yield {

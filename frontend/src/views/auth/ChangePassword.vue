@@ -121,7 +121,7 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex';
+import { mapActions, mapGetters } from 'vuex';
 
 export default {
   name: 'ChangePassword',
@@ -142,6 +142,10 @@ export default {
       loading: false,
       isForceChange: false, // Epic 8 Story 8.4: 是否强制修改密码
     };
+  },
+
+  computed: {
+    ...mapGetters('auth', ['user']),
   },
 
   methods: {
@@ -219,8 +223,9 @@ export default {
         this.$message?.success('密码修改成功，请重新登录') ||
           alert('密码修改成功，请重新登录');
 
-        // 注意: changePassword action 会自动登出用户
-        // 不需要手动跳转，Vuex action 会处理
+        // Epic 8 Story 8.4: 跳转到登录页
+        // changePassword action 已经登出用户，现在跳转到登录页
+        this.$router.push('/login');
       } catch (error) {
         console.error('修改密码失败:', error);
         this.errorMessage =
@@ -238,15 +243,13 @@ export default {
    * Epic 8 Story 8.4: 检查是否强制修改密码场景
    */
   mounted() {
-    // 检查是否有重定向标记（从中间件跳转过来）
-    const hasRedirect = sessionStorage.getItem('redirect_after_password_change');
-
-    if (hasRedirect) {
-      // 强制修改密码场景
-      this.isForceChange = true;
+    // 检查用户信息中的must_change_password标志
+    if (this.user && this.user.must_change_password) {
+      // 强制修改密码场景（管理员重置后）
+      this.isForceChange = true
     } else {
       // 普通修改密码场景
-      this.isForceChange = false;
+      this.isForceChange = false
     }
   },
 };

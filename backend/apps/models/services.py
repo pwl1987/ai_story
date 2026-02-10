@@ -291,6 +291,7 @@ class ModelProviderService:
     def _test_llm_provider(provider: ModelProvider, prompt: str) -> Dict[str, Any]:
         """测试LLM提供商"""
         from core.ai_client.openai_client import OpenAIClient
+        import time
 
         client = OpenAIClient(
             api_url=provider.api_url,
@@ -300,21 +301,33 @@ class ModelProviderService:
             temperature=provider.temperature,
             timeout=provider.timeout,
         )
-        full_text = ""
-        is_success = False
-        for chunk in client.generate_stream(prompt):
-            if chunk.get("type") == "done":
-                full_text = chunk.get("full_text")
-                is_success = True
-            elif chunk.get("type") == "error":
-                full_text = chunk.get("error")
-                is_success = False
-        return {
-            "success": is_success,
-            "text": full_text,
-            "data": {"prompt": prompt, "provider": provider.name},
-            "tokens_used": 0,
-        }
+
+        start_time = time.time()
+        try:
+            # 使用同步 generate() 方法（兼容 GLM 等不支持流式的 API）
+            response = client.generate(prompt)
+            latency_ms = int((time.time() - start_time) * 1000)
+
+            if response.success:
+                return {
+                    "success": True,
+                    "text": response.text,
+                    "latency_ms": latency_ms,
+                    "data": {"prompt": prompt, "provider": provider.name},
+                    "tokens_used": response.metadata.get("tokens_used", 0),
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": response.error,
+                    "data": {"prompt": prompt, "provider": provider.name},
+                }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "data": {"prompt": prompt, "provider": provider.name},
+            }
 
     @staticmethod
     async def _test_text2image_provider(provider: ModelProvider, prompt: str) -> Dict[str, Any]:

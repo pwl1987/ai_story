@@ -47,6 +47,10 @@ class MustChangePasswordMiddleware(MiddlewareMixin):
         "/api/auth/change-password",
         "/api/auth/login",
         "/api/auth/logout",
+        "/api/v1/users/change-password",  # 实际的修改密码端点
+        "/api/v1/users/login",  # 实际的登录端点
+        "/api/v1/users/logout",  # 实际的登出端点
+        "/api/v1/users/profile",  # 用户信息端点（获取must_change_password状态）
         "/admin/login",
         "/admin/logout",
         "/static/",
@@ -102,7 +106,11 @@ class MustChangePasswordMiddleware(MiddlewareMixin):
         Returns:
             bool: True如果在白名单中，False否则
         """
+        # 标准化路径（移除尾部斜杠进行比较）
+        normalized_path = path.rstrip("/")
         return any(
-            path.startswith(prefix) or path == prefix.rstrip("/")
+            normalized_path.startswith(prefix.rstrip("/"))
+            or path.startswith(prefix)
+            or prefix.rstrip("/") == normalized_path
             for prefix in self.WHITE_LIST_PREFIXES
         )

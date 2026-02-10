@@ -119,6 +119,11 @@ export default {
       loading: false
     }
   },
+  mounted() {
+    // Epic 8 Story 8.4: 登录页面加载时清除旧的认证信息
+    // 避免携带旧token导致登录请求被middleware拦截
+    this.$store.dispatch('auth/logout')
+  },
   methods: {
     ...mapActions('auth', ['login']),
 
@@ -140,14 +145,26 @@ export default {
       this.loading = true
 
       try {
-        await this.login({
+        const response = await this.login({
           username: this.form.username,
           password: this.form.password
         })
 
-        // 登录成功，跳转到首页或之前的页面
-        const redirect = this.$route.query.redirect || '/'
-        this.$router.push(redirect)
+        // Epic 8 Story 8.4: 检查是否需要强制修改密码
+        const user = response.data.user
+        if (user.must_change_password) {
+          // 需要修改密码，跳转到修改密码页面
+          // 保存原本想去的路径，修改密码后跳转
+          const redirect = this.$route.query.redirect || '/projects'
+          this.$router.push({
+            path: '/change-password',
+            query: { redirect }
+          })
+        } else {
+          // 登录成功，跳转到首页或之前的页面
+          const redirect = this.$route.query.redirect || '/'
+          this.$router.push(redirect)
+        }
       } catch (error) {
         console.error('登录失败:', error)
         this.errorMessage = error.message || '登录失败，请检查用户名和密码'

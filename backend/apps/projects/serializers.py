@@ -10,7 +10,7 @@ from rest_framework import serializers
 
 from apps.projects.utils import parse_storyboard_json
 
-from .models import Project, ProjectModelConfig, ProjectStage
+from .models import Project, ProjectModelConfig, ProjectStage, ProjectTemplate
 
 
 class ProjectStageSerializer(serializers.ModelSerializer):
@@ -113,6 +113,7 @@ class ProjectListSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     user_name = serializers.CharField(source="user.username", read_only=True)
     prompt_set_name = serializers.CharField(source="prompt_template_set.name", read_only=True)
+    proxy_name = serializers.CharField(source="proxy_config.name", read_only=True, allow_null=True)
 
     # 统计信息
     stages_count = serializers.SerializerMethodField()
@@ -131,6 +132,8 @@ class ProjectListSerializer(serializers.ModelSerializer):
             "user_name",
             "prompt_template_set",
             "prompt_set_name",
+            "proxy_config",
+            "proxy_name",
             "stages_count",
             "completed_stages_count",
             "created_at",
@@ -152,6 +155,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     user_name = serializers.CharField(source="user.username", read_only=True)
     prompt_set_name = serializers.CharField(source="prompt_template_set.name", read_only=True)
+    proxy_name = serializers.CharField(source="proxy_config.name", read_only=True, allow_null=True)
 
     # 嵌套序列化
     stages = ProjectStageSerializer(many=True, read_only=True)
@@ -176,6 +180,8 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
             "user_name",
             "prompt_template_set",
             "prompt_set_name",
+            "proxy_config",
+            "proxy_name",
             "stages",
             "model_config",
             "total_stages",
@@ -210,7 +216,14 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ["id", "name", "description", "original_topic", "prompt_template_set"]
+        fields = [
+            "id",
+            "name",
+            "description",
+            "original_topic",
+            "prompt_template_set",
+            "proxy_config",
+        ]
         read_only_fields = ["id"]
 
     def validate_original_topic(self, value):
@@ -355,3 +368,68 @@ class ProjectTemplateSerializer(serializers.Serializer):
         if not value or not value.strip():
             raise serializers.ValidationError("模板名称不能为空")
         return value.strip()
+
+
+class ProjectTemplateCRUDSerializer(serializers.ModelSerializer):
+    """
+    Story 11.4.3: 项目模板CRUD序列化器
+    """
+
+    created_by_name = serializers.CharField(source="created_by.username", read_only=True)
+
+    class Meta:
+        model = ProjectTemplate
+        fields = [
+            "id",
+            "name",
+            "description",
+            "parameters",
+            "is_system_template",
+            "created_by",
+            "created_by_name",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "is_system_template",
+            "created_by",
+            "created_by_name",
+            "created_at",
+            "updated_at",
+        ]
+
+    def validate_parameters(self, value):
+        """验证参数JSON格式"""
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("参数必须是JSON对象格式")
+
+        # 验证可选的参数字段
+        valid_keys = {
+            "style",
+            "quality",
+            "aspect_ratio",
+            "llm_provider",
+            "image_provider",
+            "video_provider",
+            "prompt_template_set",
+            "proxy_config",
+        }
+        for key in value:
+            if key not in valid_keys:
+                raise serializers.ValidationError(f"无效的参数键: {key}")
+
+        return value
+
+    def validate(self, attrs):
+        """验证模板创建权限"""
+        # 系统预置模板只能通过数据库迁移或管理命令创建
+        if attrs.get("is_system_template", False):
+            raise serializers.ValidationError("不允许直接创建系统预置模板")
+        return attrs
+
+    def create(self, validated_data):
+        """创建模板时自动设置创建者"""
+        user = self.context["request"].user
+        validated_data["created_by"] = user
+        return super().create(validated_data)

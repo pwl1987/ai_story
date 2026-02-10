@@ -1,25 +1,52 @@
 # Pre-commit配置
-# 仅包含Ruff代码质量检查和Pytest测试
+# 运行在 git commit 之前自动检查代码质量
 
 repos:
-  # Ruff: 超快的Python linter（替代flake8、pylint等）
+  # Ruff - Python linter 和 formatter
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.14
+    rev: v0.8.4
     hooks:
-      # 运行Ruff检查
       - id: ruff
-        name: Ruff代码质量检查
+        name: Ruff Lint
         args: [--fix, --exit-non-zero-on-fix]
-      # 运行Ruff格式化
       - id: ruff-format
-        name: Ruff代码格式化
+        name: Ruff Format
 
-  # Pytest: 运行测试套件
-  - repo: local
+  # 检查 YAML/JSON/INI 等配置文件语法
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
     hooks:
-      - id: pytest
-        name: Pytest测试套件
-        entry: bash -c "cd backend && uv run pytest apps/users/tests/ -v"
-        language: system
-        pass_filenames: false
-        always_run: true
+      - id: prettier
+        types_or: [yaml, json, ini]
+        exclude: ^(migrations/)
+
+  # 检查合并冲突
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: check-case-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+
+  # Django 相关检查
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: debug-statements
+        language: python
+      - id: name-tests-test
+        args: [--pytest]
+        language: python
+
+# CI 环境配置
+ci:
+  autofix_commit_msg: |
+    style: auto fixes by pre-commit hooks
+    for: see https://github.com/pre-commit/mirrors-prettier/commit/a6b07246

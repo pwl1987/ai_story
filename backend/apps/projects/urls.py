@@ -7,7 +7,12 @@ from .sse_views import (
     ProjectAllStagesSSEView,
     ProjectStageSSEView,
 )
-from .views import ProjectModelConfigViewSet, ProjectStageViewSet, ProjectViewSet
+from .views import (
+    ProjectModelConfigViewSet,
+    ProjectStageViewSet,
+    ProjectTemplateViewSet,
+    ProjectViewSet,
+)
 from .views_progress_history import ProjectProgressHistoryViewSet
 
 # 创建路由器
@@ -15,6 +20,7 @@ router = DefaultRouter()
 router.register(r"", ProjectViewSet, basename="project")
 router.register(r"stages", ProjectStageViewSet, basename="stage")
 router.register(r"model-configs", ProjectModelConfigViewSet, basename="model-config")
+router.register(r"templates", ProjectTemplateViewSet, basename="project-template")
 
 # Epic 3: 进度历史路由 (使用简单路由,需要project_id前缀)
 progress_history_router = DefaultRouter()

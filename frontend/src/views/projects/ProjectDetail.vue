@@ -13,8 +13,63 @@
         </div>
       </div>
 
+      <!-- 进度显示区域 -->
+      <div class="bg-base-100 rounded-lg shadow-sm p-6 mb-4">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-bold">生成进度</h2>
+          <div class="flex items-center gap-4">
+            <progress-text :percentage="overallProgress" />
+            <time-remaining
+              v-if="currentStageKey && !isAllCompleted"
+              :stage-key="currentStageKey"
+              :percentage="currentStageProgress"
+            />
+          </div>
+        </div>
+
+        <!-- 阶段进度条 -->
+        <stage-progress
+          :stages="progressStages"
+          :current-stage-key="currentStageKey"
+        />
+
+        <!-- 当前阶段信息 -->
+        <div v-if="currentStage" class="mt-4 text-sm text-base-content/70">
+          <span class="font-semibold">当前阶段:</span>
+          {{ currentStage.name }}
+          <span v-if="currentStage.stepName" class="ml-2">- {{ currentStage.stepName }}</span>
+        </div>
+
+        <!-- 错误通知 -->
+        <div v-if="hasErrors" class="mt-4 space-y-2">
+          <error-notification
+            v-for="error in progressErrors"
+            :key="error.id"
+            :visible="true"
+            :error="error"
+            title="生成错误"
+            :closable="true"
+            @close="clearErrors"
+          />
+        </div>
+
+        <!-- 完成提示 -->
+        <div v-if="isAllCompleted" class="alert alert-success mt-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <div class="font-bold">所有阶段已完成</div>
+            <div class="text-sm">您的项目已成功生成，可以在下方查看各阶段结果。</div>
+          </div>
+        </div>
+      </div>
+
       <!-- 横向Tab栏 -->
       <div class="bg-base-100 rounded-lg shadow-sm">
+        <div class="flex items-center justify-between px-4 py-2 border-b border-base-300">
+          <div class="text-sm text-base-content/60">项目阶段</div>
+        </div>
         <div role="tablist" class="tabs tabs-bordered tabs-lg flex-nowrap overflow-x-auto">
           <input
             type="radio"
@@ -136,7 +191,20 @@
             @change="activeTab = 'storyboard'"
           />
           <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6">
+            <!-- 使用 StoryboardViewer 显示分镜内容 -->
+            <storyboard-viewer
+              v-if="isStoryboardCompleted"
+              :scenes-data="getStoryboardScenes()"
+              :stage="getStage('storyboard')"
+              :project-id="project.id"
+              :can-edit="true"
+              @scenes-updated="handleScenesUpdated"
+              @scene-regenerate="handleSceneRegenerate"
+            />
+
+            <!-- 未完成时显示 StageContent 用于触发 AI 生成 -->
             <stage-content
+              v-else
               stage-type="storyboard"
               :stage="getStage('storyboard')"
               :all-stages="stages"
@@ -232,12 +300,17 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex';
+import { mapActions, mapState, mapGetters } from 'vuex';
 import StatusBadge from '@/components/common/StatusBadge.vue';
 import LoadingContainer from '@/components/common/LoadingContainer.vue';
 import StageContent from '@/components/projects/StageContent.vue';
+import StoryboardViewer from '@/components/content/StoryboardViewer.vue';
 import JianyingDraftButton from '@/components/projects/JianyingDraftButton.vue';
 import VideoPlayer from '@/components/common/VideoPlayer.vue';
+import StageProgress from '@/components/progress/StageProgress.vue';
+import ProgressText from '@/components/progress/ProgressText.vue';
+import TimeRemaining from '@/components/progress/TimeRemaining.vue';
+import ErrorNotification from '@/components/progress/ErrorNotification.vue';
 import { formatDate } from '@/utils/helpers';
 import websocketClient from '@/services/websocketClient';
 
@@ -247,8 +320,13 @@ export default {
     StatusBadge,
     LoadingContainer,
     StageContent,
+    StoryboardViewer,
     JianyingDraftButton,
     VideoPlayer,
+    StageProgress,
+    ProgressText,
+    TimeRemaining,
+    ErrorNotification,
   },
   data() {
     return {
@@ -268,13 +346,126 @@ export default {
   created() {
     this.fetchData();
     this.connectWebSocket();
+    this.initProgressStages();
   },
   beforeDestroy() {
     this.disconnectWebSocket();
   },
+  computed: {
+    isStoryboardCompleted() {
+      // 检查分镜阶段是否完成且有输出数据
+      const storyboardStage = this.getStage('storyboard');
+      return storyboardStage?.status === 'completed' &&
+             storyboardStage?.output_data?.human_text?.scenes?.length > 0;
+    },
+
+    // Progress store 映射
+    ...mapState('progress', {
+      progressStages: state => state.stages,
+      currentStageKey: state => state.currentStageKey,
+      progressErrors: state => state.errors,
+    }),
+
+    ...mapGetters('progress', [
+      'overallProgress',
+      'currentStage',
+      'isAllCompleted',
+      'hasErrors',
+      'currentStageProgress',
+    ]),
+  },
   methods: {
     ...mapActions('projects', ['fetchProject', 'fetchProjectStages', 'executeStage', 'updateProject', 'updateStageData']),
+    ...mapActions('progress', ['initStages', 'updateStageProgress', 'setCurrentStage', 'completeStage', 'setStageError', 'clearErrors']),
     formatDate,
+
+    /**
+     * 初始化进度阶段 - 将后端阶段映射到进度阶段
+     */
+    initProgressStages() {
+      // 定义后端阶段到进度阶段的映射
+      const stageMapping = {
+        'rewrite': 'llm',
+        'storyboard': 'storyboard',
+        'image_generation': 'image',
+        'camera_movement': 'camera',
+        'video_generation': 'video',
+      };
+
+      // 根据后端阶段数据初始化进度阶段
+      const progressStagesData = Object.entries(stageMapping).map(([backendStage, progressKey]) => {
+        const stage = this.getStage(backendStage);
+        return {
+          key: progressKey,
+          name: this.getStageName(progressKey),
+          stepCount: this.getStageStepCount(progressKey),
+          progress: stage?.progress || 0,
+          status: this.getStageStatus(stage?.status),
+          currentStep: 0,
+          error: null,
+        };
+      });
+
+      this.initStages(progressStagesData);
+    },
+
+    getStageName(stageKey) {
+      const names = {
+        'llm': '文案改写',
+        'storyboard': '分镜生成',
+        'image': '文生图',
+        'camera': '运镜生成',
+        'video': '图生视频',
+      };
+      return names[stageKey] || stageKey;
+    },
+
+    getStageStepCount(stageKey) {
+      const counts = {
+        'llm': 1,
+        'storyboard': 10,
+        'image': 10,
+        'camera': 5,
+        'video': 3,
+      };
+      return counts[stageKey] || 1;
+    },
+
+    getStageStatus(backendStatus) {
+      // 将后端状态映射到进度状态
+      const statusMap = {
+        'completed': 'completed',
+        'processing': 'active',
+        'pending': 'pending',
+        'failed': 'error',
+      };
+      return statusMap[backendStatus] || 'pending';
+    },
+
+    /**
+     * 更新进度阶段的进度
+     */
+    syncProgressFromStages() {
+      const stageMapping = {
+        'rewrite': 'llm',
+        'storyboard': 'storyboard',
+        'image_generation': 'image',
+        'camera_movement': 'camera',
+        'video_generation': 'video',
+      };
+
+      Object.entries(stageMapping).forEach(([backendStage, progressKey]) => {
+        const stage = this.getStage(backendStage);
+        if (stage) {
+          this.updateStageProgress({
+            stageKey: progressKey,
+            progress: stage.progress || 0,
+            status: this.getStageStatus(stage.status),
+            currentStep: stage.current_step || 0,
+          });
+        }
+      });
+    },
 
     async fetchData(preserveScroll = false) {
       // 保存当前滚动位置
@@ -321,11 +512,52 @@ export default {
       websocketClient.on('stage_update', (data) => {
         console.log('Stage update:', data);
         this.fetchData(true); // 保持滚动位置
+        // 同步进度更新
+        this.syncProgressFromStages();
       });
 
       websocketClient.on('project_update', (data) => {
         console.log('Project update:', data);
         this.project = data.project;
+      });
+
+      // 监听进度更新消息（新的进度WebSocket）
+      websocketClient.on('progress', (data) => {
+        console.log('Progress update:', data);
+        this.updateStageProgress({
+          stageKey: data.stage,
+          progress: data.percentage,
+          currentStep: data.current_step,
+          totalSteps: data.total_steps,
+          stepName: data.step_name,
+          status: 'active',
+        });
+      });
+
+      // 监听阶段完成消息
+      websocketClient.on('stage_complete', (data) => {
+        console.log('Stage complete:', data);
+        const stageMapping = {
+          'rewrite': 'llm',
+          'storyboard': 'storyboard',
+          'image_generation': 'image',
+          'camera_movement': 'camera',
+          'video_generation': 'video',
+        };
+        const progressKey = stageMapping[data.stage_name];
+        if (progressKey) {
+          this.completeStage(progressKey);
+        }
+      });
+
+      // 监听错误消息
+      websocketClient.on('error', (data) => {
+        console.error('Stage error:', data);
+        this.setStageError({
+          stageKey: data.stage,
+          error: data.error_message,
+          errorType: data.error_type,
+        });
       });
     },
 
@@ -421,6 +653,46 @@ export default {
       this.$message.success(`剪映草稿生成成功！包含 ${data.videoCount} 个视频`);
       // 重新加载项目数据以更新草稿路径显示
       await this.fetchData(true); // 保持滚动位置
+    },
+
+    getStoryboardScenes() {
+      const storyboardStage = this.getStage('storyboard');
+      return storyboardStage?.output_data?.human_text?.scenes || [];
+    },
+
+    async handleScenesUpdated(scenes) {
+      // StoryboardViewer 更新了分镜数据，保存到后端
+      try {
+        const storyboardStage = this.getStage('storyboard');
+        if (storyboardStage) {
+          const updatedOutputData = {
+            ...storyboardStage.output_data,
+            human_text: {
+              ...storyboardStage.output_data.human_text,
+              scenes: scenes
+            }
+          };
+
+          await this.updateStageData({
+            projectId: this.project.id,
+            stageName: 'storyboard',
+            data: {
+              input_data: storyboardStage.input_data,
+              output_data: updatedOutputData
+            },
+          });
+        }
+      } catch (error) {
+        console.error('Failed to save scenes:', error);
+        this.$message.error('保存失败');
+      }
+    },
+
+    async handleSceneRegenerate({ sceneNumber, options }) {
+      // 处理单个分镜重新生成（Story 11.2.4 的功能）
+      console.log('Regenerate scene:', sceneNumber, options);
+      // TODO: 实现重新生成 API 调用
+      this.$message.info('重新生成功能待实现');
     },
   },
 };

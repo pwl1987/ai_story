@@ -7,12 +7,11 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import include, path
 
-# Story 8.1: 使用StaffAdminSite替代默认admin.site
-from config.admin import staff_admin_site
-
 # Epic 7.1: OpenAPI文档自动生成
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
+# Story 8.1: 使用StaffAdminSite替代默认admin.site
+from config.admin import staff_admin_site
 from core.prometheus_metrics import metrics_view  # Epic 2优化: Prometheus指标导出
 
 # API文档配置
@@ -35,10 +34,14 @@ urlpatterns = api_patterns + [
     path("api/v1/prompts/", include("apps.prompts.urls")),
     path("api/v1/models/", include("apps.models.urls")),
     path("api/v1/content/", include("apps.content.urls")),
+    path("api/v1/artworks/", include("apps.artworks.urls")),  # Epic 11: 角色资产管理
+    path("api/v1/engines/", include("apps.engines.urls")),  # Epic 11: 引擎监控与配置
     path("api/v1/users/", include("apps.users.urls")),
     path("api/v1/files/", include("apps.files.urls")),  # Epic 6: 文件管理与预览
     path("api/mock/", include("apps.mock_api.urls")),
     path("api/v1/core/", include("apps.core.urls")),
+    # Epic 9: 代理管理系统 (Story 9.0+)
+    path("api/v1/proxy/", include("apps.proxy.urls")),
 ]
 
 # 开发环境下提供媒体文件访问

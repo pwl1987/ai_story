@@ -271,14 +271,8 @@ const actions = {
         // 清除重定向标记
         sessionStorage.removeItem('redirect_after_password_change')
 
-        // 修改密码后重新登录
+        // 修改密码后登出（组件会处理跳转）
         await dispatch('logout')
-
-        // 如果有重定向路径，保存到 query 参数中（登录后跳转）
-        if (redirectPath) {
-          console.log('密码修改成功，登录后将跳转到:', redirectPath)
-          // 可以将路径保存到某个地方，登录后使用
-        }
 
         return response
       } else {

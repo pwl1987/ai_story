@@ -72,6 +72,17 @@ def create_ai_client(provider) -> BaseAIClient:
             **provider.extra_config,  # 合并额外配置
         }
 
+        # Epic 9 Story 9.13: 代理集成
+        # 检查是否启用代理并获取代理 URL
+        proxy_url = None
+        if hasattr(provider, "get_proxy_url"):
+            proxy_url = provider.get_proxy_url()
+            if proxy_url:
+                config["proxy_url"] = proxy_url
+                logger.info(f"模型 '{provider.name}' 启用代理: {proxy_url}")
+            else:
+                logger.debug(f"模型 '{provider.name}' 配置了代理但未启用或代理不可用")
+
         # 创建客户端实例
         client = executor_class(
             api_url=provider.api_url,
@@ -81,7 +92,9 @@ def create_ai_client(provider) -> BaseAIClient:
         )
 
         logger.info(
-            f"成功创建AI客户端: provider='{provider.name}', executor='{executor_class_path}'"
+            f"成功创建AI客户端: provider='{provider.name}', "
+            f"executor='{executor_class_path}', "
+            f"proxy={'enabled' if proxy_url else 'disabled'}"
         )
 
         return client
@@ -149,7 +162,11 @@ def _create_mock_client(provider, use_enhanced=False) -> BaseAIClient:
     enhanced_error = os.environ.get("MOCK_ERROR", "")
 
     # 创建Mock客户端
-    if "llm" in executor_class.lower() or "openai" in executor_class.lower():
+    if (
+        "llm" in executor_class.lower()
+        or "openai" in executor_class.lower()
+        or "ollama" in executor_class.lower()
+    ):
         if use_enhanced:
             logger.info(
                 f"创建EnhancedMockLLMClient for provider '{provider.name}' (delay={enhanced_delay}s)"

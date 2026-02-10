@@ -265,6 +265,8 @@ class RedisStreamPublisher:
         """
         发布进度消息 (用于批量处理场景)
 
+        Story 11.4.2: 增强格式，添加 current_step, total_steps, step_name 字段
+
         Args:
             current: 当前处理数量
             total: 总数量
@@ -282,10 +284,72 @@ class RedisStreamPublisher:
             "current": current,
             "total": total,
             "progress": progress,
+            # Story 11.4.2: 添加前端进度组件期望的字段
+            "current_step": current,
+            "total_steps": total,
+            "step_name": item_name,
         }
 
         if item_name:
             message["item_name"] = item_name
+
+        return self.publish(message)
+
+    def publish_stage_complete(
+        self, duration: float, output_count: int = 0, next_stage: str = ""
+    ) -> bool:
+        """
+        Story 11.4.2: 发布阶段完成事件
+
+        Args:
+            duration: 阶段耗时（秒）
+            output_count: 输出数量
+            next_stage: 下一阶段名称
+
+        Returns:
+            bool: 是否发布成功
+        """
+        message = {
+            "type": "stage_complete",
+            "stage_name": self.stage_name,
+            "duration": duration,
+            "output_count": output_count,
+            "project_id": self.project_id,
+        }
+
+        if next_stage:
+            message["next_stage"] = next_stage
+
+        return self.publish(message)
+
+    def publish_progress_detailed(
+        self,
+        percentage: float,
+        current_step: int,
+        total_steps: int,
+        step_name: str = "",
+    ) -> bool:
+        """
+        Story 11.4.2: 发布详细进度消息（匹配前端组件期望格式）
+
+        Args:
+            percentage: 进度百分比 (0-100)
+            current_step: 当前步骤
+            total_steps: 总步骤数
+            step_name: 步骤名称
+
+        Returns:
+            bool: 是否发布成功
+        """
+        message = {
+            "type": "progress",
+            "stage": self.stage_name,
+            "percentage": percentage,
+            "current_step": current_step,
+            "total_steps": total_steps,
+            "step_name": step_name,
+            "project_id": self.project_id,
+        }
 
         return self.publish(message)
 

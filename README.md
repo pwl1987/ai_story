@@ -165,11 +165,45 @@ AI分析每个场景，自动生成合适的镜头运动方案。
 
 ---
 
-## 开发文档
+## 📚 文档中心
 
-详细的技术文档和开发指南请查看：
-- [开发者指南](CLAUDE.md) - 完整的开发文档和命令参考
-- [流式架构文档](backend/CELERY_REDIS_STREAMING.md) - Celery+Redis实时推送架构
+**完整的项目文档导航** - 包含所有Epic文档、指南、BMad工作流产物
+
+- [📖 文档中心入口](docs/index.md) - **推荐从这里开始** - 完整的文档索引和导航
+- [项目总览](docs/overview.md) - 项目简介、技术栈、系统架构
+- [快速开始](docs/QUICKSTART.md) - 5分钟快速上手
+
+### 按Epic浏览
+- [Epic 1: 测试基础设施](docs/epic-1/README.md) - 测试框架、Mock客户端、单元测试
+- [Epic 2: 系统可观测性](docs/epic-2/README.md) - 日志、监控、健康检查
+- [Epic 3: 实时通信稳定性](docs/epic-3/README.md) - WebSocket优化、进度推送、自动重连
+- [Epic 4: 项目管理](docs/epic-4/README.md) - 项目CRUD、工作流状态机
+- [Epic 5: 内容生成工作流](docs/epic-5/README.md) - Pipeline、异步任务编排
+- [Epic 6: 文件管理与预览](docs/epic-6/README.md) - 文件存储、API、预览
+- [Epic 7: 开发者工具](docs/epic-7/README.md) - 环境配置、部署、工具
+- [Epic 8: 管理员后台](docs/epic-8/README.md) - 用户管理、权限控制
+- [Epic 9: 代理管理系统](docs/epic-9/README.md) - 代理配置、健康检查、自动降级 ⭐
+
+### 使用指南
+- [部署指南](docs/guides/deployment.md) - 生产环境部署
+- [管理员指南](docs/guides/admin.md) - Django Admin使用
+- [代理管理指南](backend/docs/proxy/README.md) - 代理配置完整文档
+- [Celery & Redis架构](docs/guides/celery-redis-streaming.md) - 异步任务架构详解
+
+### BMad工作流
+- [BMad概述](docs/index.md#bmad工作流文档) - AI辅助开发方法论
+- [规划文档](docs/bmad/planning/) - PRD、架构、Epic规划
+- [实施文档](docs/bmad/implementation/) - 42个Story文档
+- [回顾文档](docs/bmad/retrospectives/) - 8个Epic回顾
+
+---
+
+## 🔧 开发文档
+
+核心架构和技术文档：
+- [开发者指南](CLAUDE.md) - 项目架构导航和命令参考
+- [后端开发](backend/CLAUDE.md) - 后端模块架构
+- [前端开发](frontend/README.md) - 前端项目说明
 
 ---
 

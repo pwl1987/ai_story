@@ -127,13 +127,18 @@
                   </div>
                 </td>
                 <td>
-                  <div class="flex">
+                  <div class="flex gap-1">
+                    <!-- 优化后的测试按钮 -->
                     <button
-                      class="btn btn-xs btn-ghost"
+                      class="btn btn-xs gap-1 tooltip tooltip-right"
+                      :class="getTestButtonClass(provider)"
+                      :disabled="!provider.is_active || isTesting(provider.id)"
                       @click="handleTest(provider)"
-                      :disabled="!provider.is_active || testing"
+                      :title="isTesting(provider.id) ? '正在测试模型连接...' : '测试模型连接'"
+                      data-tip="测试模型连接"
                     >
                       <svg
+                        v-if="!isTesting(provider.id)"
                         xmlns="http://www.w3.org/2000/svg"
                         class="h-3 w-3"
                         fill="none"
@@ -147,11 +152,32 @@
                           d="M13 10V3L4 14h7v7l9-11h-7z"
                         />
                       </svg>
-                      测试
+                      <svg
+                        v-else
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-3 w-3 animate-spin"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                      <span class="hidden sm:inline">
+                        {{ isTesting(provider.id) ? '测试中...' : '测试' }}
+                      </span>
                     </button>
+
+                    <!-- 启用/停用按钮 -->
                     <button
-                      class="btn btn-xs btn-ghost"
+                      class="btn btn-xs btn-ghost tooltip tooltip-top"
                       @click="handleToggleStatus(provider)"
+                      :title="provider.is_active ? '停用此模型' : '启用此模型'"
+                      data-tip="切换模型状态"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -167,9 +193,16 @@
                           d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
                         />
                       </svg>
-                      {{ provider.is_active ? '停用' : '启用' }}
+                      <span class="hidden sm:inline">{{ provider.is_active ? '停用' : '启用' }}</span>
                     </button>
-                    <button class="btn btn-xs btn-ghost" @click="handleEdit(provider)">
+
+                    <!-- 编辑按钮 -->
+                    <button
+                      class="btn btn-xs btn-ghost tooltip tooltip-top"
+                      @click="handleEdit(provider)"
+                      title="编辑模型配置"
+                      data-tip="编辑模型"
+                    >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         class="h-3 w-3"
@@ -184,11 +217,15 @@
                           d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                         />
                       </svg>
-                      编辑
+                      <span class="hidden sm:inline">编辑</span>
                     </button>
+
+                    <!-- 删除按钮 -->
                     <button
-                      class="btn btn-xs btn-ghost text-error"
+                      class="btn btn-xs btn-ghost text-error tooltip tooltip-top"
                       @click="handleDelete(provider)"
+                      title="删除此模型"
+                      data-tip="删除模型"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -204,7 +241,7 @@
                           d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                         />
                       </svg>
-                      删除
+                      <span class="hidden sm:inline">删除</span>
                     </button>
                   </div>
                 </td>
@@ -214,6 +251,14 @@
         </div>
       </loading-container>
     </page-card>
+
+    <!-- 测试结果模态框 -->
+    <test-result-modal
+      :visible="showTestModal"
+      :result="testResult"
+      :loading="isTestingModal"
+      @close="showTestModal = false"
+    />
   </div>
 </template>
 
@@ -221,12 +266,14 @@
 import { mapState, mapActions } from 'vuex'
 import PageCard from '@/components/common/PageCard.vue'
 import LoadingContainer from '@/components/common/LoadingContainer.vue'
+import TestResultModal from '@/components/models/TestResultModal.vue'
 
 export default {
   name: 'ModelList',
   components: {
     PageCard,
-    LoadingContainer
+    LoadingContainer,
+    TestResultModal
   },
   data() {
     return {
@@ -235,7 +282,10 @@ export default {
         provider_type: '',
         is_active: ''
       },
-      testing: false
+      testingProviders: {}, // { [providerId]: boolean } - 支持并发测试
+      showTestModal: false,
+      testResult: null,
+      isTestingModal: false
     }
   },
   computed: {
@@ -300,24 +350,38 @@ export default {
       }
     },
 
+    // 优化后的测试方法
     async handleTest(provider) {
-      this.testing = true
+      // 设置测试状态
+      this.$set(this.testingProviders, provider.id, true)
+      this.showTestModal = true
+      this.testResult = null
+      this.isTestingModal = true
+
       try {
         const result = await this.testProviderConnection({
           id: provider.id,
-          testPrompt: 'Hello, this is a test.'
+          testPrompt: '你好，请简单介绍一下你自己'
         })
 
-        if (result.success) {
-          alert(`测试成功! 延迟: ${result.latency_ms}ms`)
-        } else {
-          alert(`测试失败: ${result.error}`)
+        // 保存测试结果
+        this.testResult = {
+          ...result,
+          providerName: provider.name,
+          modelName: provider.model_name
         }
       } catch (error) {
         console.error('测试连接失败:', error)
-        alert('测试连接失败')
+        this.testResult = {
+          success: false,
+          error: error.message || '测试连接失败',
+          providerName: provider.name,
+          modelName: provider.model_name
+        }
       } finally {
-        this.testing = false
+        // 清除测试状态
+        this.$set(this.testingProviders, provider.id, false)
+        this.isTestingModal = false
       }
     },
 
@@ -351,6 +415,22 @@ export default {
         image2video: 'badge-accent'
       }
       return classes[type] || 'badge-ghost'
+    },
+
+    // 辅助方法：判断是否正在测试
+    isTesting(providerId) {
+      return this.testingProviders[providerId] || false
+    },
+
+    // 辅助方法：获取测试按钮样式
+    getTestButtonClass(provider) {
+      if (!provider.is_active) {
+        return 'btn-disabled'
+      }
+      if (this.isTesting(provider.id)) {
+        return 'btn-warning'
+      }
+      return 'btn-ghost'
     }
   }
 }

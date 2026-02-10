@@ -11,7 +11,7 @@ from .models import ModelProvider, ModelUsageLog
 
 
 class ModelProviderAdminForm(forms.ModelForm):
-    """ModelProvider自定义表单，用于验证executor_class"""
+    """ModelProvider自定义表单，用于验证executor_class和代理配置"""
 
     class Meta:
         model = ModelProvider
@@ -27,6 +27,13 @@ class ModelProviderAdminForm(forms.ModelForm):
                 self.fields["executor_class"].widget = forms.Select(
                     choices=[("", "--- 请选择执行器 ---"), *executor_choices]
                 )
+
+        # Epic 9 Story 9.13: 动态过滤代理列表，只显示激活的代理
+        self.fields["proxy_config"].queryset = self.fields["proxy_config"].queryset.filter(
+            is_active=True
+        )
+        self.fields["proxy_config"].empty_label = "-- 不使用代理 --"
+        self.fields["proxy_config"].required = False
 
     def clean_executor_class(self):
         """验证executor_class是否有效"""
@@ -51,6 +58,31 @@ class ModelProviderAdminForm(forms.ModelForm):
 
         return executor_class
 
+    def clean(self):
+        """表单整体验证
+
+        Epic 9 Story 9.13: 验证代理配置逻辑
+        """
+        cleaned_data = super().clean()
+        use_proxy = cleaned_data.get("use_proxy")
+        proxy_config = cleaned_data.get("proxy_config")
+
+        # 如果启用代理，必须选择代理配置
+        if use_proxy and not proxy_config:
+            raise ValidationError(
+                {
+                    "proxy_config": "启用代理时必须选择代理配置",
+                    "use_proxy": "启用代理需要同时选择代理配置",
+                }
+            )
+
+        # 如果选择了代理配置，应该启用代理（给出警告）
+        if proxy_config and not use_proxy:
+            # 使用 forms.Warning 而不是 ValidationError，允许保存但提醒用户
+            pass  # Django 没有 Warning，这里不做处理
+
+        return cleaned_data
+
 
 @admin.register(ModelProvider)
 class ModelProviderAdmin(SystemResourceBadgeMixin, AuditLogMixin, admin.ModelAdmin):
@@ -60,11 +92,13 @@ class ModelProviderAdmin(SystemResourceBadgeMixin, AuditLogMixin, admin.ModelAdm
         "name",
         "provider_type",
         "executor_class",
+        "use_proxy_badge",  # Epic 9 Story 9.13
+        "proxy_config_badge",  # Epic 9 Story 9.13
         "is_active",
         "priority",
         "created_at",
     ]
-    list_filter = ["provider_type", "is_active", "is_system_default"]
+    list_filter = ["provider_type", "is_active", "is_system_default", "use_proxy", "proxy_config"]
     search_fields = ["name", "model_name", "executor_class"]
 
     fieldsets = (
@@ -82,6 +116,14 @@ class ModelProviderAdmin(SystemResourceBadgeMixin, AuditLogMixin, admin.ModelAdm
             {
                 "fields": ("executor_class",),
                 "description": "选择该模型使用的执行器类。如果不选择，将使用默认执行器。",
+            },
+        ),
+        (
+            "Epic 9 Story 9.13: 🌐 代理配置",
+            {
+                "fields": ("use_proxy", "proxy_config"),
+                "description": "为API请求配置HTTP/HTTPS/SOCKS5代理。启用代理后，此模型的所有API请求将通过选中的代理服务器。",
+                "classes": ("collapse",),  # 默认折叠，减少视觉干扰
             },
         ),
         (
@@ -103,6 +145,26 @@ class ModelProviderAdmin(SystemResourceBadgeMixin, AuditLogMixin, admin.ModelAdm
         ),
     )
     readonly_fields = ["created_by"]
+
+    # Epic 9 Story 9.13: 代理状态显示方法
+    def use_proxy_badge(self, obj):
+        """显示是否启用代理的徽章"""
+        if obj.use_proxy:
+            return "✅ 已启用"
+        return "❌ 未启用"
+
+    use_proxy_badge.short_description = "代理状态"
+    use_proxy_badge.admin_order_field = "use_proxy"
+
+    def proxy_config_badge(self, obj):
+        """显示代理配置信息"""
+        if obj.proxy_config:
+            status = "🟢" if obj.proxy_config.is_active else "🔴"
+            return f"{status} {obj.proxy_config.name}"
+        return "⚪ 未配置"
+
+    proxy_config_badge.short_description = "代理配置"
+    proxy_config_badge.admin_order_field = "proxy_config"
 
     def has_change_permission(self, request, obj=None):
         """

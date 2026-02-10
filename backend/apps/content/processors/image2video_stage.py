@@ -272,7 +272,8 @@ class Image2VideoStageProcessor(StageProcessor):
             storyboard_ids: 指定要生成的分镜ID列表(可选,默认生成所有)
 
         Yields:
-            Dict包含: type (progress/task_created/task_status/video_generated/done/error), content, data
+            Dict包含: type (progress/task_created/task_status/video_generated/done/error),
+            content, data
         """
         stage = None
         try:

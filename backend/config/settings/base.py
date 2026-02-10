@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # 安全配置
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-dev-key-change-in-production")
 DEBUG = True
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 # 应用定义
 INSTALLED_APPS = [
@@ -39,6 +39,9 @@ INSTALLED_APPS = [
     "apps.mock_api",
     "apps.core",
     "apps.files",  # Epic 6: 文件管理与预览
+    "apps.proxy",  # Epic 9: 代理管理系统 (Story 9.0+)
+    "apps.artworks",  # 漫剧生产系统
+    "apps.engines",  # Epic 11: 引擎监控与配置 (Story 11.3.1+)
     "health",  # 健康检查端点 (Story 2.2)
     # API文档 (Epic 7.1: OpenAPI文档自动生成)
     "drf_spectacular",
@@ -178,6 +181,21 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 
+# Story 9.10: Celery Beat定时任务配置
+CELERY_BEAT_SCHEDULE = {
+    "check-proxy-health": {
+        "task": "apps.proxy.tasks.check_proxy_health",
+        "schedule": 300.0,  # 5分钟（300秒）
+        "options": {"queue": "llm"},  # 使用LLM队列（优先级高）
+    },
+    # Story 11.3.2: 引擎健康检查
+    "check-engine-health": {
+        "task": "apps.engines.tasks.periodic_health_check_task",
+        "schedule": 300.0,  # 5分钟（300秒）
+        "options": {"queue": "llm"},
+    },
+}
+
 # Redis Pub/Sub配置 (用于实时流式推送)
 REDIS_PUBSUB_URL = os.getenv(
     "REDIS_PUBSUB_URL", f"redis://{REDIS_HOST}:{REDIS_PORT}/2"
@@ -195,7 +213,24 @@ CHANNEL_LAYERS = {
 
 # CORS配置
 CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = ["http://127.0.0.1:3000"]
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1:3000",
+    "http://10.30.5.62:3000",
+    "http://localhost:3000",
+]
+# 允许的凭证和请求头
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 # JWT配置
 SIMPLE_JWT = {
@@ -320,6 +355,15 @@ if LOG_DIR:
 
 # drf-spectacular配置
 REST_FRAMEWORK["DEFAULT_SCHEMA_CLASS"] = "drf_spectacular.openapi.AutoSchema"
+
+# Epic 9: 代理管理系统配置
+# ============================================
+# PROXY_ENCRYPTION_KEY: Fernet对称加密密钥，用于加密代理密码
+# ⚠️  生产环境必须通过环境变量设置，不要使用此默认值
+PROXY_ENCRYPTION_KEY = os.getenv(
+    "PROXY_ENCRYPTION_KEY",
+    "oF9VcBJIb3-zLbYFjE9ekLxUI3ENo00B4qe77qDkp90=",  # ⚠️ 仅用于开发测试
+)
 
 # API文档配置
 SPECTACULAR_SETTINGS = {

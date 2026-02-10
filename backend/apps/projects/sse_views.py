@@ -41,6 +41,7 @@ class ProjectStageSSEView(View):
         """
         # 权限验证：检查用户是否已登录
         from django.http import HttpResponse
+
         from apps.projects.models import Project
 
         if not request.user.is_authenticated:
@@ -54,7 +55,9 @@ class ProjectStageSSEView(View):
         except Project.DoesNotExist:
             return HttpResponse("Project not found", status=404)
 
-        logger.info(f"SSE连接建立: project_id={project_id}, stage_name={stage_name}, user={request.user.id}")
+        logger.info(
+            f"SSE连接建立: project_id={project_id}, stage_name={stage_name}, user={request.user.id}"
+        )
 
         # 创建事件流生成器
         event_stream = self._create_event_stream(project_id, stage_name)
@@ -187,6 +190,7 @@ class ProjectAllStagesSSEView(View):
         """
         # 权限验证：检查用户是否已登录
         from django.http import HttpResponse
+
         from apps.projects.models import Project
 
         if not request.user.is_authenticated:

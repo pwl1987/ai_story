@@ -2,6 +2,42 @@
  * 用户认证API服务
  */
 import apiClient from '@/services/apiClient'
+import axios from 'axios'
+import store from '@/store'
+import router from '@/router'
+
+// Epic 8 Story 8.4: 登录和注册不应该携带token
+// 因为这些请求是用于获取token的，不应该有旧的认证信息
+const authClient = axios.create({
+  baseURL: process.env.VUE_APP_API_BASE_URL || '/api/v1',
+  timeout: 3000000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+// Epic 8 Story 8.4: authClient响应拦截器 - 处理403错误（强制修改密码）
+authClient.interceptors.response.use(
+  (response) => {
+    return response.data
+  },
+  async (error) => {
+    const { response } = error
+
+    // Epic 8 Story 8.4: 处理强制修改密码的403错误
+    if (response && response.status === 403) {
+      if (response.data?.error_code === 'MUST_CHANGE_PASSWORD') {
+        // 跳转到修改密码页面
+        if (router.currentRoute.path !== '/change-password') {
+          sessionStorage.setItem('redirect_after_password_change', router.currentRoute.fullPath)
+          router.push('/change-password')
+        }
+      }
+    }
+
+    return Promise.reject(error)
+  }
+)
 
 /**
  * 用户登录
@@ -9,7 +45,7 @@ import apiClient from '@/services/apiClient'
  * @returns {Promise} 响应数据
  */
 export const login = (credentials) => {
-  return apiClient({
+  return authClient({
     url: '/users/login/',
     method: 'post',
     data: credentials,
@@ -22,7 +58,7 @@ export const login = (credentials) => {
  * @returns {Promise} 响应数据
  */
 export const register = (userData) => {
-  return apiClient({
+  return authClient({
     url: '/users/register/',
     method: 'post',
     data: userData,

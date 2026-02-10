@@ -172,7 +172,9 @@ class BaseProjectConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         """WebSocket连接断开"""
-        logger.info(f"WebSocket断开: 项目 {self.project_id}, 阶段: {self._get_stage_name()}, code: {close_code}")
+        logger.info(
+            f"WebSocket断开: 项目 {self.project_id}, 阶段: {self._get_stage_name()}, code: {close_code}"
+        )
 
         # Epic 3: 停止重连管理器
         if self.reconnect_manager:
@@ -441,3 +443,215 @@ class ProjectConsumer(BaseProjectConsumer):
     def _get_connection_success_message(self):
         """返回连接成功消息"""
         return "已连接到项目实时流"
+
+
+class ProjectProgressConsumer(BaseProjectConsumer):
+    """
+    Story 11.4.2: 项目进度WebSocket消费者
+
+    专门用于前端进度组件的实时进度更新
+
+    WebSocket URL: ws://localhost:8000/ws/projects/{project_id}/progress/
+
+    事件格式:
+    - progress: {"type": "progress", "stage": "llm", "percentage": 35, "current_step": 3, "total_steps": 10, "step_name": "生成场景描述"}
+    - error: {"type": "error", "stage": "image_generation", "error_message": "API timeout", "error_type": "TimeoutException", "timestamp": "..."}
+    - stage_complete: {"type": "stage_complete", "stage_name": "llm", "duration": 45, "output_count": 10, "next_stage": "image_generation"}
+
+    Epic 3: 集成自动重连机制
+    """
+
+    def _get_channels(self):
+        """返回所有阶段的Redis频道列表（用于进度追踪）"""
+        return [
+            f"ai_story:project:{self.project_id}:stage:rewrite",
+            f"ai_story:project:{self.project_id}:stage:storyboard",
+            f"ai_story:project:{self.project_id}:stage:image_generation",
+            f"ai_story:project:{self.project_id}:stage:camera_movement",
+            f"ai_story:project:{self.project_id}:stage:video_generation",
+        ]
+
+    def _get_stage_name(self):
+        """返回阶段名称（用于进度追踪）"""
+        return "progress"
+
+    def _get_connection_success_message(self):
+        """返回连接成功消息"""
+        return "已连接到项目进度实时流"
+
+    async def _listen_messages(self):
+        """
+        Story 11.4.2: 监听Redis消息并转换为进度事件格式
+
+        将原有的消息格式转换为前端进度组件期望的格式:
+        - stage_update → progress (带 percentage, current_step, total_steps, step_name)
+        - error → error (带 error_message, error_type, timestamp)
+        - done → stage_complete (带 duration, output_count, next_stage)
+        """
+        try:
+            # 记录阶段开始时间（用于计算duration）
+            stage_start_times = {}
+
+            # 持续监听消息
+            async for message in self.pubsub.listen():
+                if message["type"] == "message":
+                    try:
+                        # 解析消息
+                        data = json.loads(message["data"])
+                        message_type = data.get("type")
+                        stage = data.get("stage", "")
+
+                        # 转换消息格式
+                        if message_type == "stage_update":
+                            # stage_update → progress 事件
+                            progress_data = {
+                                "type": "progress",
+                                "stage": self._map_backend_stage_to_progress(stage),
+                                "percentage": data.get("progress", 0),
+                                "current_step": data.get("current", 0),
+                                "total_steps": data.get("total", 1),
+                                "step_name": data.get("message", data.get("item_name", "")),
+                            }
+                            await self.send(text_data=json.dumps(progress_data))
+
+                        elif message_type == "progress":
+                            # 进度消息 - 直接转发并补充字段
+                            progress_data = {
+                                "type": "progress",
+                                "stage": self._map_backend_stage_to_progress(stage),
+                                "percentage": data.get("progress", data.get("percentage", 0)),
+                                "current_step": data.get("current_step", data.get("current", 0)),
+                                "total_steps": data.get("total_steps", data.get("total", 1)),
+                                "step_name": data.get("step_name", data.get("item_name", "")),
+                            }
+                            await self.send(text_data=json.dumps(progress_data))
+
+                            # 记录阶段开始时间
+                            if stage and stage not in stage_start_times:
+                                stage_start_times[stage] = time.time()
+
+                        elif message_type == "error":
+                            # error 事件 - 增强格式
+                            error_data = {
+                                "type": "error",
+                                "stage": self._map_backend_stage_to_progress(stage),
+                                "error_message": data.get("error", "未知错误"),
+                                "error_type": self._infer_error_type(data.get("error", "")),
+                                "timestamp": data.get("timestamp", time.time()),
+                            }
+                            await self.send(text_data=json.dumps(error_data))
+
+                        elif message_type == "done":
+                            # done → stage_complete 事件
+                            stage_key = stage
+                            duration = 0
+                            if stage_key in stage_start_times:
+                                duration = time.time() - stage_start_times[stage_key]
+                                del stage_start_times[stage_key]
+
+                            # 计算输出数量（从 metadata 中获取）
+                            metadata = data.get("metadata", {})
+                            output_count = metadata.get("scene_count", metadata.get("count", 0))
+
+                            # 确定下一阶段
+                            next_stage = self._get_next_stage(stage)
+
+                            complete_data = {
+                                "type": "stage_complete",
+                                "stage_name": self._map_backend_stage_to_progress(stage),
+                                "duration": int(duration),
+                                "output_count": output_count,
+                                "next_stage": next_stage,
+                            }
+                            await self.send(text_data=json.dumps(complete_data))
+
+                        # 其他消息类型直接转发
+                        else:
+                            await self.send(text_data=json.dumps(data))
+
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Redis消息解析失败: {e}")
+                    except Exception as e:
+                        logger.error(f"消息处理异常: {e}")
+
+        except asyncio.CancelledError:
+            logger.info(f"Redis消息监听已取消: 项目 {self.project_id}")
+        except Exception as e:
+            logger.error(f"Redis消息监听失败: {e}")
+
+            # Epic 3: 发送错误消息到前端
+            with contextlib.suppress(Exception):
+                await self.send(
+                    text_data=json.dumps({"type": "error", "error": f"Redis连接失败: {e!s}"})
+                )
+
+            # Epic 3: 触发重连
+            if self.reconnect_manager and self.reconnect_manager.should_retry():
+                await self.reconnect_manager.start()
+
+    def _map_backend_stage_to_progress(self, backend_stage: str) -> str:
+        """
+        将后端阶段名称映射到前端进度组件使用的阶段key
+
+        Args:
+            backend_stage: 后端阶段名 (rewrite/storyboard/image_generation/camera_movement/video_generation)
+
+        Returns:
+            前端进度阶段key (llm/storyboard/image/camera/video)
+        """
+        stage_mapping = {
+            "rewrite": "llm",
+            "storyboard": "storyboard",
+            "image_generation": "image",
+            "camera_movement": "camera",
+            "video_generation": "video",
+        }
+        return stage_mapping.get(backend_stage, backend_stage)
+
+    def _get_next_stage(self, current_stage: str) -> str:
+        """
+        获取下一阶段名称（前端进度key）
+
+        Args:
+            current_stage: 当前阶段
+
+        Returns:
+            下一阶段的前端进度key，如果没有则返回空字符串
+        """
+        stage_order = [
+            "rewrite",
+            "storyboard",
+            "image_generation",
+            "camera_movement",
+            "video_generation",
+        ]
+        try:
+            current_index = stage_order.index(current_stage)
+            if current_index < len(stage_order) - 1:
+                next_backend = stage_order[current_index + 1]
+                return self._map_backend_stage_to_progress(next_backend)
+        except ValueError:
+            pass
+        return ""
+
+    def _infer_error_type(self, error_message: str) -> str:
+        """
+        从错误消息推断错误类型
+
+        Args:
+            error_message: 错误消息
+
+        Returns:
+            错误类型 (TimeoutException/ApiException/ValidationException等)
+        """
+        error_lower = error_message.lower()
+        if "timeout" in error_lower or "超时" in error_lower:
+            return "TimeoutException"
+        elif "api" in error_lower or "接口" in error_lower:
+            return "ApiException"
+        elif "validation" in error_lower or "验证" in error_lower:
+            return "ValidationException"
+        elif "connection" in error_lower or "连接" in error_lower:
+            return "ConnectionException"
+        else:
+            return "GenericException"

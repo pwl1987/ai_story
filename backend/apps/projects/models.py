@@ -44,6 +44,17 @@ class Project(models.Model):
         related_name="projects",
     )
 
+    # 代理配置 (Story 9.7: Project模型proxy_id外键)
+    proxy_config = models.ForeignKey(
+        "proxy.ProxyConfig",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="代理配置",
+        related_name="projects",
+        help_text="项目使用的AI调用代理配置",
+    )
+
     # 所有者
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, verbose_name="创建者", related_name="projects"
@@ -246,3 +257,63 @@ class ProjectModelConfig(models.Model):
 
     def __str__(self):
         return f"{self.project.name} - 模型配置"
+
+
+class ProjectTemplate(models.Model):
+    """
+    项目预设模板
+    Story 11.4.3: 预设模板系统
+    职责: 存储用户自定义的项目配置模板，支持快速创建项目
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField("模板名称", max_length=100)
+    description = models.TextField("描述", blank=True)
+
+    # 模板参数（JSON格式）
+    parameters = models.JSONField(
+        "参数配置",
+        default=dict,
+        blank=True,
+        help_text="包含: style, quality, aspect_ratio, llm_provider, image_provider, video_provider 等",
+    )
+
+    # 系统预置模板标记
+    is_system_template = models.BooleanField(
+        "系统预置",
+        default=False,
+        help_text="系统预置模板不可被用户删除",
+    )
+
+    # 创建者
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name="创建者",
+        related_name="project_templates",
+    )
+
+    # 时间戳
+    created_at = models.DateTimeField("创建时间", auto_now_add=True)
+    updated_at = models.DateTimeField("更新时间", auto_now=True)
+
+    class Meta:
+        db_table = "project_templates"
+        verbose_name = "项目模板"
+        verbose_name_plural = "项目模板"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["created_by", "-created_at"]),
+            models.Index(fields=["is_system_template"]),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def delete(self, *args, **kwargs):
+        """
+        系统预置模板不允许删除
+        """
+        if self.is_system_template:
+            raise ValueError("系统预置模板不允许删除")
+        return super().delete(*args, **kwargs)

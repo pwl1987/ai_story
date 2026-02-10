@@ -15,6 +15,31 @@
 
 ---
 
+## 📚 文档导航
+
+**完整的项目文档中心** → [docs/index.md](docs/index.md)
+
+### 按角色查看文档
+
+- 👨‍💻 **开发者** - [技术文档](docs/technical/) | [API文档](docs/technical/#api文档) | [测试文档](docs/testing/)
+- 🔧 **运维人员** - [部署指南](docs/guides/deployment/) | [监控指南](docs/technical/monitoring/) | [故障排查](docs/guides/troubleshooting/)
+- 🧪 **测试工程师** - [测试策略](docs/testing/) | [覆盖率报告](docs/testing/coverage-reports/) | [E2E测试](docs/testing/e2e-testing.md)
+- 📋 **产品经理** - [Epic文档](docs/#epic文档导航) | [项目进度](docs/bmad/implementation/) | [产品需求](docs/bmad/planning/prd.md)
+
+### 核心文档
+
+- 📖 [项目总览](docs/overview.md) - 项目简介、技术栈、系统架构
+- 🚀 [快速开始](docs/QUICKSTART.md) - 5分钟快速上手
+- 🤖 [BMad工作流](docs/bmad/) - AI辅助开发方法论
+
+### Epic文档
+
+- ✅ [Epic 1: 测试基础设施](docs/epic-1/) | ✅ [Epic 2: 系统可观测性](docs/epic-2/) | ✅ [Epic 3: 实时通信稳定性](docs/epic-3/)
+- ✅ [Epic 4: 项目管理](docs/epic-4/) | ✅ [Epic 5: 内容生成工作流](docs/epic-5/) | ✅ [Epic 6: 文件管理](docs/epic-6/)
+- ✅ [Epic 7: 开发者工具](docs/epic-7/) | ✅ [Epic 8: 管理员后台](docs/epic-8/) | ✅ [Epic 9: 代理管理](docs/epic-9/)
+
+---
+
 ## 项目概述
 
 AI Story生成系统 - 基于Django + Vue的AI驱动的故事脚本到视频的自动化生成平台。

@@ -41,6 +41,12 @@ dependencies = [
     "django-storages>=1.14.2",
     "boto3>=1.34.0",
     "oss2>=2.18.0",
+    "cryptography>=46.0.3",
+    "httpx[socks]>=0.28.1",
+    # Epic 10.1: Ollama本地LLM集成
+    "ollama>=0.4.0",
+    # Epic 10.2: Edge-TTS本地语音合成集成
+    "edge-tts>=6.1.0",
 ]
 
 [dependency-groups]

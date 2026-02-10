@@ -146,6 +146,53 @@ const routes = [
       },
     ],
   },
+  // 角色资产管理路由 (Epic 11)
+  {
+    path: '/artworks',
+    component: () => import('@/views/Layout.vue'),
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        name: 'ArtworkList',
+        component: () => import('@/views/artworks/CharacterList.vue'),
+        meta: { title: '角色管理' },
+      },
+      {
+        path: 'characters',
+        name: 'CharacterList',
+        component: () => import('@/views/artworks/CharacterList.vue'),
+        meta: { title: '角色列表' },
+      },
+      {
+        path: ':artworkId/characters',
+        name: 'CharacterListByArtwork',
+        component: () => import('@/views/artworks/CharacterList.vue'),
+        meta: { title: '角色列表' },
+      },
+      {
+        path: ':artworkId/storyboard/:chapterId?',
+        name: 'StoryboardEditor',
+        component: () => import('@/views/artworks/StoryboardEditor.vue'),
+        meta: { title: '分镜编辑器' },
+      },
+    ],
+  },
+  // 引擎监控路由 (Epic 11 Story 11.3.3)
+  {
+    path: '/engines',
+    name: 'EngineMonitor',
+    component: () => import('@/views/Layout.vue'),
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        name: 'EnginesMonitor',
+        component: () => import('@/views/engines/EngineMonitor.vue'),
+        meta: { title: '引擎监控' },
+      },
+    ],
+  },
   // 404页面
   {
     path: '/404',

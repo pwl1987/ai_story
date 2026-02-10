@@ -13,8 +13,8 @@ Django 5.2升级后端到端验证脚本
 
 import os
 import sys
+
 import django
-import time
 
 # 添加项目根目录到Python路径
 backend_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -25,9 +25,8 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
 django.setup()
 
 from django.contrib.auth import get_user_model
-from apps.projects.models import Project, ProjectStage, ProjectModelConfig
-from apps.prompts.models import PromptTemplateSet, PromptTemplate
-from apps.models.models import ModelProvider
+
+from apps.projects.models import Project
 
 User = get_user_model()
 
@@ -50,6 +49,7 @@ def verify_upgrade():
     # 验证2: 模型配置
     print("\n✓ 验证2: 数据库配置")
     from django.conf import settings
+
     db_config = settings.DATABASES["default"]
     required_keys = ["ENGINE", "NAME", "ATOMIC_REQUESTS"]
     for key in required_keys:
@@ -63,6 +63,7 @@ def verify_upgrade():
     print("\n✓ 验证3: WebSocket路由配置")
     try:
         from config.routing import application
+
         print("  ✓ WebSocket application对象存在")
     except ImportError as e:
         print(f"  ✗ WebSocket路由配置错误: {e}")
@@ -71,7 +72,11 @@ def verify_upgrade():
     # 验证4: Prometheus指标
     print("\n✓ 验证4: Prometheus指标")
     try:
-        from core.middleware.api_response_time import http_requests_total, http_request_duration_seconds
+        from core.middleware.api_response_time import (
+            http_request_duration_seconds,
+            http_requests_total,
+        )
+
         print("  ✓ API响应时间指标正常")
     except ImportError as e:
         print(f"  ✗ Prometheus指标错误: {e}")
@@ -81,6 +86,7 @@ def verify_upgrade():
     print("\n✓ 验证5: Celery配置")
     try:
         from config.celery import app, celery_task_duration_seconds
+
         print(f"  ✓ Celery应用: {app.main}")
         print(f"  ✓ 任务指标: {celery_task_duration_seconds}")
     except ImportError as e:

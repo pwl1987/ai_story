@@ -8,10 +8,31 @@ from rest_framework import serializers
 class UserSerializer(serializers.ModelSerializer):
     """用户信息序列化器"""
 
+    # Epic 8 Story 8.4: 添加must_change_password字段，用于前端判断是否需要强制修改密码
+    must_change_password = serializers.BooleanField(default=False, required=False)
+
     class Meta:
         model = User
-        fields = ("id", "username", "email", "first_name", "last_name", "date_joined")
+        fields = (
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "date_joined",
+            "must_change_password",
+        )
         read_only_fields = ("id", "date_joined")
+
+    def to_representation(self, instance):
+        """重写to_representation以添加must_change_password字段"""
+        data = super().to_representation(instance)
+        try:
+            data["must_change_password"] = instance.profile.must_change_password
+        except AttributeError:
+            # UserProfile不存在，返回False
+            data["must_change_password"] = False
+        return data
 
 
 class LoginSerializer(serializers.Serializer):

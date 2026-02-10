@@ -123,9 +123,7 @@ class ProjectPipeline:
 
             # 通知重试进度
             progress = stage_index / len(self.stages)
-            await self._notify_progress(
-                stage.stage_name, progress, f"retrying_{attempt + 1}"
-            )
+            await self._notify_progress(stage.stage_name, progress, f"retrying_{attempt + 1}")
 
             result = await stage.process(context)
 
