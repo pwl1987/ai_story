@@ -116,6 +116,11 @@ MEDIA_ROOT = BASE_DIR / "media"
 STORAGE_URL = "storage/"
 STORAGE_ROOT = BASE_DIR.parent / "storage"  # 项目根目录的storage文件夹
 
+# Story 12-5: 首尾帧提取配置
+FRAME_EXTRACTION_TARGET_SIZE = (1920, 1080)  # 1080p 目标分辨率
+FRAME_EXTRACTION_JPEG_QUALITY = 85  # JPEG 质量 (1-100)
+FRAME_EXTRACTION_MAX_RETRIES = 2  # 最大重试次数
+
 # Epic 6.2: 文件存储服务配置
 # 存储后端类型: 'local', 's3', 'oss'
 DEFAULT_STORAGE_BACKEND = os.getenv("DEFAULT_STORAGE_BACKEND", "local")
