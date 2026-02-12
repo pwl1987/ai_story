@@ -387,7 +387,7 @@ class ScriptSceneViewSet(viewsets.ModelViewSet):
         返回:
         - 更新统计
         """
-        from .services import BatchOperationService
+        from .batch_operations import BatchOperationService
 
         scene_ids = request.data.get("scene_ids", [])
         transition_type = request.data.get("transition_type")
@@ -427,7 +427,7 @@ class ScriptSceneViewSet(viewsets.ModelViewSet):
         返回:
         - 操作结果 (包含成功/失败统计、详细错误信息、进度追踪ID)
         """
-        from .services import BatchOperationService
+        from .batch_operations import BatchOperationService
 
         scene_ids = request.data.get("scene_ids", [])
         if not scene_ids:
@@ -539,7 +539,7 @@ class ShotViewSet(viewsets.ModelViewSet):
         返回:
         - 操作结果 (包含成功/失败统计、详细错误信息、进度追踪ID)
         """
-        from .services import ShotBatchOperationService
+        from .batch_operations import ShotBatchOperationService
 
         shot_ids = request.data.get("shot_ids", [])
         if not shot_ids:
@@ -584,7 +584,7 @@ class ShotViewSet(viewsets.ModelViewSet):
         返回:
         - 操作结果 (包含成功/失败统计、详细错误信息、进度追踪ID)
         """
-        from .services import ShotBatchOperationService
+        from .batch_operations import ShotBatchOperationService
 
         shot_ids = request.data.get("shot_ids", [])
         target_scene_id = request.data.get("target_scene_id")
@@ -621,7 +621,7 @@ class ShotViewSet(viewsets.ModelViewSet):
         返回:
         - 操作结果 (包含成功/失败统计、详细错误信息、进度追踪ID)
         """
-        from .services import ShotBatchOperationService
+        from .batch_operations import ShotBatchOperationService
 
         shot_ids = request.data.get("shot_ids", [])
         if not shot_ids:
@@ -647,7 +647,7 @@ class ShotViewSet(viewsets.ModelViewSet):
         返回:
         - 操作结果 (包含成功/失败统计、详细错误信息、进度追踪ID)
         """
-        from .services import ShotBatchOperationService
+        from .batch_operations import ShotBatchOperationService
 
         shot_ids = request.data.get("shot_ids", [])
         character_pose_id = request.data.get("character_pose_id")
@@ -883,3 +883,569 @@ class ShotVersionViewSet(viewsets.ReadOnlyModelViewSet):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+# ==================== ComfyUI 集成 API ====================
+
+
+class ComfyUIViewSet(viewsets.ViewSet):
+    """
+    ComfyUI 图像生成 API ViewSet (Epic 10 Story 10.3)
+
+    提供以下功能:
+    - 健康检查
+    - 图像生成
+    - 视频生成
+    - 批量生成
+    - 工作流模板
+
+    端点:
+    - GET /api/v1/artworks/comfyui/health/ - 健康检查
+    - POST /api/v1/artworks/comfyui/generate-image/ - 生成图像
+    - POST /api/v1/artworks/comfyui/generate-video/ - 生成视频
+    - POST /api/v1/artworks/comfyui/batch-generate/ - 批量生成
+    - GET /api/v1/artworks/comfyui/models/ - 获取可用模型
+    - GET /api/v1/artworks/comfyui/workflows/ - 获取工作流模板
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 延迟导入避免循环依赖
+        from .services.comfyui_service import get_comfyui_service
+        self.service = get_comfyui_service()
+
+    @action(detail=False, methods=["get"])
+    def health(self, request):
+        """
+        健康检查
+
+        检查 ComfyUI 服务器是否可用
+
+        返回:
+        {
+            "healthy": bool,
+            "latency_ms": int,
+            "server_address": str,
+            "model": str
+        }
+        """
+        result = self.service.health_check()
+
+        status_code = status.HTTP_200_OK if result["healthy"] else status.HTTP_503_SERVICE_UNAVAILABLE
+        return Response(result, status=status_code)
+
+    @action(detail=False, methods=["post"])
+    def generate_image(self, request):
+        """
+        生成图像
+
+        请求参数:
+        {
+            "workflow_json": str,        # ComfyUI 工作流 JSON
+            "progress_id": str (可选)     # 进度追踪 ID
+        }
+
+        返回:
+        {
+            "success": bool,
+            "data": [{"url": str}],
+            "metadata": {...}
+        }
+        """
+        workflow_json = request.data.get("workflow_json")
+        progress_id = request.data.get("progress_id")
+
+        if not workflow_json:
+            return Response(
+                {"detail": "请提供 workflow_json"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        result = self.service.generate_image(
+            workflow_json=workflow_json,
+            progress_id=progress_id
+        )
+
+        status_code = status.HTTP_200_OK if result["success"] else status.HTTP_500_INTERNAL_SERVER_ERROR
+        return Response(result, status=status_code)
+
+    @action(detail=False, methods=["post"])
+    def generate_video(self, request):
+        """
+        生成视频
+
+        请求参数:
+        {
+            "workflow_json": str,        # ComfyUI 工作流 JSON
+            "progress_id": str (可选)     # 进度追踪 ID
+        }
+
+        返回:
+        {
+            "success": bool,
+            "data": [{"url": str}],
+            "metadata": {...}
+        }
+        """
+        workflow_json = request.data.get("workflow_json")
+        progress_id = request.data.get("progress_id")
+
+        if not workflow_json:
+            return Response(
+                {"detail": "请提供 workflow_json"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        result = self.service.generate_video(
+            workflow_json=workflow_json,
+            progress_id=progress_id
+        )
+
+        status_code = status.HTTP_200_OK if result["success"] else status.HTTP_500_INTERNAL_SERVER_ERROR
+        return Response(result, status=status_code)
+
+    @action(detail=False, methods=["post"])
+    def batch_generate(self, request):
+        """
+        批量生成图像
+
+        请求参数:
+        {
+            "workflows": [str],           # 工作流 JSON 列表
+            "progress_id": str (可选)     # 进度追踪 ID
+        }
+
+        返回:
+        {
+            "total": int,
+            "success": int,
+            "failed": int,
+            "results": [...]
+        }
+        """
+        workflows = request.data.get("workflows", [])
+        progress_id = request.data.get("progress_id")
+
+        if not workflows:
+            return Response(
+                {"detail": "请提供 workflows 列表"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        results = self.service.batch_generate_images(
+            workflows=workflows,
+            progress_id=progress_id
+        )
+
+        return Response(results)
+
+    @action(detail=False, methods=["get"])
+    def models(self, request):
+        """
+        获取可用模型列表
+
+        返回:
+        {
+            "models": [str]
+        }
+        """
+        models = self.service.get_available_models()
+        return Response({"models": models})
+
+    @action(detail=False, methods=["get"])
+    def workflows(self, request):
+        """
+        获取工作流模板
+
+        查询参数:
+        - type: 工作流类型 (character_pose/scene_background/manga_panel)
+
+        返回:
+        {
+            "type": str,
+            "template": dict,
+            "description": str
+        }
+        """
+        workflow_type = request.query_params.get("type", "character_pose")
+
+        if workflow_type == "character_pose":
+            template = {
+                "description": "角色造型生成工作流",
+                "type": "character_pose",
+                "parameters": {
+                    "character_description": "角色描述",
+                    "pose_type": "造型类型 (full_body/half_body/bust)",
+                    "style": "风格 (anime/realistic/illustration)",
+                    "background_color": "背景颜色"
+                }
+            }
+        elif workflow_type == "scene_background":
+            template = {
+                "description": "场景背景生成工作流",
+                "type": "scene_background",
+                "parameters": {
+                    "scene_description": "场景描述",
+                    "lighting": "光照类型",
+                    "atmosphere": "氛围",
+                    "style": "风格"
+                }
+            }
+        elif workflow_type == "manga_panel":
+            template = {
+                "description": "漫画面板生成工作流",
+                "type": "manga_panel",
+                "parameters": {
+                    "panel_description": "面板描述",
+                    "characters": "角色列表",
+                    "speech_bubbles": "是否包含对话气泡",
+                    "sfx": "是否包含音效文字"
+                }
+            }
+        else:
+            return Response(
+                {"detail": f"未知的工作流类型: {workflow_type}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return Response(template)
+
+    @action(detail=False, methods=["post"])
+    def create_workflow(self, request):
+        """
+        创建工作流 JSON
+
+        请求参数:
+        {
+            "type": str,                    # 工作流类型
+            "character_description": str,    # 角色描述 (character_pose)
+            "pose_type": str,                # 造型类型 (character_pose)
+            "style": str,                    # 风格
+            ...                              # 其他类型特定参数
+        }
+
+        返回:
+        {
+            "workflow_json": str,
+            "type": str
+        }
+        """
+        workflow_type = request.data.get("type", "character_pose")
+
+        if workflow_type == "character_pose":
+            workflow_json = self.service.create_character_pose_workflow(
+                character_description=request.data.get("character_description", ""),
+                pose_type=request.data.get("pose_type", "full_body"),
+                style=request.data.get("style", "anime"),
+                background_color=request.data.get("background_color", "#FFFFFF")
+            )
+        elif workflow_type == "scene_background":
+            workflow_json = self.service.create_scene_background_workflow(
+                scene_description=request.data.get("scene_description", ""),
+                lighting=request.data.get("lighting", "natural"),
+                atmosphere=request.data.get("atmosphere", "calm"),
+                style=request.data.get("style", "anime")
+            )
+        elif workflow_type == "manga_panel":
+            workflow_json = self.service.create_manga_panel_workflow(
+                panel_description=request.data.get("panel_description", ""),
+                characters=request.data.get("characters", []),
+                speech_bubbles=request.data.get("speech_bubbles", True),
+                sfx=request.data.get("sfx", True)
+            )
+        else:
+            return Response(
+                {"detail": f"未知的工作流类型: {workflow_type}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return Response({
+            "workflow_json": workflow_json,
+            "type": workflow_type
+        })
+
+
+# ==================== 脚本解析 API (Epic 10 Story 10.4) ====================
+
+
+class ScriptParserViewSet(viewsets.ViewSet):
+    """
+    脚本解析 API ViewSet (Epic 10 Story 10.4)
+
+    提供以下功能:
+    - 完整脚本解析
+    - 角色信息提取
+    - 场景信息提取
+    - 物品信息提取
+    - AI 角色造型推荐
+
+    端点:
+    - POST /api/v1/artworks/parser/parse/ - 完整解析脚本
+    - POST /api/v1/artworks/parser/characters/ - 提取角色
+    - POST /api/v1/artworks/parser/scenes/ - 提取场景
+    - POST /api/v1/artworks/parser/items/ - 提取物品
+    - POST /api/v1/artworks/parser/recommend-poses/ - AI 推荐造型
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 延迟导入避免循环依赖
+        from .services.script_parser import get_script_parser_service
+        self.parser = get_script_parser_service()
+
+    @action(detail=False, methods=["post"])
+    def parse(self, request):
+        """
+        完整解析脚本
+
+        请求参数:
+        {
+            "script_text": str,          # 脚本文本
+            "artwork_id": int (可选),    # 作品 ID
+            "use_chunking": bool (可选)  # 是否使用分段处理（大文本）
+        }
+
+        返回:
+        {
+            "success": bool,
+            "chapters": [...],
+            "characters": [...],
+            "scenes": [...],
+            "items": [...],
+            "summary": str,
+            "metadata": {...}
+        }
+        """
+        script_text = request.data.get("script_text", "")
+        artwork_id = request.data.get("artwork_id")
+        use_chunking = request.data.get("use_chunking", False)
+
+        if not script_text:
+            return Response(
+                {"detail": "请提供 script_text"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 选择解析方法
+        if use_chunking or len(script_text) > 10000:
+            result = self.parser.parse_large_script(script_text)
+        else:
+            result = self.parser.parse_script(script_text, artwork_id=artwork_id)
+
+        status_code = status.HTTP_200_OK if result["success"] else status.HTTP_500_INTERNAL_SERVER_ERROR
+        return Response(result, status=status_code)
+
+    @action(detail=False, methods=["post"])
+    def characters(self, request):
+        """
+        提取角色信息
+
+        请求参数:
+        {
+            "script_text": str           # 脚本文本
+        }
+
+        返回:
+        {
+            "success": bool,
+            "characters": [...]
+        }
+        """
+        script_text = request.data.get("script_text", "")
+
+        if not script_text:
+            return Response(
+                {"detail": "请提供 script_text"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        characters = self.parser._extract_characters(script_text)
+
+        return Response({
+            "success": True,
+            "characters": characters,
+            "total": len(characters)
+        })
+
+    @action(detail=False, methods=["post"])
+    def scenes(self, request):
+        """
+        提取场景信息
+
+        请求参数:
+        {
+            "script_text": str           # 脚本文本
+        }
+
+        返回:
+        {
+            "success": bool,
+            "scenes": [...]
+        }
+        """
+        script_text = request.data.get("script_text", "")
+
+        if not script_text:
+            return Response(
+                {"detail": "请提供 script_text"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        scenes = self.parser._extract_scenes(script_text)
+
+        return Response({
+            "success": True,
+            "scenes": scenes,
+            "total": len(scenes)
+        })
+
+    @action(detail=False, methods=["post"])
+    def items(self, request):
+        """
+        提取物品信息
+
+        请求参数:
+        {
+            "script_text": str           # 脚本文本
+        }
+
+        返回:
+        {
+            "success": bool,
+            "items": [...]
+        }
+        """
+        script_text = request.data.get("script_text", "")
+
+        if not script_text:
+            return Response(
+                {"detail": "请提供 script_text"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        items = self.parser._extract_items(script_text)
+
+        return Response({
+            "success": True,
+            "items": items,
+            "total": len(items)
+        })
+
+    @action(detail=False, methods=["post"])
+    def recommend_poses(self, request):
+        """
+        AI 推荐角色造型
+
+        请求参数:
+        {
+            "character_description": str,  # 角色描述
+            "scene_context": str (可选)   # 场景上下文
+        }
+
+        返回:
+        {
+            "success": bool,
+            "recommendations": [
+                {
+                    "pose_type": str,
+                    "confidence": float,
+                    "reason": str
+                }
+            ]
+        }
+        """
+        character_description = request.data.get("character_description", "")
+        scene_context = request.data.get("scene_context", "")
+
+        if not character_description:
+            return Response(
+                {"detail": "请提供 character_description"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        result = self.parser.analyze_character_poses(character_description, scene_context)
+
+        status_code = status.HTTP_200_OK if result["success"] else status.HTTP_500_INTERNAL_SERVER_ERROR
+        return Response(result, status=status_code)
+
+    @action(detail=False, methods=["post"])
+    def split_chapters(self, request):
+        """
+        拆分章节
+
+        请求参数:
+        {
+            "script_text": str           # 脚本文本
+        }
+
+        返回:
+        {
+            "success": bool,
+            "chapters": [
+                {
+                    "title": str,
+                    "chapter_number": int,
+                    "summary": str
+                }
+            ]
+        }
+        """
+        script_text = request.data.get("script_text", "")
+
+        if not script_text:
+            return Response(
+                {"detail": "请提供 script_text"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        chapters = self.parser._split_chapters(script_text)
+
+        return Response({
+            "success": True,
+            "chapters": chapters,
+            "total": len(chapters)
+        })
+
+    @action(detail=False, methods=["get"])
+    def health(self, request):
+        """
+        脚本解析服务健康检查
+
+        返回:
+        {
+            "healthy": bool,
+            "llm_config": {...}
+        }
+        """
+        try:
+            # 测试 LLM 连接
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+            try:
+                response = loop.run_until_complete(
+                    self.parser.llm_client.generate("测试", max_tokens=10)
+                )
+                is_healthy = response.success
+            finally:
+                loop.close()
+
+            return Response({
+                "healthy": is_healthy,
+                "llm_config": {
+                    "model": self.parser.llm_client.model_name,
+                    "temperature": self.parser.temperature
+                }
+            })
+
+        except Exception as e:
+            return Response({
+                "healthy": False,
+                "error": str(e)
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+

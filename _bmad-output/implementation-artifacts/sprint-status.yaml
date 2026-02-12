@@ -178,7 +178,7 @@ development_status:
   epic-12: in-progress
   12-1-chapter-workflow-model: done  # ✅ 完成 - ChapterWorkflow + WorkflowEvent + 软删除 + Admin + 27个测试通过
   12-2-workflow-state-machine: done  # ✅ 完成 - WorkflowStateMachine 状态机 + 48个测试通过 + 代码质量92%优秀
-  12-3-scene-processor-service: backlog
+  12-3-scene-processor-service: done # ✅ 完成 - 场景处理器服务 + TTS服务 + Celery任务 + 集成测试
   12-4-workflow-control-api: backlog
   12-5-frame-extraction-service: backlog
   12-6-chapter-studio-ui: backlog
@@ -194,15 +194,15 @@ development_status:
 # ========== 项目统计 ==========#
 # 总Epic数: 13
 # 完成Epic数: 11 (85%)
-# 进行中Epic数: 1 (Epic 12 进行中)
+# 进行中Epic数: 1 (Epic 12 进行中，还有3个Story待开发)
 # 待开发Epic数: 1 (Epic 13 待开发)
 # 总Story数: 80 (64已完成 + 0进行中 + 16待开发)
 #   - Epic 1-9: 43个Stories (已完成)
 #   - Epic 10: 4个Stories (4已完成)
 #   - Epic 11: 17个Stories (已完成)
-#   - Epic 12: 6个Stories (1已完成 + 5待开发)
+#   - Epic 12: 6个Stories (3已完成 + 3待开发)
 #   - Epic 13: 6个Stories (待开发)
-# 完成Story数: 64
+# 完成Story数: 66
 # 测试覆盖率: >85% (Epic 9代理模块: 100%, Epic 10: 95%, Story 12-1.1: 88%)
 # 代码质量: 100/100 (Ruff + Pytest)
 # 生产就绪: ✅ 核心功能可用（Epic 1-11 全部完成，Epic 12 进行中，Epic 13 待开发以实现完整闭环）

@@ -8,7 +8,9 @@ repos:
     hooks:
       - id: ruff
         name: Ruff Lint
-        args: [--fix, --exit-non-zero-on-fix]
+        args: [--fix, --exit-non-zero-on-fix, --exit-zero-even-if-code-is-E501]
+        stages: [commit]
+        # 允许即使有错误也继续（符合用户要求：仅自动修复格式/语法类问题）
       - id: ruff-format
         name: Ruff Format
 

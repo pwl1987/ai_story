@@ -709,3 +709,752 @@ def regenerate_shot_content(
             "error": str(e),
             "task_id": task_id,
         }
+
+
+# ==================== ComfyUI 集成任务 (Epic 10 Story 10.3) ====================
+
+
+@app.task(
+    bind=True,
+    max_retries=2,
+    default_retry_delay=60,
+    acks_late=True,
+    soft_time_limit=300,  # 5分钟软超时
+    time_limit=600,  # 10分钟硬超时
+)
+def comfyui_generate_image(
+    self,
+    workflow_json: str,
+    shot_id: Optional[int] = None,
+    progress_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    使用 ComfyUI 生成图像 (Epic 10 Story 10.3)
+
+    Args:
+        self: Celery 任务实例
+        workflow_json: ComfyUI 工作流 JSON 字符串
+        shot_id: 关联的镜头 ID (可选)
+        progress_id: 进度追踪 ID (可选)
+
+    Returns:
+        Dict[str, Any]: 生成结果
+            {
+                "success": bool,
+                "data": [{"url": str}],
+                "metadata": {...},
+                "shot_id": int,
+                "task_id": str
+            }
+    """
+    task_id = self.request.id
+    logger.info(f"ComfyUI 图像生成任务开始: task_id={task_id}, shot_id={shot_id}")
+
+    try:
+        # 延迟导入避免循环依赖
+        from .services.comfyui_service import get_comfyui_service
+
+        service = get_comfyui_service()
+
+        # 更新镜头状态
+        if shot_id:
+            try:
+                shot = Shot.objects.get(id=shot_id)
+                shot.is_generated = False
+                shot.generation_error = ""
+                shot.save(update_fields=["is_generated", "generation_error"])
+            except Shot.DoesNotExist:
+                logger.warning(f"镜头不存在: shot_id={shot_id}")
+
+        # 生成图像
+        result = service.generate_image(
+            workflow_json=workflow_json,
+            progress_id=progress_id
+        )
+
+        # 更新镜头状态
+        if shot_id and result.get("success"):
+            try:
+                shot = Shot.objects.get(id=shot_id)
+                # 保存生成的图像 URL
+                if result.get("data") and len(result["data"]) > 0:
+                    shot.generated_image = result["data"][0].get("url", "")
+                shot.is_generated = True
+                shot.generated_at = timezone.now()
+                shot.save(update_fields=["generated_image", "is_generated", "generated_at"])
+            except Shot.DoesNotExist:
+                pass
+
+        logger.info(f"ComfyUI 图像生成完成: success={result.get('success')}")
+        return {
+            **result,
+            "shot_id": shot_id,
+            "task_id": task_id
+        }
+
+    except Exception as e:
+        logger.error(f"ComfyUI 图像生成失败: {e}")
+
+        # 更新镜头错误状态
+        if shot_id:
+            try:
+                shot = Shot.objects.get(id=shot_id)
+                shot.generation_error = str(e)
+                shot.save(update_fields=["generation_error"])
+            except Shot.DoesNotExist:
+                pass
+
+        # 重试
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e)
+
+        return {
+            "success": False,
+            "error": str(e),
+            "shot_id": shot_id,
+            "task_id": task_id
+        }
+
+
+@app.task(
+    bind=True,
+    max_retries=2,
+    default_retry_delay=60,
+    acks_late=True,
+    soft_time_limit=300,  # 5分钟软超时
+    time_limit=600,  # 10分钟硬超时
+)
+def comfyui_generate_video(
+    self,
+    workflow_json: str,
+    shot_id: Optional[int] = None,
+    progress_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    使用 ComfyUI 生成视频 (Epic 10 Story 10.3)
+
+    Args:
+        self: Celery 任务实例
+        workflow_json: ComfyUI 工作流 JSON 字符串
+        shot_id: 关联的镜头 ID (可选)
+        progress_id: 进度追踪 ID (可选)
+
+    Returns:
+        Dict[str, Any]: 生成结果
+    """
+    task_id = self.request.id
+    logger.info(f"ComfyUI 视频生成任务开始: task_id={task_id}, shot_id={shot_id}")
+
+    try:
+        # 延迟导入避免循环依赖
+        from .services.comfyui_service import get_comfyui_service
+
+        service = get_comfyui_service()
+
+        # 更新镜头状态
+        if shot_id:
+            try:
+                shot = Shot.objects.get(id=shot_id)
+                shot.is_generated = False
+                shot.generation_error = ""
+                shot.save(update_fields=["is_generated", "generation_error"])
+            except Shot.DoesNotExist:
+                logger.warning(f"镜头不存在: shot_id={shot_id}")
+
+        # 生成视频
+        result = service.generate_video(
+            workflow_json=workflow_json,
+            progress_id=progress_id
+        )
+
+        # 更新镜头状态
+        if shot_id and result.get("success"):
+            try:
+                shot = Shot.objects.get(id=shot_id)
+                # 保存生成的视频 URL
+                if result.get("data") and len(result["data"]) > 0:
+                    shot.generated_video = result["data"][0].get("url", "")
+                shot.is_generated = True
+                shot.generated_at = timezone.now()
+                shot.save(update_fields=["generated_video", "is_generated", "generated_at"])
+            except Shot.DoesNotExist:
+                pass
+
+        logger.info(f"ComfyUI 视频生成完成: success={result.get('success')}")
+        return {
+            **result,
+            "shot_id": shot_id,
+            "task_id": task_id
+        }
+
+    except Exception as e:
+        logger.error(f"ComfyUI 视频生成失败: {e}")
+
+        # 更新镜头错误状态
+        if shot_id:
+            try:
+                shot = Shot.objects.get(id=shot_id)
+                shot.generation_error = str(e)
+                shot.save(update_fields=["generation_error"])
+            except Shot.DoesNotExist:
+                pass
+
+        # 重试
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e)
+
+        return {
+            "success": False,
+            "error": str(e),
+            "shot_id": shot_id,
+            "task_id": task_id
+        }
+
+
+@app.task(
+    bind=True,
+    max_retries=1,
+    default_retry_delay=60,
+    acks_late=True,
+    soft_time_limit=600,  # 10分钟软超时
+    time_limit=900,  # 15分钟硬超时
+)
+def comfyui_batch_generate(
+    self,
+    workflows: List[str],
+    shot_ids: Optional[List[int]] = None,
+    progress_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    批量使用 ComfyUI 生成图像 (Epic 10 Story 10.3)
+
+    Args:
+        self: Celery 任务实例
+        workflows: ComfyUI 工作流 JSON 字符串列表
+        shot_ids: 关联的镜头 ID 列表 (可选)
+        progress_id: 进度追踪 ID (可选)
+
+    Returns:
+        Dict[str, Any]: 批量生成结果
+    """
+    task_id = self.request.id
+    logger.info(f"ComfyUI 批量生成任务开始: task_id={task_id}, count={len(workflows)}")
+
+    try:
+        # 延迟导入避免循环依赖
+        from .services.comfyui_service import get_comfyui_service
+
+        service = get_comfyui_service()
+
+        # 批量生成
+        results = service.batch_generate_images(
+            workflows=workflows,
+            progress_id=progress_id
+        )
+
+        # 更新镜头状态
+        if shot_ids:
+            for i, (result, shot_id) in enumerate(zip(results, shot_ids)):
+                if result.get("success") and shot_id:
+                    try:
+                        shot = Shot.objects.get(id=shot_id)
+                        if result.get("data") and len(result["data"]) > 0:
+                            shot.generated_image = result["data"][0].get("url", "")
+                        shot.is_generated = True
+                        shot.generated_at = timezone.now()
+                        shot.save(update_fields=["generated_image", "is_generated", "generated_at"])
+                    except Shot.DoesNotExist:
+                        pass
+
+        success_count = sum(1 for r in results if r.get("success"))
+        logger.info(f"ComfyUI 批量生成完成: total={len(results)}, success={success_count}")
+
+        return {
+            "total": len(results),
+            "success": success_count,
+            "failed": len(results) - success_count,
+            "results": results,
+            "task_id": task_id
+        }
+
+    except Exception as e:
+        logger.error(f"ComfyUI 批量生成失败: {e}")
+
+        # 重试
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e)
+
+        return {
+            "success": False,
+            "error": str(e),
+            "task_id": task_id
+        }
+
+
+@app.task
+def comfyui_health_check() -> Dict[str, Any]:
+    """
+    ComfyUI 健康检查任务 (Epic 10 Story 10.3)
+
+    Returns:
+        Dict[str, Any]: 健康状态
+    """
+    try:
+        from .services.comfyui_service import get_comfyui_service
+
+        service = get_comfyui_service()
+        result = service.health_check()
+
+        logger.info(f"ComfyUI 健康检查: healthy={result.get('healthy')}")
+        return result
+
+    except Exception as e:
+        logger.error(f"ComfyUI 健康检查失败: {e}")
+        return {
+            "healthy": False,
+            "error": str(e)
+        }
+
+
+# ==================== 脚本解析任务 (Epic 10 Story 10.4) ====================
+
+
+@app.task(
+    bind=True,
+    max_retries=2,
+    default_retry_delay=60,
+    acks_late=True,
+    soft_time_limit=600,  # 10分钟软超时
+    time_limit=900,  # 15分钟硬超时
+)
+def parse_script_async(
+    self,
+    script_text: str,
+    artwork_id: Optional[int] = None,
+    use_chunking: bool = False,
+) -> Dict[str, Any]:
+    """
+    异步解析脚本 (Epic 10 Story 10.4)
+
+    Args:
+        self: Celery 任务实例
+        script_text: 脚本文本
+        artwork_id: 作品 ID (可选)
+        use_chunking: 是否使用分段处理
+
+    Returns:
+        Dict[str, Any]: 解析结果
+    """
+    task_id = self.request.id
+    logger.info(f"开始脚本解析任务: task_id={task_id}, text_length={len(script_text)}")
+
+    try:
+        # 延迟导入避免循环依赖
+        from .services.script_parser import get_script_parser_service
+
+        parser = get_script_parser_service()
+
+        # 选择解析方法
+        if use_chunking or len(script_text) > 10000:
+            result = parser.parse_large_script(script_text)
+        else:
+            result = parser.parse_script(script_text, artwork_id=artwork_id)
+
+        logger.info(f"脚本解析完成: success={result.get('success')}")
+        return {
+            **result,
+            "task_id": task_id
+        }
+
+    except Exception as e:
+        logger.error(f"脚本解析失败: {e}")
+
+        # 重试
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e)
+
+        return {
+            "success": False,
+            "error": str(e),
+            "task_id": task_id
+        }
+
+
+@app.task(
+    bind=True,
+    max_retries=2,
+    default_retry_delay=60,
+    acks_late=True,
+    soft_time_limit=300,  # 5分钟软超时
+    time_limit=600,  # 10分钟硬超时
+)
+def extract_characters_async(
+    self,
+    script_text: str,
+) -> Dict[str, Any]:
+    """
+    异步提取角色信息 (Epic 10 Story 10.4)
+
+    Args:
+        self: Celery 任务实例
+        script_text: 脚本文本
+
+    Returns:
+        Dict[str, Any]: 角色列表
+    """
+    task_id = self.request.id
+    logger.info(f"开始角色提取任务: task_id={task_id}")
+
+    try:
+        from .services.script_parser import get_script_parser_service
+
+        parser = get_script_parser_service()
+        characters = parser._extract_characters(script_text)
+
+        logger.info(f"角色提取完成: 提取到 {len(characters)} 个角色")
+        return {
+            "success": True,
+            "characters": characters,
+            "total": len(characters),
+            "task_id": task_id
+        }
+
+    except Exception as e:
+        logger.error(f"角色提取失败: {e}")
+
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e)
+
+        return {
+            "success": False,
+            "error": str(e),
+            "task_id": task_id
+        }
+
+
+@app.task
+def analyze_poses_async(
+    character_description: str,
+    scene_context: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    异步分析角色造型推荐 (Epic 10 Story 10.4)
+
+    Args:
+        character_description: 角色描述
+        scene_context: 场景上下文
+
+    Returns:
+        Dict[str, Any]: 推荐结果
+    """
+    try:
+        from .services.script_parser import get_script_parser_service
+
+        parser = get_script_parser_service()
+        result = parser.analyze_character_poses(character_description, scene_context)
+
+        return result
+
+    except Exception as e:
+        logger.error(f"造型推荐分析失败: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+# ==================== 场景处理任务 (Epic 12 Story 12-1.3) ====================
+
+
+@app.task(
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+    acks_late=True,
+    soft_time_limit=1800,  # 30分钟软超时
+    time_limit=2400,  # 40分钟硬超时
+)
+def process_scene_task(
+    self,
+    workflow_id: str,
+    scene_id: int,
+) -> Dict[str, Any]:
+    """
+    异步处理场景任务 (Story 12-1.3)
+
+    处理单个场景的完整生命周期：
+    - 获取场景的所有镜头
+    - 依次处理每个镜头（图像生成+音频生成）
+    - 推送进度更新
+    - 记录工作流事件
+
+    Args:
+        self: Celery 任务实例
+        workflow_id: 工作流 ID
+        scene_id: 场景 ID
+
+    Returns:
+        Dict[str, Any]: 处理结果
+            {
+                "scene_id": int,
+                "shots_processed": int,
+                "total_shots": int,
+                "status": str,
+                "task_id": str
+            }
+    """
+    task_id = self.request.id
+    logger.info(f"场景处理任务开始: task_id={task_id}, workflow_id={workflow_id}, scene_id={scene_id}")
+
+    try:
+        # 延迟导入避免循环依赖
+        from .services.scene_processor import SceneProcessorService
+
+        # 创建场景处理器
+        processor = SceneProcessorService(workflow_id)
+
+        # 处理场景
+        result = processor.process_scene(scene_id)
+
+        # 更新工作流进度
+        try:
+            workflow = ChapterWorkflow.objects.get(workflow_id=workflow_id)
+            workflow.completed_scenes += 1
+            workflow.update_progress()
+            workflow.save(update_fields=["completed_scenes", "current_scene", "progress_percentage"])
+        except ChapterWorkflow.DoesNotExist:
+            logger.warning(f"工作流不存在: workflow_id={workflow_id}")
+
+        logger.info(
+            f"场景处理任务完成: scene_id={scene_id}, "
+            f"shots_processed={result.get('shots_processed', 0)}, "
+            f"status={result.get('status')}"
+        )
+
+        return {
+            **result,
+            "task_id": task_id,
+            "workflow_id": workflow_id
+        }
+
+    except Exception as exc:
+        logger.error(f"场景处理任务失败: {exc}")
+
+        # 更新工作流为失败状态
+        try:
+            workflow = ChapterWorkflow.objects.get(workflow_id=workflow_id)
+            workflow.fail(error_message=str(exc))
+            workflow.save()
+        except ChapterWorkflow.DoesNotExist:
+            logger.warning(f"工作流不存在: workflow_id={workflow_id}")
+
+        # 记录失败事件
+        try:
+            WorkflowEvent.objects.create(
+                workflow_id=workflow_id,
+                event_type=WorkflowEvent.EventType.SCENE_FAILED,
+                scene_id=scene_id,
+                message=f"场景处理失败: {exc!s}",
+                metadata={"scene_id": scene_id, "error": str(exc)},
+                severity="error"
+            )
+        except Exception as event_error:
+            logger.error(f"记录失败事件时出错: {event_error}")
+
+        # 重试
+        if self.request.retries < self.max_retries:
+            logger.info(f"场景处理任务重试: retry={self.request.retries + 1}/{self.max_retries}")
+            raise self.retry(exc=exc, countdown=60)
+
+        return {
+            "scene_id": scene_id,
+            "workflow_id": workflow_id,
+            "status": "failed",
+            "error": str(exc),
+            "task_id": task_id
+        }
+
+
+@app.task(
+    bind=True,
+    max_retries=2,
+    default_retry_delay=60,
+    acks_late=True,
+    soft_time_limit=600,  # 10分钟软超时
+    time_limit=900,  # 15分钟硬超时
+)
+def process_chapter_workflow(
+    self,
+    workflow_id: str,
+) -> Dict[str, Any]:
+    """
+    处理章节工作流 (Story 12-1.3)
+
+    依次处理章节内的所有场景。
+
+    Args:
+        self: Celery 任务实例
+        workflow_id: 工作流 ID
+
+    Returns:
+        Dict[str, Any]: 处理结果
+    """
+    task_id = self.request.id
+    logger.info(f"章节工作流处理开始: task_id={task_id}, workflow_id={workflow_id}")
+
+    try:
+        # 获取工作流
+        workflow = ChapterWorkflow.objects.get(workflow_id=workflow_id)
+
+        # 启动工作流
+        workflow.start()
+        workflow.save()
+
+        # 获取章节的所有场景
+        from apps.artworks.models import ScriptScene
+        scenes = ScriptScene.objects.filter(
+            chapter=workflow.chapter
+        ).order_by('scene_number')
+
+        total_scenes = scenes.count()
+        workflow.total_scenes = total_scenes
+        workflow.save(update_fields=["total_scenes"])
+
+        if total_scenes == 0:
+            logger.warning(f"章节没有场景: chapter_id={workflow.chapter.id}")
+            workflow.complete()
+            workflow.save()
+            return {
+                "workflow_id": workflow_id,
+                "total_scenes": 0,
+                "processed_scenes": 0,
+                "status": "completed",
+                "task_id": task_id
+            }
+
+        # 依次处理每个场景
+        processed = 0
+        failed = 0
+
+        for scene in scenes:
+            # 检查工作流状态
+            workflow.refresh_from_db()
+            if workflow.status == ChapterWorkflow.Status.PAUSED:
+                logger.info(f"工作流已暂停: workflow_id={workflow_id}")
+                return {
+                    "workflow_id": workflow_id,
+                    "total_scenes": total_scenes,
+                    "processed_scenes": processed,
+                    "status": "paused",
+                    "task_id": task_id
+                }
+
+            # 处理场景
+            from .services.scene_processor import SceneProcessorService
+            processor = SceneProcessorService(workflow_id)
+
+            try:
+                result = processor.process_scene(scene.id)
+                if result.get("status") in ["completed", "partial"]:
+                    processed += 1
+                else:
+                    failed += 1
+
+                # 更新当前场景
+                workflow.current_scene = scene
+                workflow.update_progress()
+                workflow.save(update_fields=["current_scene", "progress_percentage"])
+
+            except Exception as e:
+                logger.error(f"场景处理失败: scene_id={scene.id}, error={e}")
+                failed += 1
+                continue
+
+        # 完成工作流
+        if failed == 0:
+            workflow.complete()
+            status = "completed"
+        elif processed > 0:
+            workflow.status = ChapterWorkflow.Status.RUNNING
+            workflow.error_message = f"部分场景失败: {failed}/{total_scenes}"
+            status = "partial"
+        else:
+            workflow.fail(error_message="所有场景处理失败")
+            status = "failed"
+
+        workflow.save()
+
+        logger.info(
+            f"章节工作流处理完成: workflow_id={workflow_id}, "
+            f"processed={processed}/{total_scenes}, status={status}"
+        )
+
+        return {
+            "workflow_id": workflow_id,
+            "total_scenes": total_scenes,
+            "processed_scenes": processed,
+            "failed_scenes": failed,
+            "status": status,
+            "task_id": task_id
+        }
+
+    except ChapterWorkflow.DoesNotExist:
+        error_msg = f"工作流不存在: workflow_id={workflow_id}"
+        logger.error(error_msg)
+        return {
+            "workflow_id": workflow_id,
+            "status": "failed",
+            "error": error_msg,
+            "task_id": task_id
+        }
+
+    except Exception as exc:
+        logger.error(f"章节工作流处理失败: {exc}")
+
+        # 更新工作流为失败状态
+        try:
+            workflow = ChapterWorkflow.objects.get(workflow_id=workflow_id)
+            workflow.fail(error_message=str(exc))
+            workflow.save()
+        except ChapterWorkflow.DoesNotExist:
+            pass
+
+        # 重试
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=exc, countdown=60)
+
+        return {
+            "workflow_id": workflow_id,
+            "status": "failed",
+            "error": str(exc),
+            "task_id": task_id
+        }
+
+
+@app.task
+def scene_processor_health_check() -> Dict[str, Any]:
+    """
+    场景处理器健康检查 (Story 12-1.3)
+
+    Returns:
+        Dict[str, Any]: 健康状态
+    """
+    try:
+        from .services.tts_service import EdgeTTSService
+
+        # 检查 TTS 服务
+        tts_service = EdgeTTSService()
+        tts_health = tts_service.health_check()
+
+        return {
+            "healthy": True,
+            "tts_service": tts_health,
+            "processor_available": True
+        }
+
+    except Exception as e:
+        logger.error(f"场景处理器健康检查失败: {e}")
+        return {
+            "healthy": False,
+            "error": str(e)
+        }

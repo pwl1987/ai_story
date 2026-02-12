@@ -19,7 +19,7 @@ dependencies = [
     "django-redis>=5.4.0",
     "djangorestframework>=3.16,<3.17",
     "djangorestframework-jwt>=1.11.0",
-    "djangorestframework-simplejwt>=5.3.1",
+    "djangorestframework-simplejwt>=5.3.2",
     "gevent>=25.9.1",
     "jinja2>=3.1.6",
     "pillow>=12.0.0",
@@ -54,4 +54,244 @@ dev = [
     "pre-commit>=4.5.1",
     "ruff>=0.14.14",
     "safety>=3.7.0",
+    "black>=26.0.0",
+    "pyright>=1.1.408",
 ]
+
+
+# ==================== Ruff 配置 ====================
+
+[tool.ruff]
+# 目标 Python 版本
+target-version = "py311"
+
+# 每行最大字符数
+line-length = 100
+
+# 扫描的文件
+include = ["*.py", "*.pyi"]
+extend-include = ["*.ipynb"]
+
+# 排除的目录
+extend-exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "*.egg-info",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    "build",
+    "dist",
+    "migrations",
+]
+
+[tool.ruff.lint]
+# 启用的规则集
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "N",      # pep8-naming
+    "UP",     # pyupgrade
+    "ASYNC",  # flake8-async
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "DTZ",    # flake8-datetimez
+    "T10",    # flake8-debugger
+    "EM",     # flake8-errmsg
+    "ISC",    # flake8-implicit-str-concat
+    "ICN",    # flake8-import-conventions
+    "G",      # flake8-logging-format
+    "PIE",    # flake8-pie
+    "T20",    # flake8-print
+    "PT",     # flake8-pytest-style
+    "Q",      # flake8-quotes
+    "RSE",    # flake8-raise
+    "RET",    # flake8-return
+    "SIM",    # flake8-simplify
+    "TID",    # flake8-tidy-imports
+    "TCH",    # flake8-type-checking
+    "ARG",    # flake8-unused-arguments
+    "PTH",    # flake8-use-pathlib
+    "ERA",    # eradicate
+    "PGH",    # pygrep-hooks
+    "PL",     # pylint
+    "TRY",    # tryceratops
+    "FLY",    # flynt
+    "RUF",    # ruff-specific rules
+]
+
+# 忽略的规则
+ignore = [
+    "E501",   # line too long (由 black 处理)
+    "PLR0913", # too many arguments
+    "PLR0915", # too many statements
+    "TRY003", # avoid specifying long messages outside exception class
+    "ISC001", # implicitly concatenated string literals (与 black 冲突)
+]
+
+# 允许自动修复的规则
+fixable = ["ALL"]
+unfixable = []
+
+# 每个文件允许的未使用导入
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # 未使用的导入
+"tests/*" = ["ARG001", "ARG002"]  # 测试中的未使用参数
+
+[tool.ruff.lint.isort]
+# 导入排序设置
+known-first-party = ["django", "rest_framework", "config", "apps", "core"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+
+[tool.ruff.lint.pycodestyle]
+# max-doc-length = 100
+# ignore-overlong-task-comments = true
+
+[tool.ruff.lint.pylint]
+# Pylint 规则配置
+max-args = 10
+max-branches = 15
+max-returns = 8
+max-statements = 60
+
+
+# ==================== Black 配置 ====================
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # 排除目录
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | migrations
+)/
+'''
+
+
+# ==================== Pytest 配置 ====================
+
+[tool.pytest.ini_options]
+# Django 配置
+DJANGO_SETTINGS_MODULE = "config.settings.base"
+django_debug_mode = true
+
+# 测试发现
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# 测试路径
+testpaths = ["apps/artworks/tests"]
+
+# 输出选项
+addopts = [
+    "--reuse-db",              # 重用测试数据库
+    "--nomigrations",          # 跳过迁移
+    "--cov=apps.artworks",     # 覆盖率报告
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+    "--cov-fail-under=80",     # 覆盖率低于 80% 失败
+    "-v",                      # 详细输出
+    "--strict-markers",        # 严格标记
+    "--tb=short",              # 简短回溯
+    "--asyncio-mode=auto",     # 自动检测 asyncio
+]
+
+# 标记定义
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "e2e: End-to-end tests",
+    "slow: Slow running tests",
+    "comfyui: ComfyUI integration tests",
+    "script_parser: Script parser tests",
+]
+
+# asyncio
+asyncio_mode = "auto"
+
+
+# ==================== Coverage 配置 ====================
+
+[tool.coverage.run]
+source = ["apps/artworks"]
+omit = [
+    "*/tests/*",
+    "*/migrations/*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/env/*",
+    "settings/*",
+]
+branch = true
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstract",
+    "@abc.abstractmethod",
+]
+
+
+# ==================== Pyright 配置 ====================
+
+[tool.pyright]
+# Python 版本
+pythonVersion = "3.11"
+pythonPlatform = "Linux"
+
+# 类型检查模式
+typeCheckingMode = "standard"
+
+# 报告选项
+reportMissingImports = true
+reportMissingTypeStubs = false
+reportOptionalCall = true
+reportOptionalIterable = true
+reportOptionalMemberAccess = true
+reportOptionalContextManager = true
+reportOptionalOperand = true
+reportGeneralTypeIssues = true
+
+# 排除目录
+exclude = [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.pytest_cache",
+    "**/.venv",
+    "**/migrations",
+    "**/tests",
+    "**/venv",
+]
+
+# stub 路径
+stubPath = ""
+
+
+# ==================== Pre-commit 配置 ====================
+
+# 创建 .pre-commit-config.yaml 文件
+# 内容见下方单独创建

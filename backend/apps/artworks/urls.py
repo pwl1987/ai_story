@@ -13,8 +13,10 @@ from .views import (
     CharacterPoseViewSet,
     CharacterProfileViewSet,
     CharacterVoiceConfigViewSet,
+    ComfyUIViewSet,
     GenerationProgressViewSet,
     ItemProfileViewSet,
+    ScriptParserViewSet,
     ScriptSceneViewSet,
     ShotViewSet,
     ShotVersionViewSet,
@@ -33,6 +35,8 @@ router.register(r"shots", ShotViewSet, basename="shot")
 router.register(r"shot-versions", ShotVersionViewSet, basename="shot-version")
 router.register(r"batch-generation", BatchGenerationViewSet, basename="batch-generation")
 router.register(r"progress", GenerationProgressViewSet, basename="progress")
+router.register(r"comfyui", ComfyUIViewSet, basename="comfyui")
+router.register(r"parser", ScriptParserViewSet, basename="parser")
 
 urlpatterns = [
     path("", include(router.urls)),
