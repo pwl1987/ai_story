@@ -1,0 +1,20 @@
+# 本地 pre-commit 配置覆盖
+# 用于解决项目特定的 pre-commit hook 问题
+
+exclude: |
+  # 排除 sprint-status.yaml (有大量 YAML 配置)
+  ^_bmad-output/implementation-artifacts/sprint-status.yaml$
+
+repos:
+  # 覆盖默认的 python-tests-naming hook
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: name-tests-test
+        name: Python tests naming
+        entry: python_tests_names
+        args: []
+        exclude: |
+          # 排除不符合默认模式的测试文件
+          (^|.*/test_.*\.py$)
+          (^|.*/.*_test\.py$)
