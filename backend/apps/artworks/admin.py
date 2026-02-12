@@ -10,12 +10,14 @@
 """
 
 from django.contrib import admin
+from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from .models import (
     Artwork,
     Chapter,
+    ChapterWorkflow,
     CharacterPose,
     CharacterProfile,
     CharacterVoiceConfig,
@@ -24,6 +26,7 @@ from .models import (
     PhysicalScene,
     ScriptScene,
     Shot,
+    WorkflowEvent,
 )
 
 # ========================================
@@ -441,3 +444,206 @@ class EngineConfigurationAdmin(admin.ModelAdmin):
         self.message_user(request, _("健康检查功能待实现"))
 
     test_health.short_description = _("测试健康状态")
+
+
+# ========================================
+# 工作流管理 Admin (Story 12-1.1)
+# ========================================
+
+
+class WorkflowEventInline(admin.TabularInline):
+    """工作流事件内联"""
+
+    model = WorkflowEvent
+    fields = ["event_type", "message", "severity", "created_at"]
+    readonly_fields = ["event_type", "message", "severity", "created_at"]
+    extra = 0
+    can_delete = False
+
+    def has_add_permission(self, request, obj=None):
+        """事件只读，不允许手动添加"""
+        return False
+
+
+@admin.register(ChapterWorkflow)
+class ChapterWorkflowAdmin(admin.ModelAdmin):
+    """章节工作流管理"""
+
+    list_display = [
+        "workflow_id",
+        "chapter",
+        "status",
+        "is_deleted_badge",
+        "progress_badge",
+        "scene_progress",
+        "elapsed_time",
+        "started_at",
+        "completed_at",
+    ]
+    list_filter = ["status", "is_deleted", "created_at", "started_at"]
+    search_fields = ["workflow_id", "chapter__title", "error_message"]
+    readonly_fields = ["workflow_id", "created_at", "updated_at", "is_deleted", "deleted_at"]
+
+    fieldsets = (
+        (_("基本信息"), {"fields": ("workflow_id", "chapter", "status")}),
+        (
+            _("处理进度"),
+            {
+                "fields": (
+                    "current_scene",
+                    "progress_percentage",
+                    "total_scenes",
+                    "completed_scenes",
+                )
+            },
+        ),
+        (_("处理时间"), {"fields": ("started_at", "completed_at")}),
+        (_("Celery任务"), {"fields": ("celery_task_id",)}),
+        (_("软删除"), {"fields": ("is_deleted", "deleted_at"), "classes": ("collapse",)}),
+        (_("错误信息"), {"fields": ("error_message",), "classes": ("collapse",)}),
+        (_("记录时间"), {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
+    )
+
+    inlines = [WorkflowEventInline]
+
+    actions = ["soft_delete_selected", "recover_selected", "hard_delete_selected"]
+
+    def is_deleted_badge(self, obj):
+        """删除状态徽章"""
+        if obj.is_deleted:
+            return format_html('<span style="color: gray; font-weight: bold;">已删除</span>')
+        return ""
+
+    is_deleted_badge.short_description = _("删除状态")
+
+    def progress_badge(self, obj):
+        """进度徽章"""
+        percentage = obj.progress_percentage
+        if obj.is_deleted:
+            color = "gray"
+        else:
+            color = "red" if percentage < 30 else "orange" if percentage < 70 else "green"
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}%</span>', color, percentage
+        )
+
+    progress_badge.short_description = _("进度")
+
+    def scene_progress(self, obj):
+        """场景进度显示"""
+        return f"{obj.completed_scenes}/{obj.total_scenes}"
+
+    scene_progress.short_description = _("场景进度")
+
+    def elapsed_time(self, obj):
+        """已用时长显示"""
+        seconds = obj.elapsed_seconds
+        if seconds > 0:
+            hours = seconds // 3600
+            minutes = (seconds % 3600) // 60
+            secs = seconds % 60
+            if hours > 0:
+                return f"{hours}h {minutes}m"
+            return f"{minutes}m {secs}s"
+        return "-"
+
+    elapsed_time.short_description = _("已用时长")
+
+    def soft_delete_selected(self, request, queryset):
+        """软删除选中的工作流"""
+        count = queryset.update(is_deleted=True, deleted_at=timezone.now())
+        self.message_user(request, f"已软删除 {count} 条工作流记录")
+
+    soft_delete_selected.short_description = _("软删除选中项")
+
+    def recover_selected(self, request, queryset):
+        """恢复选中的工作流"""
+        count = queryset.filter(is_deleted=True).update(is_deleted=False, deleted_at=None)
+        self.message_user(request, f"已恢复 {count} 条工作流记录")
+
+    recover_selected.short_description = _("恢复选中项")
+
+    def hard_delete_selected(self, request, queryset):
+        """永久删除选中的工作流"""
+        count = 0
+        for obj in queryset:
+            obj.delete()
+            count += 1
+        self.message_user(request, f"已永久删除 {count} 条工作流记录")
+
+    hard_delete_selected.short_description = _("永久删除选中项")
+
+
+@admin.register(WorkflowEvent)
+class WorkflowEventAdmin(admin.ModelAdmin):
+    """工作流事件管理"""
+
+    list_display = [
+        "workflow",
+        "event_type",
+        "severity_badge",
+        "message_preview",
+        "scene",
+        "created_at",
+        "is_deleted_badge",
+    ]
+    list_filter = ["event_type", "severity", "is_deleted", "created_at"]
+    search_fields = ["message", "workflow__workflow_id", "workflow__chapter__title"]
+    readonly_fields = [
+        "workflow",
+        "event_type",
+        "message",
+        "metadata",
+        "scene",
+        "severity",
+        "created_at",
+        "updated_at",
+        "is_deleted",
+        "deleted_at",
+    ]
+
+    fieldsets = (
+        (_("基本信息"), {"fields": ("workflow", "event_type", "severity")}),
+        (_("事件内容"), {"fields": ("message", "scene", "metadata")}),
+        (_("软删除"), {"fields": ("is_deleted", "deleted_at"), "classes": ("collapse",)}),
+        (_("记录时间"), {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
+    )
+
+    def is_deleted_badge(self, obj):
+        """删除状态徽章"""
+        if obj.is_deleted:
+            return format_html('<span style="color: gray; font-weight: bold;">已删除</span>')
+        return ""
+
+    is_deleted_badge.short_description = _("删除状态")
+
+    def severity_badge(self, obj):
+        """严重级别徽章"""
+        colors = {
+            "info": "blue",
+            "warning": "yellow",
+            "error": "orange",
+            "critical": "red",
+        }
+        color = colors.get(obj.severity, "gray")
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            color,
+            obj.get_severity_display(),
+        )
+
+    severity_badge.short_description = _("严重级别")
+
+    def message_preview(self, obj):
+        """消息预览"""
+        return obj.message[:100] + "..." if len(obj.message) > 100 else obj.message
+
+    message_preview.short_description = _("事件消息")
+
+    def has_add_permission(self, request, obj=None):
+        """事件只读，不允许手动添加"""
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        """事件只读，不允许修改"""
+        return False

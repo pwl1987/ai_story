@@ -22,10 +22,11 @@ ItemProfile (物品档案)
 """
 
 import json
+import uuid
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import FileExtensionValidator, MinValueValidator
+from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -1070,9 +1071,7 @@ class ShotVersion(TimeStampedModel):
             ShotVersion: 创建的版本实例
         """
         # 获取当前最新版本号
-        latest_version = (
-            cls.objects.filter(shot=shot).order_by("-version_number").first()
-        )
+        latest_version = cls.objects.filter(shot=shot).order_by("-version_number").first()
         next_version = (latest_version.version_number + 1) if latest_version else 1
 
         # 创建内容快照
@@ -1214,8 +1213,395 @@ class ShotVersion(TimeStampedModel):
     def is_latest(self):
         """是否是最新版本"""
         latest_version = (
-            ShotVersion.objects.filter(shot=self.shot)
-            .order_by("-version_number")
-            .first()
+            ShotVersion.objects.filter(shot=self.shot).order_by("-version_number").first()
         )
         return latest_version and self.version_number == latest_version.version_number
+
+
+# ========================================
+# 章节工作流 (Story 12-1.1)
+# ========================================
+
+
+class ChapterWorkflow(TimeStampedModel):
+    """
+    章节工作流记录 (ChapterWorkflow)
+
+    追踪章节的自动化制作流程状态和进度
+
+    职责:
+    - 记录工作流状态 (pending/running/paused/completed/failed)
+    - 追踪当前处理场景
+    - 计算和更新进度百分比
+    - 关联 Celery 异步任务
+    - 记录工作流时间戳
+
+    Story 12-1.1: 章节工作流数据模型
+    """
+
+    class Status(models.TextChoices):
+        """工作流状态枚举"""
+
+        PENDING = "pending"
+        RUNNING = "running"
+        PAUSED = "paused"
+        COMPLETED = "completed"
+        FAILED = "failed"
+
+    # 唯一标识符 (用于外部引用)
+    workflow_id = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        verbose_name=_("工作流ID"),
+        help_text=_("全局唯一的工作流标识符"),
+    )
+
+    # 关联章节
+    chapter = models.ForeignKey(
+        Chapter, on_delete=models.CASCADE, related_name="workflows", verbose_name=_("所属章节")
+    )
+
+    # 状态追踪
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.PENDING, verbose_name=_("状态")
+    )
+
+    # 当前处理进度
+    current_scene = models.ForeignKey(
+        "ScriptScene",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name=_("当前场景"),
+        help_text=_("当前正在处理的场景"),
+    )
+    progress_percentage = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        verbose_name=_("进度百分比"),
+    )
+
+    # 场景统计
+    total_scenes = models.IntegerField(
+        default=0, validators=[MinValueValidator(0)], verbose_name=_("总场景数")
+    )
+    completed_scenes = models.IntegerField(
+        default=0, validators=[MinValueValidator(0)], verbose_name=_("已完成场景数")
+    )
+
+    # 时间戳（继承自 TimeStampedModel，提供 created_at 和 updated_at）
+    started_at = models.DateTimeField(null=True, blank=True, verbose_name=_("开始时间"))
+    completed_at = models.DateTimeField(null=True, blank=True, verbose_name=_("完成时间"))
+
+    # 错误处理
+    error_message = models.TextField(blank=True, verbose_name=_("错误信息"))
+
+    # Celery 任务关联
+    celery_task_id = models.UUIDField(
+        null=True,
+        blank=True,
+        verbose_name=_("Celery任务ID"),
+        help_text=_("关联的 Celery 异步任务ID"),
+    )
+
+    # 软删除支持 (WARN-003)
+    is_deleted = models.BooleanField(
+        default=False, verbose_name=_("已删除"), help_text=_("标记为已删除，实现软删除")
+    )
+    deleted_at = models.DateTimeField(null=True, blank=True, verbose_name=_("删除时间"))
+
+    class Meta:
+        db_table = "chapter_workflows"
+        verbose_name = _("章节工作流")
+        verbose_name_plural = _("章节工作流")
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["workflow_id"]),
+            models.Index(fields=["chapter", "-created_at"]),
+            models.Index(fields=["status"]),
+        ]
+
+    def __str__(self):
+        return f"{self.chapter.title} - {self.get_status_display()}"
+
+    def start(self) -> "ChapterWorkflow":
+        """启动工作流"""
+        self.status = self.Status.RUNNING
+        self.started_at = timezone.now()
+        self.save(update_fields=["status", "started_at"])
+
+        # 记录启动事件
+        WorkflowEvent.objects.create(
+            workflow=self,
+            event_type=WorkflowEvent.EventType.WORKFLOW_STARTED,
+            message=_("工作流启动"),
+        )
+
+        return self
+
+    def pause(self) -> "ChapterWorkflow":
+        """暂停工作流"""
+        if self.status != self.Status.RUNNING:
+            raise ValueError(_("只有运行中的工作流可以暂停"))
+        self.status = self.Status.PAUSED
+        self.save(update_fields=["status"])
+
+        WorkflowEvent.objects.create(
+            workflow=self,
+            event_type=WorkflowEvent.EventType.WORKFLOW_PAUSED,
+            message=_("工作流暂停"),
+        )
+
+        return self
+
+    def resume(self) -> "ChapterWorkflow":
+        """恢复工作流"""
+        if self.status != self.Status.PAUSED:
+            raise ValueError(_("只有暂停的工作流可以恢复"))
+        self.status = self.Status.RUNNING
+        self.save(update_fields=["status"])
+
+        WorkflowEvent.objects.create(
+            workflow=self,
+            event_type=WorkflowEvent.EventType.WORKFLOW_RESUMED,
+            message=_("工作流恢复"),
+        )
+
+        return self
+
+    def complete(self) -> "ChapterWorkflow":
+        """完成工作流"""
+        self.status = self.Status.COMPLETED
+        self.completed_at = timezone.now()
+        self.progress_percentage = 100
+        self.save(update_fields=["status", "completed_at", "progress_percentage"])
+
+        WorkflowEvent.objects.create(
+            workflow=self,
+            event_type=WorkflowEvent.EventType.WORKFLOW_COMPLETED,
+            message=_("工作流完成"),
+        )
+
+        return self
+
+    def fail(self, error_message: str) -> "ChapterWorkflow":
+        """标记工作流失败"""
+        self.status = self.Status.FAILED
+        self.error_message = error_message
+        self.completed_at = timezone.now()
+        self.save(update_fields=["status", "error_message", "completed_at"])
+
+        WorkflowEvent.objects.create(
+            workflow=self,
+            event_type=WorkflowEvent.EventType.WORKFLOW_FAILED,
+            message=error_message,
+            metadata={"error": error_message},
+        )
+
+        return self
+
+    def update_progress(self, current_scene=None):
+        """更新处理进度"""
+        if current_scene:
+            self.current_scene = current_scene
+
+        # 计算进度
+        if self.total_scenes > 0:
+            self.progress_percentage = int((self.completed_scenes / self.total_scenes) * 100)
+        self.save(update_fields=["current_scene", "progress_percentage"])
+
+    @property
+    def elapsed_seconds(self):
+        """计算已用时长（秒）"""
+        if self.started_at:
+            end_time = self.completed_at or timezone.now()
+            return int((end_time - self.started_at).total_seconds())
+        return 0
+
+    @property
+    def is_active(self):
+        """是否为活动工作流"""
+        return (
+            self.status in [self.Status.PENDING, self.Status.RUNNING, self.Status.PAUSED]
+            and not self.is_deleted
+        )
+
+    def soft_delete(self):
+        """软删除工作流"""
+        if self.is_deleted:
+            raise ValueError(_("该工作流已被删除"))
+        self.is_deleted = True
+        self.deleted_at = timezone.now()
+        self.save(update_fields=["is_deleted", "deleted_at"])
+
+    def recover(self):
+        """恢复已软删除的工作流"""
+        if not self.is_deleted:
+            raise ValueError(_("该工作流未被删除"))
+        self.is_deleted = False
+        self.deleted_at = None
+        self.save(update_fields=["is_deleted", "deleted_at"])
+
+    def hard_delete(self):
+        """永久删除工作流（物理删除）"""
+        # Django 会级联删除关联的 events
+        self.delete()
+
+
+class WorkflowEvent(TimeStampedModel):
+    """
+    工作流事件记录 (WorkflowEvent)
+
+    记录工作流执行过程中的所有事件
+
+    职责:
+    - 记录工作流生命周期事件 (启动/暂停/恢复/完成/失败)
+    - 记录场景处理事件 (场景开始/场景完成/场景跳过)
+    - 存储事件元数据 (JSON格式)
+    - 支持事件追溯和调试
+
+    Story 12-1.1: 章节工作流数据模型
+    """
+
+    class EventType(models.TextChoices):
+        """事件类型枚举"""
+
+        # 工作流级别事件
+        WORKFLOW_STARTED = "workflow_started"
+        WORKFLOW_PAUSED = "workflow_paused"
+        WORKFLOW_RESUMED = "workflow_resumed"
+        WORKFLOW_COMPLETED = "workflow_completed"
+        WORKFLOW_FAILED = "workflow_failed"
+        WORKFLOW_CANCELLED = "workflow_cancelled"
+
+        # 场景级别事件
+        SCENE_STARTED = "scene_started"
+        SCENE_COMPLETED = "scene_completed"
+        SCENE_FAILED = "scene_failed"
+        SCENE_SKIPPED = "scene_skipped"
+
+        # 系统事件
+        TASK_RETRY = "task_retry"
+        TASK_TIMEOUT = "task_timeout"
+
+    # 关联工作流
+    workflow = models.ForeignKey(
+        ChapterWorkflow,
+        on_delete=models.CASCADE,
+        related_name="events",
+        verbose_name=_("所属工作流"),
+    )
+
+    # 事件信息
+    event_type = models.CharField(
+        max_length=50, choices=EventType.choices, verbose_name=_("事件类型")
+    )
+
+    # 使用基类的时间字段 (created_at/updated_at)，不额外定义 timestamp
+    message = models.TextField(verbose_name=_("事件消息"))
+
+    # 事件元数据 (JSON格式，存储额外上下文)
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name=_("元数据"),
+        help_text=_("事件的额外信息，如场景ID、错误详情等"),
+    )
+
+    # 关联场景 (可选，用于场景级别事件)
+    scene = models.ForeignKey(
+        "ScriptScene",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",  # 避免命名冲突
+        verbose_name=_("关联场景"),
+    )
+
+    # 事件级别 (用于过滤和排序)
+    SEVERITY_CHOICES = [
+        ("info", _("信息")),
+        ("warning", _("警告")),
+        ("error", _("错误")),
+        ("critical", _("严重")),
+    ]
+    severity = models.CharField(
+        max_length=20, choices=SEVERITY_CHOICES, default="info", verbose_name=_("严重级别")
+    )
+
+    # 软删除支持 (WARN-003)
+    is_deleted = models.BooleanField(
+        default=False, verbose_name=_("已删除"), help_text=_("标记为已删除，实现软删除")
+    )
+    deleted_at = models.DateTimeField(null=True, blank=True, verbose_name=_("删除时间"))
+
+    class Meta:
+        db_table = "workflow_events"
+        verbose_name = _("工作流事件")
+        verbose_name_plural = _("工作流事件")
+        # 使用基类的 created_at，不是自定义 timestamp
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["workflow", "-created_at"]),
+            models.Index(fields=["event_type"]),
+            models.Index(fields=["severity"]),
+            models.Index(fields=["is_deleted"]),  # 软删除查询优化
+        ]
+
+    def __str__(self):
+        return f"{self.get_event_type_display()}: {self.message[:50]}"
+
+    @classmethod
+    def log_scene_started(cls, workflow, scene) -> "WorkflowEvent":
+        """记录场景开始"""
+        return cls.objects.create(
+            workflow=workflow,
+            event_type=cls.EventType.SCENE_STARTED,
+            message=f"场景开始: {scene.scene_name}",
+            scene=scene,
+            severity="info",
+        )
+
+    @classmethod
+    def log_scene_completed(cls, workflow, scene) -> "WorkflowEvent":
+        """记录场景完成"""
+        return cls.objects.create(
+            workflow=workflow,
+            event_type=cls.EventType.SCENE_COMPLETED,
+            message=f"场景完成: {scene.scene_name}",
+            scene=scene,
+            severity="info",
+        )
+
+    @classmethod
+    def log_scene_failed(cls, workflow, scene, error_message: str) -> "WorkflowEvent":
+        """记录场景失败"""
+        return cls.objects.create(
+            workflow=workflow,
+            event_type=cls.EventType.SCENE_FAILED,
+            message=f"场景失败: {scene.scene_name}",
+            scene=scene,
+            severity="error",
+            metadata={"scene_id": scene.id, "error": error_message},
+        )
+
+    def soft_delete(self):
+        """软删除事件"""
+        if self.is_deleted:
+            raise ValueError(_("该事件已被删除"))
+        self.is_deleted = True
+        self.deleted_at = timezone.now()
+        self.save(update_fields=["is_deleted", "deleted_at"])
+
+    def recover(self):
+        """恢复已软删除的事件"""
+        if not self.is_deleted:
+            raise ValueError(_("该事件未被删除"))
+        self.is_deleted = False
+        self.deleted_at = None
+        self.save(update_fields=["is_deleted", "deleted_at"])
+
+    def hard_delete(self):
+        """永久删除事件（物理删除）"""
+        self.delete()
