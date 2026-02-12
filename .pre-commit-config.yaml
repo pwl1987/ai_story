@@ -1,0 +1,88 @@
+# Pre-commit 配置
+# Story 10.3/10.4: 代码质量保障
+
+repos:
+  # ==================== Ruff (Linter + Formatter) ====================
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.14
+    hooks:
+      # Linter
+      - id: ruff
+        name: Ruff Linter
+        args: [--fix, --exit-non-zero-on-fix]
+        types_or: [python, pyi, jupyter]
+
+      # Formatter
+      - id: ruff-format
+        name: Ruff Formatter
+        types_or: [python, pyi, jupyter]
+
+  # ==================== Black (备用 Formatter) ====================
+  - repo: https://github.com/psf/black-pre-commit-mirror
+    rev: 26.1.0
+    hooks:
+      - id: black
+        name: Black Formatter
+        language_version: python3.11
+
+  # ==================== Safety (安全检查) ====================
+  - repo: https://github.com/pyupio/safety
+    rev: 3.7.0
+    hooks:
+      - id: safety
+        name: Safety Security Check
+        args: [--short-report]
+        files: ^(requirements|pyproject|setup).*\.txt$
+
+  # ==================== 检查文件 ====================
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # 文件尾随空行
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+      # JSON/YAML 语法检查
+      - id: check-json
+      - id: check-yaml
+      - id: check-toml
+
+      # 大文件检测
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+
+      # 合并冲突
+      - id: check-merge-conflict
+
+      # 调试语句
+      - id: debug-statements
+
+      # 私密信息检测
+      - id: detect-private-key
+
+      # 可执行文件权限
+      - id: fix-byte-order-marker
+
+      # 混合行结尾
+      - id: mixed-line-ending
+
+      # UTF-8 编码
+      - id: check-ast
+      - id: check-case-conflict
+
+  # ==================== Pyright (类型检查) ====================
+  - repo: local
+    hooks:
+      - id: pyright
+        name: Pyright Type Checker
+        entry: pyright
+        language: system
+        types: [python]
+        pass_filenames: false
+        args: [
+          --stats,
+          --warnings,
+          --outputjson,
+          apps/artworks/services/
+          apps/artworks/views.py
+        ]

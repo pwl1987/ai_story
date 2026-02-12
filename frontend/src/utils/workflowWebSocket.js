@@ -113,18 +113,3 @@ export default class WorkflowWebSocket {
     ws.close();
   }
 }
-
-/**
- * 获取 WebSocket 连接 URL
- *
- * @param {number} chapterId - 章节 ID
- * @returns {string} WebSocket URL
- *
- * @deprecated 此函数已废弃，请直接从 @/config/api 导入 getWebSocketURL
- * 保留此处仅为向后兼容
- */
-export function getWebSocketURL(chapterId) {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const host = window.location.host;
-  return `${protocol}//${host}/ws/artworks/chapters/${chapterId}`;
-}
