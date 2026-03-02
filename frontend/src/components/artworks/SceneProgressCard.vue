@@ -33,7 +33,7 @@
 <template>
   <div
     class="scene-progress-card card bg-base-100 shadow-md"
-    :class="{ 'ring-2 ring-primary': isActive }"
+    :class="{ 'active-card': isActive }"
   >
     <figure class="px-4 pt-4">
       <!-- 首尾帧预览区域 -->
@@ -333,11 +333,11 @@ export default {
   @apply shadow-lg;
 }
 
-.scene-progress-card.ring-2 {
-  @apply -translate-y-1;
-  @apply shadow-lg;
-  @apply ring-2;
-  @apply ring-primary;
-  @apply ring-opacity-75;
+/* 活跃状态样式 - 避免循环依赖，直接使用 CSS 属性 */
+.scene-progress-card.active-card {
+  transform: translateY(-0.25rem);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  outline: 2px solid hsl(var(--p));
+  outline-offset: 2px;
 }
 </style>

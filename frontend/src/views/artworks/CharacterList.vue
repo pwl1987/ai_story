@@ -63,6 +63,18 @@
           </select>
         </div>
 
+        <!-- 查看作品详情按钮 (Epic 12 入口) -->
+        <button
+          v-if="filters.artwork"
+          class="btn btn-sm btn-primary"
+          @click="goToArtworkDetail"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+          作品详情
+        </button>
+
         <!-- 搜索 -->
         <div class="form-control">
           <div class="input-group">
@@ -392,6 +404,13 @@ export default {
     handleFilter() {
       this.pagination.page = 1;
       this.loadCharacters();
+    },
+
+    // Epic 12: 跳转到作品详情页（章节工作室入口）
+    goToArtworkDetail() {
+      if (this.filters.artwork) {
+        this.$router.push(`/artworks/${this.filters.artwork}`);
+      }
     },
 
     changePage(page) {

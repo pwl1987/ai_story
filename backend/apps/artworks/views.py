@@ -8,6 +8,7 @@
 - 批量操作
 """
 
+from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
@@ -17,6 +18,8 @@ from rest_framework.response import Response
 
 from .models import (
     Artwork,
+    Chapter,
+    ChapterWorkflow,
     CharacterPose,
     CharacterProfile,
     CharacterVoiceConfig,
@@ -29,6 +32,8 @@ from .models import (
 from .serializers import (
     ArtworkDetailSerializer,
     ArtworkSerializer,
+    ChapterSerializer,
+    ChapterWorkflowSerializer,
     CharacterPoseSerializer,
     CharacterProfileDetailSerializer,
     CharacterProfileSerializer,
@@ -84,6 +89,125 @@ class ArtworkViewSet(viewsets.ReadOnlyModelViewSet):
         items = artwork.items.all()
         serializer = ItemProfileSerializer(items, many=True)
         return Response(serializer.data)
+
+
+class ChapterViewSet(viewsets.ModelViewSet):
+    """
+    章节 API ViewSet (Story 12-4 工作流控制)
+
+    提供章节 CRUD 和工作流控制功能：
+
+    端点:
+    - GET /api/v1/artworks/chapters/ - 章节列表
+    - GET /api/v1/artworks/chapters/{id}/ - 章节详情
+    - POST /api/v1/artworks/chapters/{id}/start-workflow/ - 启动工作流
+    - POST /api/v1/artworks/chapters/{id}/pause-workflow/ - 暂停工作流
+    - POST /api/v1/artworks/chapters/{id}/resume-workflow/ - 继续工作流
+    - GET /api/v1/artworks/chapters/{id}/workflow-status/ - 查询工作流状态
+    """
+
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ["artwork", "is_completed"]
+    search_fields = ["title", "plot_summary"]
+    ordering_fields = ["chapter_number", "created_at"]
+    ordering = ["artwork", "chapter_number"]
+
+    def get_queryset(self):
+        """获取查询集"""
+        return Chapter.objects.select_related("artwork").prefetch_related("scenes")
+
+    def get_serializer_class(self):
+        """根据 action 返回序列化器"""
+        # 工作流相关 action 返回工作流序列化器
+        if self.action in ["start_workflow", "pause_workflow", "resume_workflow", "workflow_status"]:
+            return ChapterWorkflowSerializer
+        # 其他 action 使用章节序列化器
+        return ChapterSerializer
+
+    @action(detail=True, methods=["post"])
+    def start_workflow(self, request, pk=None):
+        """
+        启动章节工作流
+
+        POST /api/v1/artworks/chapters/{id}/start-workflow/
+
+        Returns:
+            202: 工作流已启动，返回工作流 ID
+            400: 业务规则验证失败（已有运行中工作流、无场景）
+        """
+        chapter = self.get_object()
+        from .services.workflow_command import WorkflowCommandService
+
+        service = WorkflowCommandService(chapter)
+        try:
+            result = service.start()
+            return Response(result, status=status.HTTP_202_ACCEPTED)
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=["post"])
+    def pause_workflow(self, request, pk=None):
+        """
+        暂停运行中的工作流
+
+        POST /api/v1/artworks/chapters/{id}/pause-workflow/
+
+        Returns:
+            200: 工作流已暂停
+            400: 没有运行中的工作流
+        """
+        chapter = self.get_object()
+        from .services.workflow_command import WorkflowCommandService
+
+        service = WorkflowCommandService(chapter)
+        try:
+            result = service.pause()
+            return Response(result, status=status.HTTP_200_OK)
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=["post"])
+    def resume_workflow(self, request, pk=None):
+        """
+        恢复暂停的工作流
+
+        POST /api/v1/artworks/chapters/{id}/resume-workflow/
+
+        Returns:
+            202: 工作流已恢复，返回工作流 ID
+            400: 没有暂停的工作流
+        """
+        chapter = self.get_object()
+        from .services.workflow_command import WorkflowCommandService
+
+        service = WorkflowCommandService(chapter)
+        try:
+            result = service.resume()
+            return Response(result, status=status.HTTP_202_ACCEPTED)
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=["get"])
+    def workflow_status(self, request, pk=None):
+        """
+        查询章节工作流状态
+
+        GET /api/v1/artworks/chapters/{id}/workflow-status/
+
+        Returns:
+            200: 工作流状态详情
+            404: 没有找到工作流
+        """
+        chapter = self.get_object()
+        from .services.workflow_command import WorkflowCommandService
+
+        service = WorkflowCommandService(chapter)
+        try:
+            result = service.get_status()
+            return Response(result, status=status.HTTP_200_OK)
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
 
 
 class CharacterProfileViewSet(viewsets.ModelViewSet):

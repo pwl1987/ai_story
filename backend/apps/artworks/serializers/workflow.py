@@ -6,7 +6,31 @@
 
 from rest_framework import serializers
 
-from apps.artworks.models import ChapterWorkflow, WorkflowEvent
+from apps.artworks.models import ChapterWorkflow, WorkflowEvent, Chapter
+
+
+class ChapterSerializer(serializers.ModelSerializer):
+    """
+    章节序列化器 (Story 12-4)
+
+    用于章节列表和详情的基础序列化器
+    """
+
+    class Meta:
+        model = Chapter
+        fields = [
+            "id",
+            "artwork",
+            "chapter_number",
+            "title",
+            "original_text",
+            "plot_summary",
+            "character_mentions",
+            "scene_count",
+            "is_completed",
+            "created_at",
+            "updated_at",
+        ]
 
 
 class ChapterWorkflowSerializer(serializers.ModelSerializer):
@@ -16,7 +40,7 @@ class ChapterWorkflowSerializer(serializers.ModelSerializer):
     序列化 ChapterWorkflow 模型，包含状态显示和进度信息
     """
 
-    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    status_display = serializers.CharField(source="get_workflow_status_display", read_only=True)
     current_scene_title = serializers.CharField(source="current_scene.scene_name", read_only=True, allow_null=True)
     chapter_title = serializers.CharField(source="chapter.title", read_only=True)
     elapsed_seconds = serializers.ReadOnlyField()

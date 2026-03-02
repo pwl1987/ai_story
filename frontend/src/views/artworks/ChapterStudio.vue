@@ -7,7 +7,7 @@
         <div class="text-sm breadcrumbs mb-2">
           <ul>
             <li><router-link to="/artworks">角色资产</router-link></li>
-            <li><router-link :to="`/artworks/${chapter.artwork_id}`">作品详情</router-link></li>
+            <li><router-link :to="`/artworks/${chapter?.artwork_id}`">作品详情</router-link></li>
             <li>{{ chapter?.title }} - 章节工作室</li>
           </ul>
         </div>
@@ -17,39 +17,43 @@
         </p>
       </div>
 
+      <!-- 加载状态 -->
+      <div v-if="isLoading" class="flex justify-center py-12">
+        <span class="loading loading-spinner loading-lg"></span>
+      </div>
+
+      <!-- 错误状态 -->
+      <div v-else-if="hasLoadError" class="alert alert-error mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>加载失败: {{ loadError?.message }}</span>
+        <button class="btn btn-sm" @click="handleErrorRetry">重试</button>
+      </div>
+
       <!-- 主内容 -->
       <template v-else>
-        <!-- 错误边界包裹（P1-错误处理优化） -->
-        <ErrorBoundary
-          :can-retry="true"
-          :can-dismiss="true"
-          :dismiss-text="'关闭'"
-          @retry="handleErrorRetry"
-          @dismiss="handleErrorDismiss"
-        >
-          <!-- 工作流控制面板 -->
-          <WorkflowControlPanel
-            :status="workflowStatus"
-            :progress="workflowProgress"
-            :current-scene="currentSceneData"
-            :total-scenes="chapter ? scenes.length : 0"
-            :completed-scenes="completedScenesCount"
-            :is-loading="isLoading"
-            @start="handleStartWorkflow"
-            @pause="handlePauseWorkflow"
-            @resume="handleResumeWorkflow"
-            @retry="handleRetryWorkflow"
-            class="mb-6"
-          />
+        <!-- 工作流控制面板 -->
+        <WorkflowControlPanel
+          :status="workflowStatus"
+          :progress="workflowProgress"
+          :current-scene="currentSceneData"
+          :total-scenes="chapter ? scenes.length : 0"
+          :completed-scenes="completedScenesCount"
+          :is-loading="isLoading"
+          @start="handleStartWorkflow"
+          @pause="handlePauseWorkflow"
+          @resume="handleResumeWorkflow"
+          @retry="handleRetryWorkflow"
+          class="mb-6"
+        />
 
         <!-- 场景网格 -->
-        <div v-else class="mt-6">
-          <div
-            <div class="flex justify-between items-center mb-4">
-              <h2 class="text-xl font-semibold">场景列表</h2>
-              <span v-if="chapter">({{ chapter.title }})</span>
-              <span v-else>章节详情加载中...</span>
-            </div>
+        <div class="mt-6">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">场景列表</h2>
+            <span v-if="chapter">({{ chapter.title }})</span>
+            <span v-else>章节详情加载中...</span>
             <button
               v-if="workflowStatus !== 'completed'"
               class="btn btn-sm btn-ghost"
@@ -59,14 +63,9 @@
             </button>
           </div>
 
-          <!-- 加载状态 -->
-          <div v-if="isLoading" class="flex justify-center py-12">
-            <span class="loading loading-spinner loading-lg"></span>
-          </div>
-
-          <!-- 空状态 -->
+          <!-- 有场景 -->
           <div
-            v-else-if="chapter && scenes.length > 0"
+            v-if="chapter && scenes.length > 0"
             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
           >
             <SceneProgressCard
@@ -86,7 +85,7 @@
             class="flex flex-col items-center justify-center py-20 bg-base-200 rounded-lg"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 19.197-2M7 19.4V3 19.197-2m7 19.4h.01M7 19.4V3 19.197-2m7 19.4h.01M7 19.4V3 19.197-2m7 19.4h.01M7 19.4V3 19.197-2z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h4m10 0h4M3 16h4m10 0h4" />
             </svg>
             <h3 class="text-xl font-semibold mb-2">该章节还没有场景</h3>
             <p class="text-base-content/60 mb-4">请先添加场景，然后再启动工作流</p>
@@ -94,18 +93,17 @@
               前往分镜编辑器
             </button>
           </div>
-        </template>
-      </div>
+        </div>
 
-      <!-- 工作流事件日志 -->
-      <WorkflowEventLog
-        v-if="showEventLog"
-        :events="workflowEvents"
-        class="mt-6"
-      />
-        </ErrorBoundary>
-      </div>
-    </Layout>
+        <!-- 工作流事件日志 -->
+        <WorkflowEventLog
+          v-if="showEventLog"
+          :events="workflowEvents"
+          class="mt-6"
+        />
+      </template>
+    </div>
+  </Layout>
 </template>
 
 <script>
@@ -114,7 +112,6 @@ import Layout from '@/views/Layout.vue';
 import WorkflowControlPanel from '@/components/artworks/WorkflowControlPanel.vue';
 import SceneProgressCard from '@/components/artworks/SceneProgressCard.vue';
 import WorkflowEventLog from '@/components/artworks/WorkflowEventLog.vue';
-import ErrorBoundary from '@/components/common/ErrorBoundary.vue';
 import chaptersApi from '@/services/api/chapters';
 import WorkflowWebSocket from '@/utils/workflowWebSocket';
 
@@ -125,7 +122,6 @@ export default {
     WorkflowControlPanel,
     SceneProgressCard,
     WorkflowEventLog,
-    ErrorBoundary,
   },
   data() {
     return {
@@ -303,7 +299,7 @@ export default {
       }
     },
 
-    handleStartWorkflow() {
+    async handleStartWorkflow() {
       try {
         await this.startWorkflow(this.chapterId);
         this.$message.success('工作流已启动');
@@ -400,6 +396,24 @@ export default {
       // 重置状态
       this.$store.dispatch('workflow/resetState');
     },
+  },
+  created() {
+    // 从路由参数获取 chapterId 和 artworkId
+    this.chapterId = this.$route.params.chapterId;
+    this.artworkId = this.$route.params.artworkId;
+
+    if (!this.chapterId) {
+      this.$message.error('缺少章节ID参数');
+      this.$router.back();
+      return;
+    }
+
+    // 加载章节数据
+    this.loadChapterData();
+  },
+  mounted() {
+    // 建立 WebSocket 连接
+    this.setupWebSocket();
   },
   beforeDestroy() {
     this.cleanup();

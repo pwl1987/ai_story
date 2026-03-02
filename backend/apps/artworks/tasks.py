@@ -27,6 +27,7 @@ from core.ai_client.ollama_client import OllamaClient
 from core.redis import RedisStreamPublisher
 
 from .models import (
+    ChapterWorkflow,
     CharacterPose,
     CharacterProfile,
     CharacterVoiceConfig,
@@ -1458,3 +1459,14 @@ def scene_processor_health_check() -> Dict[str, Any]:
             "healthy": False,
             "error": str(e)
         }
+
+
+# =============================================================================
+# 工作流控制任务别名 (Story 12-4)
+# =============================================================================
+
+# 为 WorkflowCommandService 提供统一的任务接口
+# start_chapter_workflow_task 和 resume_chapter_workflow_task 都指向同一个处理函数
+# 区别在于调用场景：启动新工作流 vs 恢复暂停的工作流
+start_chapter_workflow_task = process_chapter_workflow
+resume_chapter_workflow_task = process_chapter_workflow

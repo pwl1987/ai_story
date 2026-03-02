@@ -74,7 +74,7 @@ class TestWorkflowControlAPI(APITransactionTestCase):
         mock_task.id = str(uuid.uuid4())
         mock_delay.return_value = mock_task
 
-        response = self.client.post(f"/api/v1/artworks/chapters/{self.chapter.id}/start-workflow/")
+        response = self.client.post(f"/api/v1/artworks/chapters/{self.chapter.id}/start_workflow/")
 
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         self.assertIn("workflow_id", response.data)
@@ -96,10 +96,16 @@ class TestWorkflowControlAPI(APITransactionTestCase):
         mock_task.id = str(uuid.uuid4())
         mock_delay.return_value = mock_task
 
-        self.client.post(f"/api/v1/artworks/chapters/{self.chapter.id}/start-workflow/")
+        response = self.client.post(f"/api/v1/artworks/chapters/{self.chapter.id}/start_workflow/")
 
+        # 从响应中获取 workflow_id 并查询工作流
+        workflow_id = response.data.get("workflow_id")
+        self.assertIsNotNone(workflow_id)
+
+        # 刷新并查询事件
         event = WorkflowEvent.objects.filter(
-            event_type=WorkflowEvent.EventType.WORKFLOW_STARTED
+            event_type=WorkflowEvent.EventType.WORKFLOW_STARTED,
+            workflow__workflow_id=workflow_id
         ).first()
         self.assertIsNotNone(event)
         self.assertEqual(event.message, "工作流已启动")
@@ -113,7 +119,7 @@ class TestWorkflowControlAPI(APITransactionTestCase):
             status=ChapterWorkflow.Status.RUNNING.value
         )
 
-        response = self.client.post(f"/api/v1/artworks/chapters/{self.chapter.id}/start-workflow/")
+        response = self.client.post(f"/api/v1/artworks/chapters/{self.chapter.id}/start_workflow/")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("已有运行中的工作流", response.data["error"])
@@ -143,7 +149,7 @@ class TestWorkflowControlAPI(APITransactionTestCase):
             status=ChapterWorkflow.Status.RUNNING.value
         )
 
-        response = self.client.post(f"/api/v1/artworks/chapters/{self.chapter.id}/pause-workflow/")
+        response = self.client.post(f"/api/v1/artworks/chapters/{self.chapter.id}/pause_workflow/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         workflow.refresh_from_db()
@@ -151,7 +157,7 @@ class TestWorkflowControlAPI(APITransactionTestCase):
 
     def test_pause_workflow_fails_with_no_running_workflow(self):
         """测试无运行中工作流时暂停失败"""
-        response = self.client.post(f"/api/v1/artworks/chapters/{self.chapter.id}/pause-workflow/")
+        response = self.client.post(f"/api/v1/artworks/chapters/{self.chapter.id}/pause_workflow/")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("没有运行中的工作流", response.data["error"])
@@ -172,7 +178,7 @@ class TestWorkflowControlAPI(APITransactionTestCase):
             status=ChapterWorkflow.Status.PAUSED.value
         )
 
-        response = self.client.post(f"/api/v1/artworks/chapters/{self.chapter.id}/resume-workflow/")
+        response = self.client.post(f"/api/v1/artworks/chapters/{self.chapter.id}/resume_workflow/")
 
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         workflow.refresh_from_db()
@@ -182,7 +188,7 @@ class TestWorkflowControlAPI(APITransactionTestCase):
     @patch("apps.artworks.tasks.resume_chapter_workflow_task.delay")
     def test_resume_workflow_fails_with_no_paused_workflow(self, mock_delay):
         """测试无暂停工作流时继续失败"""
-        response = self.client.post(f"/api/v1/artworks/chapters/{self.chapter.id}/resume-workflow/")
+        response = self.client.post(f"/api/v1/artworks/chapters/{self.chapter.id}/resume_workflow/")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("没有暂停的工作流", response.data["error"])
@@ -201,7 +207,7 @@ class TestWorkflowControlAPI(APITransactionTestCase):
             status=ChapterWorkflow.Status.RUNNING.value
         )
 
-        response = self.client.get(f"/api/v1/artworks/chapters/{self.chapter.id}/workflow-status/")
+        response = self.client.get(f"/api/v1/artworks/chapters/{self.chapter.id}/workflow_status/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["workflow_id"], str(new_workflow.workflow_id))
@@ -214,7 +220,7 @@ class TestWorkflowControlAPI(APITransactionTestCase):
             status=ChapterWorkflow.Status.RUNNING.value
         )
 
-        response = self.client.get(f"/api/v1/artworks/chapters/{self.chapter.id}/workflow-status/")
+        response = self.client.get(f"/api/v1/artworks/chapters/{self.chapter.id}/workflow_status/")
 
         self.assertIn("status_display", response.data)
         self.assertEqual(response.data["status_display"], "运行中")
@@ -226,7 +232,7 @@ class TestWorkflowControlAPI(APITransactionTestCase):
         """测试未认证用户无法访问 API"""
         self.client.force_authenticate(user=None)
 
-        response = self.client.post(f"/api/v1/artworks/chapters/{self.chapter.id}/start-workflow/")
+        response = self.client.post(f"/api/v1/artworks/chapters/{self.chapter.id}/start_workflow/")
 
         # 未认证用户应返回 401 或 403
         self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])

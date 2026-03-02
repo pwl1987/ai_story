@@ -6,7 +6,7 @@
 Story 12-4 修复 - P2-1
 """
 
-from .workflow import ChapterWorkflowSerializer, WorkflowEventSerializer
+from .workflow import ChapterWorkflowSerializer, WorkflowEventSerializer, ChapterSerializer
 from .scene import (
     ScriptSceneSerializer,
     ShotSerializer,

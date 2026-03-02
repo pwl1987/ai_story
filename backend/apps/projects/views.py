@@ -20,6 +20,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .models import Project, ProjectModelConfig, ProjectStage, ProjectTemplate
+from apps.artworks.models import Artwork
 from .serializers import (
     ProjectCreateSerializer,
     ProjectDetailSerializer,
@@ -69,8 +70,21 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return ProjectDetailSerializer
 
     def perform_create(self, serializer):
-        """创建项目时自动设置当前用户"""
-        serializer.save(user=self.request.user)
+        """创建项目时自动设置当前用户，并创建关联的 Artwork"""
+        # 保存项目
+        project = serializer.save(user=self.request.user)
+
+        # 创建关联的 Artwork (Epic 12: Project与Artwork合一)
+        artwork = Artwork.objects.create(
+            title=project.name,
+            author=self.request.user.username,
+            artwork_type="novel",
+            story_overview=project.description or project.original_topic[:500] if project.original_topic else "",
+        )
+
+        # 关联 Artwork 到 Project
+        project.artwork = artwork
+        project.save(update_fields=["artwork"])
 
     def perform_destroy(self, instance):
         """删除项目前检查状态"""

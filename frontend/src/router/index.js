@@ -165,6 +165,12 @@ const routes = [
         meta: { title: '角色列表' },
       },
       {
+        path: ':artworkId',
+        name: 'ArtworkDetail',
+        component: () => import('@/views/artworks/ArtworkDetail.vue'),
+        meta: { title: '作品详情' },
+      },
+      {
         path: ':artworkId/characters',
         name: 'CharacterListByArtwork',
         component: () => import('@/views/artworks/CharacterList.vue'),
@@ -175,6 +181,13 @@ const routes = [
         name: 'StoryboardEditor',
         component: () => import('@/views/artworks/StoryboardEditor.vue'),
         meta: { title: '分镜编辑器' },
+      },
+      // Epic 12: 章节工作室
+      {
+        path: ':artworkId/chapters/:chapterId/studio',
+        name: 'ChapterStudio',
+        component: () => import('@/views/artworks/ChapterStudio.vue'),
+        meta: { title: '章节工作室' },
       },
     ],
   },

@@ -13,6 +13,33 @@
         </div>
       </div>
 
+      <!-- Epic 12: 章节/作品快捷入口 -->
+      <div class="bg-base-100 rounded-lg shadow-sm p-6 mb-4">
+        <div class="flex justify-between items-center">
+          <div>
+            <h2 class="text-lg font-bold">章节工作室</h2>
+            <p class="text-sm text-base-content/60">管理章节工作流、场景处理进度</p>
+          </div>
+          <div class="flex gap-2 items-center">
+            <!-- 有关联作品时直接跳转 -->
+            <router-link
+              v-if="project.artwork_id"
+              :to="`/artworks/${project.artwork_id}`"
+              class="btn btn-primary btn-sm"
+            >
+              进入章节工作室
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </router-link>
+            <!-- 无关联作品时显示提示 -->
+            <span v-else class="text-sm text-base-content/60">
+              暂无关联作品
+            </span>
+          </div>
+        </div>
+      </div>
+
       <!-- 进度显示区域 -->
       <div class="bg-base-100 rounded-lg shadow-sm p-6 mb-4">
         <div class="flex justify-between items-center mb-4">

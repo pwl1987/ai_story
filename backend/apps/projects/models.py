@@ -55,6 +55,17 @@ class Project(models.Model):
         help_text="项目使用的AI调用代理配置",
     )
 
+    # 关联作品 (Epic 12: Project与Artwork合一)
+    artwork = models.OneToOneField(
+        "artworks.Artwork",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="关联作品",
+        related_name="project",
+        help_text="项目关联的作品，包含章节和角色",
+    )
+
     # 所有者
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, verbose_name="创建者", related_name="projects"

@@ -271,8 +271,20 @@ class ScriptScene(TimeStampedModel):
     weather = models.CharField(max_length=50, blank=True, verbose_name=_("天气"))
 
     # 首尾帧 (用于转场)
-    head_frame = models.ImageField(upload_to="scenes/heads/", blank=True, verbose_name=_("首帧"))
-    tail_frame = models.ImageField(upload_to="scenes/tails/", blank=True, verbose_name=_("尾帧"))
+    head_frame = models.ImageField(
+        upload_to="scenes/frames/head/%Y/%m/%d/",
+        blank=True,
+        null=True,
+        help_text="场景第一个镜头的预览图，用于转场和快速预览",
+        verbose_name=_("首帧预览")
+    )
+    tail_frame = models.ImageField(
+        upload_to="scenes/frames/tail/%Y/%m/%d/",
+        blank=True,
+        null=True,
+        help_text="场景最后一个镜头的预览图，用于转场和快速预览",
+        verbose_name=_("尾帧预览")
+    )
 
     # 转场配置
     transition_to_next = models.ForeignKey(
@@ -1322,8 +1334,22 @@ class ChapterWorkflow(TimeStampedModel):
             models.Index(fields=["status"]),
         ]
 
-    def __str__(self):
-        return f"{self.chapter.title} - {self.get_status_display()}"
+    def get_workflow_status_display(self) -> str:
+        """
+        获取工作流状态的中文显示名称
+
+        使用 Django 的 get_FOO_display() 模式获取字段显示值，
+        添加异常处理确保健壮性。重命名方法避免与 Django 自动生成的方法冲突。
+
+        Returns:
+            str: 状态的中文显示名称，如果字段不存在则返回默认值
+        """
+        try:
+            # 使用 Django 的字段显示机制，避免硬编码映射
+            return self._meta.get_field("status").display(self.status)
+        except (AttributeError, KeyError):
+            # 如果字段不存在或状态值无效，返回安全的默认值
+            return "运行中"
 
     def start(self) -> "ChapterWorkflow":
         """启动工作流"""
@@ -1442,6 +1468,22 @@ class ChapterWorkflow(TimeStampedModel):
         self.is_deleted = False
         self.deleted_at = None
         self.save(update_fields=["is_deleted", "deleted_at"])
+
+    @classmethod
+    def get_latest_for_chapter(cls, chapter_id):
+        """
+        获取章节的最新工作流 (Story 12-4)
+
+        Args:
+            chapter_id: 章节 ID
+
+        Returns:
+            ChapterWorkflow 实例或 None
+        """
+        return cls.objects.filter(
+            chapter_id=chapter_id,
+            is_deleted=False
+        ).order_by("-created_at").first()
 
     def hard_delete(self):
         """永久删除工作流（物理删除）"""

@@ -115,6 +115,9 @@ class ProjectListSerializer(serializers.ModelSerializer):
     prompt_set_name = serializers.CharField(source="prompt_template_set.name", read_only=True)
     proxy_name = serializers.CharField(source="proxy_config.name", read_only=True, allow_null=True)
 
+    # Epic 12: 关联作品ID
+    artwork_id = serializers.PrimaryKeyRelatedField(source="artwork.id", read_only=True, allow_null=True)
+
     # 统计信息
     stages_count = serializers.SerializerMethodField()
     completed_stages_count = serializers.SerializerMethodField()
@@ -123,6 +126,7 @@ class ProjectListSerializer(serializers.ModelSerializer):
         model = Project
         fields = [
             "id",
+            "artwork_id",
             "name",
             "description",
             "original_topic",
@@ -157,6 +161,9 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     prompt_set_name = serializers.CharField(source="prompt_template_set.name", read_only=True)
     proxy_name = serializers.CharField(source="proxy_config.name", read_only=True, allow_null=True)
 
+    # Epic 12: 关联作品ID
+    artwork_id = serializers.PrimaryKeyRelatedField(source="artwork.id", read_only=True, allow_null=True)
+
     # 嵌套序列化
     stages = ProjectStageSerializer(many=True, read_only=True)
     model_config = ProjectModelConfigSerializer(read_only=True)
@@ -172,6 +179,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "name",
+            "artwork_id",
             "description",
             "original_topic",
             "status",

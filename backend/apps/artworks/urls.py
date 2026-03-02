@@ -10,6 +10,7 @@ from rest_framework.routers import DefaultRouter
 from .batch_views import BatchGenerationViewSet
 from .views import (
     ArtworkViewSet,
+    ChapterViewSet,
     CharacterPoseViewSet,
     CharacterProfileViewSet,
     CharacterVoiceConfigViewSet,
@@ -26,6 +27,7 @@ app_name = "artworks"
 
 router = DefaultRouter()
 router.register(r"artworks", ArtworkViewSet, basename="artwork")
+router.register(r"chapters", ChapterViewSet, basename="chapter")
 router.register(r"characters", CharacterProfileViewSet, basename="character")
 router.register(r"poses", CharacterPoseViewSet, basename="pose")
 router.register(r"voice-configs", CharacterVoiceConfigViewSet, basename="voice-config")
